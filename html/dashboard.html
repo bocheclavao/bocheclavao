@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boche Clava'o - Panel Principal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra Superior (Navbar) */
+        .navbar {
+            background: #0a0a0a;
+            border-bottom: 1px solid #222;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .navbar-logo {
+            max-width: 40px;
+            height: auto;
+            border: 1px solid #ffffff;
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .navbar-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #FFD700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-email {
+            color: #999;
+            font-size: 0.85rem;
+            display: none; /* Oculto en móviles muy pequeños */
+        }
+
+        .btn-logout {
+            background: transparent;
+            color: #FFD700;
+            border: 1px solid #FFD700;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-family: 'Montserrat', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-logout:hover {
+            background: #FFD700;
+            color: #000;
+        }
+
+        .btn-logout:active {
+            transform: scale(0.95);
+        }
+
+        /* Contenido Principal */
+        .main-content {
+            flex: 1;
+            padding: 30px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .loading-container {
+            text-align: center;
+            margin-top: 50px;
+            color: #FFD700;
+            font-size: 1.2rem;
+        }
+
+        .welcome-card {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .welcome-title span {
+            color: #FFD700;
+        }
+
+        .welcome-text {
+            color: #999;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Tarjetas de prueba (para ir editando poco a poco) */
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-card {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            border-color: #FFD700;
+            transform: translateY(-5px);
+        }
+
+        .info-card i {
+            font-size: 2rem;
+            color: #FFD700;
+            margin-bottom: 15px;
+        }
+
+        .info-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .info-card p {
+            color: #999;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* 📱 OPTIMIZACIÓN PARA CELULARES */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .navbar-brand {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .navbar-user {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .user-email {
+                display: block;
+                font-size: 0.8rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 60%;
+            }
+
+            .welcome-title {
+                font-size: 1.6rem;
+            }
+
+            .main-content {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Superior -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
+            <span class="navbar-title">Boche Clava'o</span>
+        </div>
+        <div class="navbar-user">
+            <span id="userEmailDisplay" class="user-email">Cargando...</span>
+            <button class="btn-logout" onclick="cerrarSesion()">
+                <i class="fas fa-sign-out-alt"></i> Salir
+            </button>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="main-content">
+        
+        <!-- Estado de carga -->
+        <div id="loadingState" class="loading-container">
+            <i class="fas fa-circle-notch fa-spin"></i> Verificando acceso...
+        </div>
+
+        <!-- Contenido real (oculto hasta que cargue) -->
+        <div id="contentState" style="display: none;">
+            
+            <div class="welcome-card">
+                <h1 class="welcome-title">¡Bienvenido, <span id="userNameDisplay">Usuario</span>! 👋</h1>
+                <p class="welcome-text">
+                    Has iniciado sesión correctamente. Este es tu panel de control. 
+                    Aquí iremos agregando las funcionalidades de tu plataforma poco a poco.
+                </p>
+            </div>
+
+            <!-- Tarjetas de prueba -->
+            <div class="grid-cards">
+                <div class="info-card">
+                    <i class="fas fa-user-shield"></i>
+                    <h3>Cuenta Segura</h3>
+                    <p>Tu sesión está protegida y es única en este dispositivo.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Próximamente</h3>
+                    <p>Aquí agregaremos tus estadísticas y actividad reciente.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-cog"></i>
+                    <h3>Configuración</h3>
+                    <p>Muy pronto podrás editar tu perfil y preferencias desde aquí.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Estado de error -->
+        <div id="errorState" style="display: none; text-align: center; color: #ff4444; margin-top: 50px;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px;"></i>
+            <p>No se pudo cargar la información.</p>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/dashboard.js"></script>
+</body>
+</html>
