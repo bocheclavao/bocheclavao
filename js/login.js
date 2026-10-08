@@ -1,6 +1,7 @@
 const loginForm = document.getElementById('loginForm');
 const messageDiv = document.getElementById('message');
 
+// Login con email y contraseña
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -16,9 +17,8 @@ loginForm.addEventListener('submit', async (e) => {
         });
         
         if (error) {
-            // Mensajes más amigables
             if (error.message.includes('Email not confirmed')) {
-                showMessage('Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.', 'error');
+                showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
             } else if (error.message.includes('Invalid login credentials')) {
                 showMessage('Correo o contraseña incorrectos.', 'error');
             } else {
@@ -27,7 +27,6 @@ loginForm.addEventListener('submit', async (e) => {
             return;
         }
         
-        // Verificar que el email esté confirmado
         if (data.user && !data.user.email_confirmed_at) {
             await supabase.auth.signOut();
             showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
@@ -44,6 +43,24 @@ loginForm.addEventListener('submit', async (e) => {
         showMessage('Error inesperado: ' + err.message, 'error');
     }
 });
+
+// Login con Google
+async function loginWithGoogle() {
+    try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin + '/html/dashboard.html'
+            }
+        });
+        
+        if (error) {
+            showMessage('Error al iniciar sesión con Google: ' + error.message, 'error');
+        }
+    } catch (err) {
+        showMessage('Error inesperado: ' + err.message, 'error');
+    }
+}
 
 function showMessage(text, type) {
     messageDiv.textContent = text;
