@@ -1,5 +1,3 @@
-// Ya no necesita las credenciales, usa el config.js global
-
 const loginForm = document.getElementById('loginForm');
 const messageDiv = document.getElementById('message');
 
@@ -18,7 +16,21 @@ loginForm.addEventListener('submit', async (e) => {
         });
         
         if (error) {
-            showMessage('Error: ' + error.message, 'error');
+            // Mensajes más amigables
+            if (error.message.includes('Email not confirmed')) {
+                showMessage('Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.', 'error');
+            } else if (error.message.includes('Invalid login credentials')) {
+                showMessage('Correo o contraseña incorrectos.', 'error');
+            } else {
+                showMessage('Error: ' + error.message, 'error');
+            }
+            return;
+        }
+        
+        // Verificar que el email esté confirmado
+        if (data.user && !data.user.email_confirmed_at) {
+            await supabase.auth.signOut();
+            showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
             return;
         }
         
