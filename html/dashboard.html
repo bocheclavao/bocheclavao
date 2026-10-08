@@ -37,13 +37,13 @@
             gap: 12px;
         }
 
-        .navbar-logo {
-            max-width: 40px;
-            height: auto;
-            border: 1px solid #ffffff;
-            border-radius: 6px;
-            padding: 2px;
-        }
+      .navbar-logo {
+    max-width: 40px;
+    height: auto;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
 
         .navbar-title {
             font-size: 1.2rem;
@@ -170,41 +170,114 @@
             line-height: 1.5;
         }
 
-        /* 📱 OPTIMIZACIÓN PARA CELULARES */
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                gap: 15px;
-                padding: 15px;
-            }
+      /* 📱 OPTIMIZACIÓN PARA CELULARES */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: row;
+        gap: 10px;
+        padding: 12px 15px;
+        flex-wrap: wrap;
+    }
 
-            .navbar-brand {
-                width: 100%;
-                justify-content: center;
-            }
+    .navbar-brand {
+        width: auto;
+        justify-content: flex-start;
+        flex: 1;
+    }
 
-            .navbar-user {
-                width: 100%;
-                justify-content: space-between;
-            }
+    .navbar-logo {
+        max-width: 35px;
+    }
 
-            .user-email {
-                display: block;
-                font-size: 0.8rem;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                max-width: 60%;
-            }
+    .navbar-title {
+        font-size: 1rem;
+        letter-spacing: 1px;
+    }
 
-            .welcome-title {
-                font-size: 1.6rem;
-            }
+    .navbar-user {
+        width: auto;
+        justify-content: flex-end;
+        gap: 10px;
+    }
 
-            .main-content {
-                padding: 20px 15px;
-            }
-        }
+    .user-email {
+        display: none; /* Ocultamos el email en móviles para no saturar */
+    }
+
+    .btn-logout {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+
+    .main-content {
+        padding: 20px 15px;
+    }
+
+    .welcome-card {
+        padding: 20px;
+    }
+
+    .welcome-title {
+        font-size: 1.5rem;
+    }
+
+    .welcome-text {
+        font-size: 0.9rem;
+    }
+
+    .grid-cards {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .info-card {
+        padding: 20px;
+    }
+
+    .info-card i {
+        font-size: 1.8rem;
+    }
+
+    .info-card h3 {
+        font-size: 1.1rem;
+    }
+
+    .info-card p {
+        font-size: 0.85rem;
+    }
+}
+
+/* 📱 Celulares muy pequeños */
+@media (max-width: 480px) {
+    .navbar {
+        padding: 10px 12px;
+    }
+
+    .navbar-logo {
+        max-width: 30px;
+    }
+
+    .navbar-title {
+        font-size: 0.9rem;
+    }
+
+    .btn-logout {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+    }
+
+    .welcome-title {
+        font-size: 1.3rem;
+    }
+
+    .welcome-card {
+        padding: 18px;
+    }
+
+    .main-content {
+        padding: 15px 12px;
+    }
+}
     </style>
 </head>
 <body>
