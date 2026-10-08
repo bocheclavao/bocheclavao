@@ -1,8 +1,4 @@
-// ⚠️ IMPORTANTE: Reemplaza con tus credenciales de Supabase
-const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-const SUPABASE_ANON_KEY = 'tu-anon-key-aqui';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Ya no necesita las credenciales, usa el config.js global
 
 const loginForm = document.getElementById('loginForm');
 const messageDiv = document.getElementById('message');
@@ -29,8 +25,7 @@ loginForm.addEventListener('submit', async (e) => {
         showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
         
         setTimeout(() => {
-            // window.location.href = '../dashboard.html';
-            alert('¡Bienvenido a Boche Clava\'o!');
+            window.location.href = APP_CONFIG.REDIRECT_AFTER_LOGIN;
         }, 1500);
         
     } catch (err) {
@@ -46,7 +41,7 @@ function showMessage(text, type) {
 async function checkSession() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-        // window.location.href = '../dashboard.html';
+        window.location.href = APP_CONFIG.REDIRECT_AFTER_LOGIN;
     }
 }
 
