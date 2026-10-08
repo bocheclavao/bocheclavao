@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boche Clava'o - Confirma tu correo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 80px;
+            margin-bottom: 15px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo-container h1 {
+            color: #FFD700;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(255, 215, 0, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .card {
+            background: rgba(26, 26, 26, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .card p {
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .email-highlight {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        .instructions {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid #FFD700;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .instructions ol {
+            color: #ffffff;
+            line-height: 1.8;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .warning {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid #FFA500;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #FFA500;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 25px;
+            }
+            
+            .logo-container h1 {
+                font-size: 2rem;
+            }
+
+            .icon {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <div class="logo">🍺</div>
+            <h1>Boche Clava'o</h1>
+        </div>
+
+        <div class="card">
+            <div class="icon">📧</div>
+            <h2>¡Confirma tu correo!</h2>
+            <p>Te hemos enviado un enlace de confirmación a:</p>
+            <p class="email-highlight" id="userEmail">tu@email.com</p>
+            
+            <div class="instructions">
+                <ol>
+                    <li>Abre tu bandeja de entrada</li>
+                    <li>Busca el correo de <strong>Boche Clava'o</strong></li>
+                    <li>Haz clic en el enlace de confirmación</li>
+                    <li>Vuelve aquí e inicia sesión</li>
+                </ol>
+            </div>
+
+            <p>¿No ves el correo? Revisa tu carpeta de spam o promociones.</p>
+
+            <button class="btn-primary" onclick="window.location.href='login.html'">
+                Ir al Login
+            </button>
+
+            <div class="warning">
+                ⚠️ <strong>Importante:</strong> Sin confirmar tu correo no podrás iniciar sesión.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mostrar el email del usuario si está guardado
+        const email = localStorage.getItem('registro_email');
+        if (email) {
+            document.getElementById('userEmail').textContent = email;
+        }
+    </script>
+</body>
+</html>
