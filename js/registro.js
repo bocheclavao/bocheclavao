@@ -27,43 +27,51 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 1. Función para mostrar/ocultar contraseña (Global para el HTML)
-    window.togglePassword = function(inputId, icon) {
+    // 1. Función global para mostrar/ocultar contraseña (Ojito)
+    window.togglePassword = function(inputId, iconElement) {
         const input = document.getElementById(inputId);
+        if (!input || !iconElement) return;
+        
         if (input.type === 'password') {
             input.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
+            iconElement.classList.remove('fa-eye');
+            iconElement.classList.add('fa-eye-slash');
         } else {
             input.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
+            iconElement.classList.remove('fa-eye-slash');
+            iconElement.classList.add('fa-eye');
         }
     };
 
-    // 2. Validación en tiempo real de los requisitos de la contraseña
+    // 2. Validación en tiempo real de los requisitos (Se pone verde al escribir)
     if (passwordInput) {
         passwordInput.addEventListener('input', function() {
             const val = this.value;
+            
+            // Mínimo 8 caracteres
             updateRequirement('req-length', val.length >= 8);
+            // Al menos una letra
             updateRequirement('req-letter', /[a-zA-Z]/.test(val));
+            // Al menos un número
             updateRequirement('req-number', /[0-9]/.test(val));
-            updateRequirement('req-special', /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val));
+            // Al menos un carácter especial (cualquier cosa que NO sea letra o número)
+            updateRequirement('req-special', /[^a-zA-Z0-9]/.test(val));
         });
     }
 
     function updateRequirement(id, isValid) {
         const li = document.getElementById(id);
         if (!li) return;
+        
         const icon = li.querySelector('i');
         if (isValid) {
             li.classList.remove('req-invalid');
             li.classList.add('req-valid');
-            icon.className = 'fas fa-check-circle';
+            if (icon) icon.className = 'fas fa-check-circle';
         } else {
             li.classList.remove('req-valid');
             li.classList.add('req-invalid');
-            icon.className = 'fas fa-circle';
+            if (icon) icon.className = 'fas fa-circle';
         }
     }
 
@@ -89,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Validación estricta de contraseña
+            // Validación estricta de seguridad antes de enviar
             if (password.length < 8) {
                 showMessage('La contraseña debe tener al menos 8 caracteres', 'error');
                 return;
@@ -102,15 +110,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('La contraseña debe tener al menos un número', 'error');
                 return;
             }
-            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-                showMessage('La contraseña debe tener al menos un carácter especial (!@#$%...)', 'error');
+            if (!/[^a-zA-Z0-9]/.test(password)) {
+                showMessage('La contraseña debe tener al menos un carácter especial', 'error');
                 return;
             }
             
             showMessage('Enviando código de verificación...', 'info');
             
             try {
-                // Usamos signUp estándar. Si OTP está activado en Supabase, enviará el código.
                 const { data, error } = await db.auth.signUp({
                     email: email,
                     password: password,
@@ -126,13 +133,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Si llega aquí, pasamos al paso 2
                 emailRegistrado = email;
                 emailDisplay.textContent = email;
                 
                 step1.style.display = 'none';
                 step2.style.display = 'block';
-                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y la carpeta de Spam).', 'success');
+                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y Spam).', 'success');
                 
                 setTimeout(() => otpInput.focus(), 100);
                 
@@ -157,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Verificando código...', 'info');
             
             try {
-                // Verificar el código OTP tipo 'signup'
                 const { data, error } = await db.auth.verifyOtp({
                     email: emailRegistrado,
                     token: code,
@@ -181,11 +186,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Función para volver al paso 1 si se equivocó de correo
+    // Función para volver al paso 1
     window.volverAlPaso1 = function() {
         step2.style.display = 'none';
         step1.style.display = 'block';
         if (otpInput) otpInput.value = '';
-        showMessage('', 'info'); // Limpiar mensajes
+        showMessage('', 'info');
     };
 });
