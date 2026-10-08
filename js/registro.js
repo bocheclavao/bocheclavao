@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function() {
             updateRequirement('req-length', val.length >= 8);
             updateRequirement('req-letter', /[a-zA-Z]/.test(val));
             updateRequirement('req-number', /[0-9]/.test(val));
-            // Caracteres especiales estándar
             updateRequirement('req-special', /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val));
         });
     }
@@ -72,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. PASO 1: Registro
+    // 3. PASO 1: Registro con validación de correo existente
     if (registroForm) {
         registroForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -82,8 +81,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
-            console.log("🔍 Iniciando validación para:", email);
-
             if (password !== confirmPassword) {
                 showMessage('Las contraseñas no coinciden', 'error');
                 return;
@@ -106,10 +103,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            console.log("✅ Validaciones pasadas. Enviando solicitud a Supabase...");
-            showMessage('Enviando código de verificación...', 'info');
+            showMessage('Verificando correo...', 'info');
             
             try {
+                // Primero verificamos si el correo ya existe
+                const { data: existingUser, error: checkError } = await db
+                    .from('usuarios')
+                    .select('id')
+                    .eq('email', email)
+                    .single();
+                
+                if (existingUser) {
+                    // El correo ya está registrado
+                    showMessage('Este correo ya está registrado. Si no puedes acceder, usa "Recuperar contraseña" en el login.', 'error');
+                    return;
+                }
+                
+                // Si no existe, procedemos con el registro
+                showMessage('Enviando código de verificación...', 'info');
+                
                 const { data, error } = await db.auth.signUp({
                     email: email,
                     password: password,
@@ -118,11 +130,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
-                console.log("📩 Respuesta de Supabase:", { data, error });
-
                 if (error) {
-                    console.error("❌ Error de Supabase:", error.message);
-                    showMessage('Error: ' + error.message, 'error');
+                    // Manejo específico de errores
+                    if (error.message.includes('already registered')) {
+                        showMessage('Este correo ya está registrado. Si no puedes acceder, usa "Recuperar contraseña" en el login.', 'error');
+                    } else {
+                        showMessage('Error: ' + error.message, 'error');
+                    }
                     return;
                 }
                 
@@ -131,12 +145,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 step1.style.display = 'none';
                 step2.style.display = 'block';
-                showMessage('Código enviado. Revisa tu correo (y la carpeta de Spam).', 'success');
+                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y la carpeta de Spam).', 'success');
                 
                 setTimeout(() => otpInput.focus(), 100);
                 
             } catch (err) {
-                console.error("❌ Error inesperado:", err);
+                console.error('Error:', err);
                 showMessage('Error inesperado: ' + err.message, 'error');
             }
         });
