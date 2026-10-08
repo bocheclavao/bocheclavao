@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 step1.style.display = 'none';
                 step2.style.display = 'block';
-                showMessage('Código de 6 dígitos enviado. Revisa tu correo.', 'success');
+                showMessage('Código de 6 dígitos enviado. Revisa tu correo. recuerda revisar en Spam', 'success');
                 
                 // Auto-focus en el input del código
                 setTimeout(() => otpInput.focus(), 100);
