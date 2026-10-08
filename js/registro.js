@@ -1,5 +1,3 @@
-// Ya no necesita las credenciales, usa el config.js global
-
 const registroForm = document.getElementById('registroForm');
 const messageDiv = document.getElementById('message');
 
@@ -39,14 +37,11 @@ registroForm.addEventListener('submit', async (e) => {
             return;
         }
         
-        if (data.user && !data.session) {
-            showMessage('¡Cuenta creada! Revisa tu correo para confirmar.', 'success');
-        } else {
-            showMessage('¡Cuenta creada exitosamente! Redirigiendo...', 'success');
-            setTimeout(() => {
-                window.location.href = APP_CONFIG.REDIRECT_AFTER_REGISTER;
-            }, 2000);
-        }
+        // Guardar email en localStorage para mostrarlo en la página de confirmación
+        localStorage.setItem('registro_email', email);
+        
+        // Redirigir a página de confirmación
+        window.location.href = 'confirmar-email.html';
         
     } catch (err) {
         showMessage('Error inesperado: ' + err.message, 'error');
