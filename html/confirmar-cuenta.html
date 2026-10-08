@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boche Clava'o - Confirmando cuenta</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .logo-container {
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 80px;
+            margin-bottom: 15px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo-container h1 {
+            color: #FFD700;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(255, 215, 0, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .card {
+            background: rgba(26, 26, 26, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+        }
+
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .card p {
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .error {
+            color: #ff4444;
+        }
+
+        .success {
+            color: #00ff00;
+        }
+
+        .loading {
+            color: #FFD700;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 25px;
+            }
+            
+            .logo-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <div class="logo">🍺</div>
+            <h1>Boche Clava'o</h1>
+        </div>
+
+        <div class="card">
+            <div class="icon" id="statusIcon">⏳</div>
+            <h2 id="statusTitle">Confirmando tu cuenta...</h2>
+            <p id="statusMessage">Por favor espera un momento.</p>
+            <button id="loginBtn" class="btn-primary" style="display: none;" onclick="window.location.href='login.html'">
+                Ir al Login
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script>
+        async function confirmarCuenta() {
+            const statusIcon = document.getElementById('statusIcon');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMessage = document.getElementById('statusMessage');
+            const loginBtn = document.getElementById('loginBtn');
+
+            try {
+                // Supabase procesa automáticamente el token de confirmación de la URL
+                const { data, error } = await supabase.auth.getSession();
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data.session) {
+                    // Éxito
+                    statusIcon.textContent = '✅';
+                    statusTitle.textContent = '¡Cuenta confirmada!';
+                    statusTitle.className = 'success';
+                    statusMessage.textContent = 'Tu correo ha sido verificado exitosamente. Ya puedes iniciar sesión.';
+                    loginBtn.style.display = 'block';
+                } else {
+                    throw new Error('No se pudo confirmar la cuenta');
+                }
+
+            } catch (err) {
+                // Error
+                statusIcon.textContent = '❌';
+                statusTitle.textContent = 'Error al confirmar';
+                statusTitle.className = 'error';
+                statusMessage.textContent = 'El enlace de confirmación es inválido o ha expirado. Solicita uno nuevo.';
+                loginBtn.style.display = 'block';
+                loginBtn.textContent = 'Ir al Login';
+            }
+        }
+
+        confirmarCuenta();
+    </script>
+</body>
+</html>
