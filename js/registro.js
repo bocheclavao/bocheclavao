@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const db = window.supabaseClient;
     let emailRegistrado = '';
+    let nombreRegistrado = '';
 
     if (!db) {
         console.error('❌ No se pudo obtener el cliente de Supabase');
@@ -33,12 +34,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // PASO 1: Registrar usuario y enviar código
+    // PASO 1: Registrar usuario y enviar código OTP
     if (registroForm) {
         registroForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const nombre = document.getElementById('nombre').value;
+            nombreRegistrado = document.getElementById('nombre').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
@@ -56,13 +57,14 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Enviando código de verificación...', 'info');
             
             try {
-                // signUp crea el usuario y envía el código si el OTP está configurado
-                const { data, error } = await db.auth.signUp({
+                // Usar signInWithOtp con shouldCreateUser para crear usuario y enviar código
+                const { data, error } = await db.auth.signInWithOtp({
                     email: email,
-                    password: password,
                     options: {
+                        shouldCreateUser: true,
                         data: {
-                            nombre: nombre
+                            nombre: nombreRegistrado,
+                            password: password // Guardamos la contraseña en metadata temporalmente
                         }
                     }
                 });
@@ -78,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 step1.style.display = 'none';
                 step2.style.display = 'block';
-                showMessage('Código enviado. Revisa tu bandeja de entrada.', 'success');
+                showMessage('Código de 6 dígitos enviado. Revisa tu correo.', 'success');
                 
                 // Auto-focus en el input del código
                 setTimeout(() => otpInput.focus(), 100);
@@ -89,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // PASO 2: Verificar el código OTP
+    // PASO 2: Verificar el código OTP y crear usuario con contraseña
     if (otpForm) {
         otpForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -104,16 +106,26 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Verificando código...', 'info');
             
             try {
-                // verifyOtp confirma la cuenta con el código
+                // Verificar el código OTP
                 const { data, error } = await db.auth.verifyOtp({
                     email: emailRegistrado,
                     token: code,
-                    type: 'email_signup'
+                    type: 'email'
                 });
                 
                 if (error) {
                     showMessage('Código inválido o expirado: ' + error.message, 'error');
                     return;
+                }
+                
+                // El usuario ya está creado y verificado
+                // Ahora actualizamos la contraseña (porque signInWithOtp no la guarda)
+                const { error: updateError } = await db.auth.updateUser({
+                    password: document.getElementById('password').value
+                });
+                
+                if (updateError) {
+                    console.warn('No se pudo actualizar la contraseña:', updateError.message);
                 }
                 
                 showMessage('✅ ¡Cuenta verificada exitosamente! Redirigiendo...', 'success');
