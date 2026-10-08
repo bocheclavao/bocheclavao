@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boche Clava'o - Casino VIP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boche Clava'o - Iniciar Sesión</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,17 +15,17 @@
 
         body {
             font-family: 'Montserrat', sans-serif;
-            background: #0a0a0a;
+            background: #000000;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #ffffff;
-            overflow: hidden;
+            overflow-x: hidden;
             position: relative;
         }
 
-        /* Fondo con efecto de casino */
+        /* Fondo negro con animaciones sutiles */
         body::before {
             content: '';
             position: absolute;
@@ -34,131 +34,83 @@
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 85% 30%, rgba(255, 165, 0, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 50% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
+                radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%);
             z-index: 0;
         }
 
-        /* Fichas flotantes decorativas */
-        .chip {
+        /* Líneas decorativas animadas */
+        .line-decoration {
             position: absolute;
+            background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.1), transparent);
+            width: 1px;
+            height: 100%;
+            animation: lineMove 8s ease-in-out infinite;
+        }
+
+        .line-1 { left: 10%; animation-delay: 0s; }
+        .line-2 { left: 30%; animation-delay: 2s; }
+        .line-3 { right: 30%; animation-delay: 4s; }
+        .line-4 { right: 10%; animation-delay: 6s; }
+
+        @keyframes lineMove {
+            0%, 100% { opacity: 0.3; transform: translateY(0); }
+            50% { opacity: 0.7; transform: translateY(-20px); }
+        }
+
+        /* Puntos dorados flotantes */
+        .dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #FFD700;
             border-radius: 50%;
-            opacity: 0.15;
-            animation: float 6s ease-in-out infinite;
+            opacity: 0.3;
+            animation: dotFloat 6s ease-in-out infinite;
         }
 
-        .chip-1 {
-            width: 80px;
-            height: 80px;
-            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
-            top: 10%;
-            left: 10%;
-            animation-delay: 0s;
-        }
+        .dot-1 { top: 20%; left: 15%; animation-delay: 0s; }
+        .dot-2 { top: 40%; right: 20%; animation-delay: 1s; }
+        .dot-3 { bottom: 30%; left: 25%; animation-delay: 2s; }
+        .dot-4 { bottom: 20%; right: 15%; animation-delay: 3s; }
 
-        .chip-2 {
-            width: 60px;
-            height: 60px;
-            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
-            top: 20%;
-            right: 15%;
-            animation-delay: 1s;
-        }
-
-        .chip-3 {
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
-            bottom: 15%;
-            left: 20%;
-            animation-delay: 2s;
-        }
-
-        .chip-4 {
-            width: 70px;
-            height: 70px;
-            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
-            bottom: 25%;
-            right: 10%;
-            animation-delay: 3s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(180deg); }
-        }
-
-        /* Cartas decorativas */
-        .card-decoration {
-            position: absolute;
-            font-size: 60px;
-            opacity: 0.1;
-            animation: floatCard 8s ease-in-out infinite;
-        }
-
-        .card-1 {
-            top: 15%;
-            left: 5%;
-            animation-delay: 0s;
-        }
-
-        .card-2 {
-            bottom: 20%;
-            right: 8%;
-            animation-delay: 2s;
-        }
-
-        @keyframes floatCard {
-            0%, 100% { transform: translateY(0) rotate(-5deg); }
-            50% { transform: translateY(-15px) rotate(5deg); }
+        @keyframes dotFloat {
+            0%, 100% { transform: translateY(0); opacity: 0.3; }
+            50% { transform: translateY(-30px); opacity: 0.6; }
         }
 
         .container {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1000px;
             padding: 20px;
             position: relative;
             z-index: 1;
         }
 
-        /* Logo superior */
+        /* Logo superior institucional */
         .logo-container {
             text-align: center;
             margin-bottom: 40px;
         }
 
-        .logo-icon {
-            font-size: 60px;
-            margin-bottom: 10px;
-            animation: pulse 2s ease-in-out infinite;
+        .logo-main {
+            max-width: 120px;
+            height: auto;
+            margin-bottom: 15px;
+            animation: logoAppear 1s ease-out;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+        @keyframes logoAppear {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .logo-text {
-            font-family: 'Playfair Display', serif;
-            font-size: 3rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
-        }
-
-        .logo-subtitle {
+        .brand-name {
+            font-size: 1.8rem;
+            font-weight: 800;
             color: #FFD700;
-            font-size: 0.9rem;
-            letter-spacing: 6px;
+            letter-spacing: 3px;
             text-transform: uppercase;
-            margin-top: 5px;
-            font-weight: 600;
         }
 
         /* Contenido principal */
@@ -167,68 +119,40 @@
             grid-template-columns: 1fr 1fr;
             gap: 60px;
             align-items: center;
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
-        /* Lado izquierdo - Texto promocional */
+        /* Lado izquierdo - Información */
         .left-side {
             text-align: left;
         }
 
-        .promo-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #000;
-            padding: 10px 25px;
-            border-radius: 25px;
-            font-size: 0.85rem;
+        .welcome-text {
+            font-size: 2.5rem;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
-        }
-
-        .main-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 4.5rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1;
+            line-height: 1.2;
             margin-bottom: 20px;
-            text-transform: uppercase;
+            color: #ffffff;
         }
 
-        .subtitle {
-            font-size: 1.8rem;
+        .welcome-text span {
             color: #FFD700;
-            font-weight: 700;
-            margin-bottom: 25px;
-            font-style: italic;
         }
 
-        .promo-text {
-            color: #cccccc;
+        .description {
+            color: #999;
             font-size: 1rem;
             line-height: 1.8;
             margin-bottom: 30px;
         }
 
-        .promo-text strong {
-            color: #FFD700;
-        }
-
-        .features {
+        .features-list {
             list-style: none;
-            margin-top: 30px;
         }
 
-        .features li {
-            color: #ffffff;
+        .features-list li {
+            color: #cccccc;
             font-size: 0.95rem;
             margin-bottom: 15px;
             display: flex;
@@ -236,149 +160,118 @@
             gap: 12px;
         }
 
-        .features li i {
+        .features-list li i {
             color: #FFD700;
-            font-size: 1.2rem;
+            font-size: 1rem;
+            width: 20px;
         }
 
-        /* Lado derecho - Tarjeta de login */
+        /* Lado derecho - Formulario */
         .right-side {
             display: flex;
             justify-content: center;
         }
 
         .login-card {
-            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-            border: 2px solid #FFD700;
-            border-radius: 20px;
-            padding: 45px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 35px;
             width: 100%;
-            max-width: 420px;
-            box-shadow: 0 15px 50px rgba(255, 215, 0, 0.2);
-            position: relative;
-            overflow: hidden;
+            max-width: 380px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
-
-        .login-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%); }
-            100% { transform: translateX(100%) translateY(100%); }
-        }
-
-        .login-card-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .card-header {
-            text-align: center;
-            margin-bottom: 35px;
-       }
 
         .card-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.2rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .card-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .form-group input {
             width: 100%;
-            padding: 16px 20px;
-            background: rgba(255, 215, 0, 0.05);
-            border: 2px solid #333;
-            border-radius: 10px;
+            padding: 14px 16px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
             color: #ffffff;
             font-size: 1rem;
             font-family: 'Montserrat', sans-serif;
             transition: all 0.3s ease;
+            -webkit-appearance: none;
         }
 
         .form-group input:focus {
             outline: none;
             border-color: #FFD700;
-            background: rgba(255, 215, 0, 0.1);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            background: #1a1a1a;
         }
 
         .form-group input::placeholder {
             color: #666;
         }
 
-        .btn-container {
-            display: flex;
-            gap: 12px;
-            margin-top: 25px;
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password a {
+            color: #FFD700;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: #FFA500;
+            text-decoration: underline;
         }
 
         .btn-primary {
-            flex: 1;
-            padding: 16px;
+            width: 100%;
+            padding: 14px;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             color: #000;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 1rem;
-            font-weight: 900;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
             font-family: 'Montserrat', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
         }
 
-        .btn-secondary {
-            flex: 1;
-            padding: 16px;
-            background: transparent;
-            color: #FFD700;
-            border: 2px solid #FFD700;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 900;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 215, 0, 0.1);
-            transform: translateY(-3px);
+        .btn-primary:active {
+            transform: scale(0.98);
         }
 
         .divider {
             text-align: center;
-            margin: 30px 0;
+            margin: 20px 0;
             color: #666;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             position: relative;
-            font-weight: 600;
         }
 
         .divider::before,
@@ -386,73 +279,71 @@
             content: '';
             position: absolute;
             top: 50%;
-            width: 35%;
+            width: 40%;
             height: 1px;
-            background: linear-gradient(to right, transparent, #333, transparent);
+            background: #333;
         }
 
-        .divider::before {
-            left: 0;
-        }
-
-        .divider::after {
-            right: 0;
-        }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
 
         .btn-google {
             width: 100%;
-            padding: 16px;
+            padding: 14px;
             background: #ffffff;
             color: #333;
             border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 700;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             font-family: 'Montserrat', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-google:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-google:active {
+            transform: scale(0.98);
         }
 
         .btn-google img {
-            width: 22px;
-            height: 22px;
+            width: 20px;
+            height: 20px;
         }
 
-        .social-icons {
-            display: flex;
-            justify-content: center;
-            gap: 25px;
-            margin-top: 35px;
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9rem;
         }
 
-        .social-icons a {
+        .register-link a {
             color: #FFD700;
-            font-size: 1.5rem;
-            transition: all 0.3s ease;
+            text-decoration: none;
+            font-weight: 600;
         }
 
-        .social-icons a:hover {
-            color: #FFA500;
-            transform: translateY(-5px);
+        .register-link a:hover {
+            text-decoration: underline;
         }
 
         .message {
-            margin-top: 20px;
-            padding: 14px;
-            border-radius: 10px;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
             text-align: center;
             display: none;
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-size: 0.85rem;
         }
 
         .message.success {
@@ -476,132 +367,204 @@
             display: block;
         }
 
-        /* Responsive */
-        @media (max-width: 968px) {
+        /* 📱 OPTIMIZACIÓN PARA CELULARES */
+        @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
-                gap: 40px;
+                gap: 30px;
             }
 
             .left-side {
                 text-align: center;
-            }
-
-            .main-title {
-                font-size: 3rem;
-            }
-
-            .subtitle {
-                font-size: 1.5rem;
-            }
-
-            .features {
-                display: inline-block;
-                text-align: left;
+                display: none; /* Ocultamos el lado izquierdo en móviles para enfocar el login */
             }
 
             .login-card {
-                padding: 35px 25px;
+                padding: 30px 25px;
+                max-width: 100%;
+            }
+
+            .logo-main {
+                max-width: 100px;
+            }
+
+            .brand-name {
+                font-size: 1.5rem;
+                letter-spacing: 2px;
+            }
+
+            .card-title {
+                font-size: 1.5rem;
+            }
+
+            .card-subtitle {
+                font-size: 0.85rem;
+            }
+
+            .form-group input {
+                padding: 13px 15px;
+            }
+
+            .btn-primary,
+            .btn-google {
+                padding: 14px;
             }
         }
 
         @media (max-width: 480px) {
-            .logo-text {
-                font-size: 2rem;
+            body {
+                padding: 15px;
+                align-items: flex-start;
+                padding-top: 8vh;
             }
 
-            .main-title {
-                font-size: 2.5rem;
+            .container {
+                padding: 15px;
             }
 
-            .btn-container {
-                flex-direction: column;
+            .logo-container {
+                margin-bottom: 30px;
+            }
+
+            .logo-main {
+                max-width: 90px;
+            }
+
+            .brand-name {
+                font-size: 1.3rem;
+                letter-spacing: 2px;
+            }
+
+            .login-card {
+                padding: 25px 20px;
+            }
+
+            .card-title {
+                font-size: 1.4rem;
+            }
+
+            .card-subtitle {
+                font-size: 0.8rem;
+                margin-bottom: 20px;
+            }
+
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            .form-group input {
+                padding: 12px 14px;
+                font-size: 1rem;
+            }
+
+            .forgot-password {
+                margin-bottom: 18px;
+            }
+
+            .forgot-password a {
+                font-size: 0.8rem;
+            }
+
+            .btn-primary,
+            .btn-google {
+                padding: 13px;
+                font-size: 0.95rem;
+            }
+
+            .divider {
+                margin: 18px 0;
+                font-size: 0.8rem;
+            }
+
+            .register-link {
+                font-size: 0.85rem;
+                margin-top: 18px;
+            }
+
+            .message {
+                font-size: 0.8rem;
+                padding: 10px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Elementos decorativos de casino -->
-    <div class="chip chip-1"></div>
-    <div class="chip chip-2"></div>
-    <div class="chip chip-3"></div>
-    <div class="chip chip-4"></div>
-    <div class="card-decoration card-1">🂡</div>
-    <div class="card-decoration card-2">🂱</div>
+    <!-- Decoraciones animadas -->
+    <div class="line-decoration line-1"></div>
+    <div class="line-decoration line-2"></div>
+    <div class="line-decoration line-3"></div>
+    <div class="line-decoration line-4"></div>
+    <div class="dot dot-1"></div>
+    <div class="dot dot-2"></div>
+    <div class="dot dot-3"></div>
+    <div class="dot dot-4"></div>
 
     <div class="container">
-        <!-- Logo superior -->
+        <!-- Logo -->
         <div class="logo-container">
-            <div class="logo-icon"></div>
-            <h1 class="logo-text">Boche Clava'o</h1>
-            <p class="logo-subtitle">Casino VIP</p>
+            <img src="../img/logo.png" alt="Boche Clava'o" class="logo-main">
+            <h1 class="brand-name">Boche Clava'o</h1>
         </div>
 
         <!-- Contenido principal -->
         <div class="main-content">
-            <!-- Lado izquierdo - Promoción -->
+            <!-- Lado izquierdo -->
             <div class="left-side">
-                <div class="promo-badge">🎰 Exclusivo</div>
-                <h1 class="main-title">Tu<br>Suerte<br>Empieza</h1>
-                <h2 class="subtitle">Aquí y Ahora</h2>
-                <p class="promo-text">
-                    Únete al casino más exclusivo. <strong>Apuestas en vivo</strong>, 
-                    <strong>jackpots millonarios</strong> y las mejores probabilidades del mercado.
+                <h2 class="welcome-text">
+                    Bienvenido a tu<br>
+                    <span>plataforma</span> de confianza
+                </h2>
+                <p class="description">
+                    Accede a tu cuenta y disfruta de todos nuestros servicios exclusivos con la seguridad que mereces.
                 </p>
-                <ul class="features">
-                    <li><i class="fas fa-check-circle"></i> Apuestas deportivas en tiempo real</li>
-                    <li><i class="fas fa-check-circle"></i> Casino en vivo con dealers reales</li>
-                    <li><i class="fas fa-check-circle"></i> Retiros instantáneos 24/7</li>
-                    <li><i class="fas fa-check-circle"></i> Bonos exclusivos para VIP</li>
+                <ul class="features-list">
+                    <li><i class="fas fa-shield-alt"></i> Seguridad garantizada</li>
+                    <li><i class="fas fa-bolt"></i> Acceso instantáneo</li>
+                    <li><i class="fas fa-headset"></i> Soporte 24/7</li>
+                    <li><i class="fas fa-star"></i> Experiencia premium</li>
                 </ul>
             </div>
 
             <!-- Lado derecho - Login -->
             <div class="right-side">
                 <div class="login-card">
-                    <div class="login-card-content">
-                        <div class="card-header">
-                          <img src="../img/logo.png" alt="Logo" class="vip-logo">
-                            <h2 class="card-title">Iniciar Sesión</h2>
-                        </div>
-                        
-                        <form id="loginForm">
-                            <div class="form-group">
-                                <input type="email" id="email" required placeholder="Correo electrónico">
-                            </div>
-
-                            <div class="form-group">
-                                <input type="password" id="password" required placeholder="Contraseña">
-                            </div>
-
-                            <div class="btn-container">
-                                <button type="submit" class="btn-primary">Entrar</button>
-                                <button type="button" class="btn-secondary" onclick="window.location.href='registro.html'">Registro</button>
-                            </div>
-                        </form>
-
-                        <div class="divider">o continúa con</div>
-
-                        <button class="btn-google" onclick="loginWithGoogle()">
-                            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
-                            Google
-                        </button>
-
-                        <div class="social-icons">
-                            <a href="#"><i class="fab fa-instagram"></i></a>
-                            <a href="#"><i class="fab fa-facebook"></i></a>
-                            <a href="#"><i class="fab fa-twitter"></i></a>
-                            <a href="#"><i class="fab fa-telegram"></i></a>
+                    <h2 class="card-title">Iniciar Sesión</h2>
+                    <p class="card-subtitle">Ingresa tus credenciales para continuar</p>
+                    
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <input type="email" id="email" required placeholder="Correo electrónico">
                         </div>
 
-                        <div id="message" class="message"></div>
+                        <div class="form-group">
+                            <input type="password" id="password" required placeholder="Contraseña">
+                        </div>
+
+                        <div class="forgot-password">
+                            <a href="#" onclick="mostrarRecuperarContrasena()">¿Olvidaste tu contraseña?</a>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Ingresar</button>
+                    </form>
+
+                    <div class="divider">o continúa con</div>
+
+                    <button class="btn-google" onclick="loginWithGoogle()">
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
+                        Google
+                    </button>
+
+                    <div class="register-link">
+                        ¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a>
                     </div>
+
+                    <div id="message" class="message"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts: ORDEN IMPORTANTE -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
     <script src="../js/login.js"></script>
