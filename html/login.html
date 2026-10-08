@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boche Clava'o - Iniciar Sesión</title>
+    <title>Boche Clava'o - Casino VIP</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,18 +14,18 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Montserrat', sans-serif;
             background: #0a0a0a;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #ffffff;
-            overflow-x: hidden;
+            overflow: hidden;
             position: relative;
         }
 
-        /* Fondo decorativo con serpentinas doradas */
+        /* Fondo con efecto de casino */
         body::before {
             content: '';
             position: absolute;
@@ -33,146 +34,277 @@
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(circle at 20% 30%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(255, 165, 0, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(255, 165, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
             z-index: 0;
+        }
+
+        /* Fichas flotantes decorativas */
+        .chip {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.15;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .chip-1 {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .chip-2 {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+            top: 20%;
+            right: 15%;
+            animation-delay: 1s;
+        }
+
+        .chip-3 {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+            bottom: 15%;
+            left: 20%;
+            animation-delay: 2s;
+        }
+
+        .chip-4 {
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+            bottom: 25%;
+            right: 10%;
+            animation-delay: 3s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        /* Cartas decorativas */
+        .card-decoration {
+            position: absolute;
+            font-size: 60px;
+            opacity: 0.1;
+            animation: floatCard 8s ease-in-out infinite;
+        }
+
+        .card-1 {
+            top: 15%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+
+        .card-2 {
+            bottom: 20%;
+            right: 8%;
+            animation-delay: 2s;
+        }
+
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
         }
 
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1100px;
             padding: 20px;
             position: relative;
             z-index: 1;
         }
 
-        /* Menú superior */
-        .navbar {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 30px;
-            margin-bottom: 50px;
-            flex-wrap: wrap;
+        /* Logo superior */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 40px;
         }
 
-        .navbar a {
-            color: #FFD700;
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
+        .logo-icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 4px;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
         }
 
-        .navbar a:hover {
-            color: #FFA500;
-            transform: translateY(-2px);
-        }
-
-        .search-box {
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid #FFD700;
-            border-radius: 20px;
-            padding: 8px 20px;
+        .logo-subtitle {
             color: #FFD700;
             font-size: 0.9rem;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-top: 5px;
+            font-weight: 600;
         }
 
         /* Contenido principal */
         .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 50px;
+            gap: 60px;
             align-items: center;
             max-width: 1000px;
             margin: 0 auto;
         }
 
-        /* Lado izquierdo - Texto */
+        /* Lado izquierdo - Texto promocional */
         .left-side {
             text-align: left;
         }
 
-        .celebrate-text {
+        .promo-badge {
             display: inline-block;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             color: #000;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 0.85rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
         }
 
         .main-title {
-            font-size: 4rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 4.5rem;
             font-weight: 900;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            line-height: 1.1;
-            margin-bottom: 10px;
+            line-height: 1;
+            margin-bottom: 20px;
             text-transform: uppercase;
         }
 
         .subtitle {
-            font-size: 2rem;
+            font-size: 1.8rem;
             color: #FFD700;
+            font-weight: 700;
+            margin-bottom: 25px;
             font-style: italic;
+        }
+
+        .promo-text {
+            color: #cccccc;
+            font-size: 1rem;
+            line-height: 1.8;
             margin-bottom: 30px;
         }
 
-        .event-info {
-            color: #cccccc;
-            font-size: 1rem;
-            line-height: 1.6;
-        }
-
-        .event-info strong {
+        .promo-text strong {
             color: #FFD700;
         }
 
-        /* Lado derecho - Tarjeta VIP */
+        .features {
+            list-style: none;
+            margin-top: 30px;
+        }
+
+        .features li {
+            color: #ffffff;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .features li i {
+            color: #FFD700;
+            font-size: 1.2rem;
+        }
+
+        /* Lado derecho - Tarjeta de login */
         .right-side {
             display: flex;
             justify-content: center;
         }
 
-        .vip-card {
+        .login-card {
             background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
             border: 2px solid #FFD700;
-            border-radius: 15px;
-            padding: 40px;
+            border-radius: 20px;
+            padding: 45px;
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.2);
+            max-width: 420px;
+            box-shadow: 0 15px 50px rgba(255, 215, 0, 0.2);
             position: relative;
+            overflow: hidden;
         }
 
-        .vip-card::before {
-            content: '🍺';
+        .login-card::before {
+            content: '';
             position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 40px;
-            background: #0a0a0a;
-            padding: 0 10px;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+            animation: shimmer 3s infinite;
         }
 
-        .vip-title {
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%); }
+            100% { transform: translateX(100%) translateY(100%); }
+        }
+
+        .login-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-header {
             text-align: center;
-            font-size: 2rem;
+            margin-bottom: 35px;
+        }
+
+        .vip-badge {
+            display: inline-block;
+            background: #FFD700;
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
             font-weight: 900;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 30px;
             text-transform: uppercase;
             letter-spacing: 2px;
         }
@@ -183,77 +315,82 @@
 
         .form-group input {
             width: 100%;
-            padding: 14px 18px;
+            padding: 16px 20px;
             background: rgba(255, 215, 0, 0.05);
-            border: 2px solid #FFD700;
-            border-radius: 8px;
+            border: 2px solid #333;
+            border-radius: 10px;
             color: #ffffff;
             font-size: 1rem;
+            font-family: 'Montserrat', sans-serif;
             transition: all 0.3s ease;
         }
 
         .form-group input:focus {
             outline: none;
+            border-color: #FFD700;
             background: rgba(255, 215, 0, 0.1);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
         }
 
         .form-group input::placeholder {
-            color: #999;
+            color: #666;
         }
 
         .btn-container {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             margin-top: 25px;
         }
 
         .btn-primary {
             flex: 1;
-            padding: 14px;
+            padding: 16px;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             color: #000;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 1rem;
-            font-weight: 700;
+            font-weight: 900;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-family: 'Montserrat', sans-serif;
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
         }
 
         .btn-secondary {
             flex: 1;
-            padding: 14px;
+            padding: 16px;
             background: transparent;
             color: #FFD700;
             border: 2px solid #FFD700;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 1rem;
-            font-weight: 700;
+            font-weight: 900;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-family: 'Montserrat', sans-serif;
         }
 
         .btn-secondary:hover {
             background: rgba(255, 215, 0, 0.1);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
         }
 
         .divider {
             text-align: center;
-            margin: 25px 0;
+            margin: 30px 0;
             color: #666;
             font-size: 0.9rem;
             position: relative;
+            font-weight: 600;
         }
 
         .divider::before,
@@ -261,9 +398,9 @@
             content: '';
             position: absolute;
             top: 50%;
-            width: 40%;
+            width: 35%;
             height: 1px;
-            background: #333;
+            background: linear-gradient(to right, transparent, #333, transparent);
         }
 
         .divider::before {
@@ -276,11 +413,11 @@
 
         .btn-google {
             width: 100%;
-            padding: 14px;
+            padding: 16px;
             background: #ffffff;
             color: #333;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
@@ -288,24 +425,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+            font-family: 'Montserrat', sans-serif;
         }
 
         .btn-google:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
         }
 
         .btn-google img {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
         }
 
         .social-icons {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
+            gap: 25px;
+            margin-top: 35px;
         }
 
         .social-icons a {
@@ -316,15 +454,17 @@
 
         .social-icons a:hover {
             color: #FFA500;
-            transform: translateY(-3px);
+            transform: translateY(-5px);
         }
 
         .message {
             margin-top: 20px;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 14px;
+            border-radius: 10px;
             text-align: center;
             display: none;
+            font-size: 0.9rem;
+            font-weight: 600;
         }
 
         .message.success {
@@ -349,10 +489,10 @@
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 968px) {
             .main-content {
                 grid-template-columns: 1fr;
-                gap: 30px;
+                gap: 40px;
             }
 
             .left-side {
@@ -360,86 +500,120 @@
             }
 
             .main-title {
-                font-size: 2.5rem;
+                font-size: 3rem;
             }
 
             .subtitle {
                 font-size: 1.5rem;
             }
 
-            .navbar {
-                gap: 15px;
+            .features {
+                display: inline-block;
+                text-align: left;
             }
 
-            .vip-card {
-                padding: 30px 20px;
+            .login-card {
+                padding: 35px 25px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-text {
+                font-size: 2rem;
+            }
+
+            .main-title {
+                font-size: 2.5rem;
+            }
+
+            .btn-container {
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Elementos decorativos de casino -->
+    <div class="chip chip-1"></div>
+    <div class="chip chip-2"></div>
+    <div class="chip chip-3"></div>
+    <div class="chip chip-4"></div>
+    <div class="card-decoration card-1">🂡</div>
+    <div class="card-decoration card-2">🂱</div>
+
     <div class="container">
-        <!-- Menú superior -->
-        <nav class="navbar">
-            <a href="#">Inicio</a>
-            <a href="#">Acerca de</a>
-            <a href="#">Reservaciones</a>
-            <a href="#">Servicios</a>
-            <div class="search-box">🔍 Buscar</div>
-        </nav>
+        <!-- Logo superior -->
+        <div class="logo-container">
+            <div class="logo-icon"></div>
+            <h1 class="logo-text">Boche Clava'o</h1>
+            <p class="logo-subtitle">Casino VIP</p>
+        </div>
 
         <!-- Contenido principal -->
         <div class="main-content">
-            <!-- Lado izquierdo -->
+            <!-- Lado izquierdo - Promoción -->
             <div class="left-side">
-                <div class="celebrate-text">Celebra tu</div>
-                <h1 class="main-title">Fiesta<br>Exclusiva</h1>
-                <h2 class="subtitle">Boche Clava'o</h2>
-                <p class="event-info">
-                    <strong>Diciembre 31° Antes de Medianoche</strong><br>
-                    Únete a la mejor fiesta del año. Experiencia VIP, música en vivo y los mejores momentos.
+                <div class="promo-badge">🎰 Exclusivo</div>
+                <h1 class="main-title">Tu<br>Suerte<br>Empieza</h1>
+                <h2 class="subtitle">Aquí y Ahora</h2>
+                <p class="promo-text">
+                    Únete al casino más exclusivo. <strong>Apuestas en vivo</strong>, 
+                    <strong>jackpots millonarios</strong> y las mejores probabilidades del mercado.
                 </p>
+                <ul class="features">
+                    <li><i class="fas fa-check-circle"></i> Apuestas deportivas en tiempo real</li>
+                    <li><i class="fas fa-check-circle"></i> Casino en vivo con dealers reales</li>
+                    <li><i class="fas fa-check-circle"></i> Retiros instantáneos 24/7</li>
+                    <li><i class="fas fa-check-circle"></i> Bonos exclusivos para VIP</li>
+                </ul>
             </div>
 
-            <!-- Lado derecho - Tarjeta VIP -->
+            <!-- Lado derecho - Login -->
             <div class="right-side">
-                <div class="vip-card">
-                    <h2 class="vip-title">VIP Card</h2>
-                    
-                    <form id="loginForm">
-                        <div class="form-group">
-                            <input type="email" id="email" required placeholder="Correo electrónico">
+                <div class="login-card">
+                    <div class="login-card-content">
+                        <div class="card-header">
+                            <div class="vip-badge">VIP ACCESS</div>
+                            <h2 class="card-title">Iniciar Sesión</h2>
+                        </div>
+                        
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <input type="email" id="email" required placeholder="Correo electrónico">
+                            </div>
+
+                            <div class="form-group">
+                                <input type="password" id="password" required placeholder="Contraseña">
+                            </div>
+
+                            <div class="btn-container">
+                                <button type="submit" class="btn-primary">Entrar</button>
+                                <button type="button" class="btn-secondary" onclick="window.location.href='registro.html'">Registro</button>
+                            </div>
+                        </form>
+
+                        <div class="divider">o continúa con</div>
+
+                        <button class="btn-google" onclick="loginWithGoogle()">
+                            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
+                            Google
+                        </button>
+
+                        <div class="social-icons">
+                            <a href="#"><i class="fab fa-instagram"></i></a>
+                            <a href="#"><i class="fab fa-facebook"></i></a>
+                            <a href="#"><i class="fab fa-twitter"></i></a>
+                            <a href="#"><i class="fab fa-telegram"></i></a>
                         </div>
 
-                        <div class="form-group">
-                            <input type="password" id="password" required placeholder="Contraseña">
-                        </div>
-
-                        <div class="btn-container">
-                            <button type="submit" class="btn-primary">Ingresar</button>
-                            <button type="button" class="btn-secondary" onclick="window.location.href='registro.html'">Registrar</button>
-                        </div>
-                    </form>
-
-                    <div class="divider">o</div>
-
-                    <button class="btn-google" onclick="loginWithGoogle()">
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
-                        Continuar con Google
-                    </button>
-
-                    <div class="social-icons">
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <div id="message" class="message"></div>
                     </div>
-
-                    <div id="message" class="message"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts: ORDEN IMPORTANTE -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
     <script src="../js/login.js"></script>
