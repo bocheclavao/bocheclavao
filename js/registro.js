@@ -6,10 +6,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const step2 = document.getElementById('step2');
     const emailDisplay = document.getElementById('emailDisplay');
     const otpInput = document.getElementById('otpCode');
+    const passwordInput = document.getElementById('password');
     
     const db = window.supabaseClient;
     let emailRegistrado = '';
-    let nombreRegistrado = '';
 
     if (!db) {
         console.error('❌ No se pudo obtener el cliente de Supabase');
@@ -27,20 +27,60 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Solo permitir números en el input del código
+    // 1. Función para mostrar/ocultar contraseña (Global para el HTML)
+    window.togglePassword = function(inputId, icon) {
+        const input = document.getElementById(inputId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    };
+
+    // 2. Validación en tiempo real de los requisitos de la contraseña
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            const val = this.value;
+            updateRequirement('req-length', val.length >= 8);
+            updateRequirement('req-letter', /[a-zA-Z]/.test(val));
+            updateRequirement('req-number', /[0-9]/.test(val));
+            updateRequirement('req-special', /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val));
+        });
+    }
+
+    function updateRequirement(id, isValid) {
+        const li = document.getElementById(id);
+        if (!li) return;
+        const icon = li.querySelector('i');
+        if (isValid) {
+            li.classList.remove('req-invalid');
+            li.classList.add('req-valid');
+            icon.className = 'fas fa-check-circle';
+        } else {
+            li.classList.remove('req-valid');
+            li.classList.add('req-invalid');
+            icon.className = 'fas fa-circle';
+        }
+    }
+
+    // Solo permitir números en el input del código OTP
     if (otpInput) {
         otpInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
         });
     }
 
-    // PASO 1: Registrar usuario y enviar código OTP
+    // 3. PASO 1: Registrar usuario y enviar código
     if (registroForm) {
         registroForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            nombreRegistrado = document.getElementById('nombre').value;
-            const email = document.getElementById('email').value;
+            const nombre = document.getElementById('nombre').value.trim();
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
@@ -49,22 +89,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            if (password.length < 6) {
-                showMessage('La contraseña debe tener al menos 6 caracteres', 'error');
+            // Validación estricta de contraseña
+            if (password.length < 8) {
+                showMessage('La contraseña debe tener al menos 8 caracteres', 'error');
+                return;
+            }
+            if (!/[a-zA-Z]/.test(password)) {
+                showMessage('La contraseña debe tener al menos una letra', 'error');
+                return;
+            }
+            if (!/[0-9]/.test(password)) {
+                showMessage('La contraseña debe tener al menos un número', 'error');
+                return;
+            }
+            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+                showMessage('La contraseña debe tener al menos un carácter especial (!@#$%...)', 'error');
                 return;
             }
             
             showMessage('Enviando código de verificación...', 'info');
             
             try {
-                // Usar signInWithOtp con shouldCreateUser para crear usuario y enviar código
-                const { data, error } = await db.auth.signInWithOtp({
+                // Usamos signUp estándar. Si OTP está activado en Supabase, enviará el código.
+                const { data, error } = await db.auth.signUp({
                     email: email,
+                    password: password,
                     options: {
-                        shouldCreateUser: true,
                         data: {
-                            nombre: nombreRegistrado,
-                            password: password // Guardamos la contraseña en metadata temporalmente
+                            nombre: nombre
                         }
                     }
                 });
@@ -80,9 +132,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 step1.style.display = 'none';
                 step2.style.display = 'block';
-                showMessage('Código de 6 dígitos enviado. Revisa tu correo. recuerda revisar en Spam', 'success');
+                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y la carpeta de Spam).', 'success');
                 
-                // Auto-focus en el input del código
                 setTimeout(() => otpInput.focus(), 100);
                 
             } catch (err) {
@@ -91,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // PASO 2: Verificar el código OTP y crear usuario con contraseña
+    // 4. PASO 2: Verificar el código OTP
     if (otpForm) {
         otpForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -106,26 +157,16 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Verificando código...', 'info');
             
             try {
-                // Verificar el código OTP
+                // Verificar el código OTP tipo 'signup'
                 const { data, error } = await db.auth.verifyOtp({
                     email: emailRegistrado,
                     token: code,
-                    type: 'email'
+                    type: 'signup'
                 });
                 
                 if (error) {
                     showMessage('Código inválido o expirado: ' + error.message, 'error');
                     return;
-                }
-                
-                // El usuario ya está creado y verificado
-                // Ahora actualizamos la contraseña (porque signInWithOtp no la guarda)
-                const { error: updateError } = await db.auth.updateUser({
-                    password: document.getElementById('password').value
-                });
-                
-                if (updateError) {
-                    console.warn('No se pudo actualizar la contraseña:', updateError.message);
                 }
                 
                 showMessage('✅ ¡Cuenta verificada exitosamente! Redirigiendo...', 'success');
@@ -144,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.volverAlPaso1 = function() {
         step2.style.display = 'none';
         step1.style.display = 'block';
-        otpInput.value = '';
-        showMessage('', 'info');
+        if (otpInput) otpInput.value = '';
+        showMessage('', 'info'); // Limpiar mensajes
     };
 });
