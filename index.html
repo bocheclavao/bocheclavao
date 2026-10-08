@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boche Clava'o</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+        }
+        .loader {
+            text-align: center;
+        }
+        .loader h1 {
+            color: #FFD700;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(255, 215, 0, 0.3);
+            letter-spacing: 2px;
+            margin-top: 20px;
+        }
+        .loader .logo {
+            font-size: 80px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+    <script>
+        window.location.href = 'html/login.html';
+    </script>
+</head>
+<body>
+    <div class="loader">
+        <div class="logo">🍺</div>
+        <h1>Boche Clava'o</h1>
+    </div>
+</body>
+</html>
