@@ -2,8 +2,8 @@
 // CONFIGURACIÓN GLOBAL DE SUPABASE
 // ============================================
 
-const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-const SUPABASE_ANON_KEY = 'tu-anon-key-aqui';
+const SUPABASE_URL = 'https://tlssbdbnfbuknbqoboza.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsc3NiZGJuZmJ1a25icW9ib3phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MjEyMjQsImV4cCI6MjEwNjk5NzIyNH0.oN6Sh_lsSGa5ns5qIa2A9yiMLJnKR5lD3x_WygaHjgU';
 
 // Verificar que el SDK se cargó correctamente
 if (typeof window.supabase === 'undefined') {
