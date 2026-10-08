@@ -1,65 +1,80 @@
-// Esperar a que el DOM esté listo
-document.addEventListener('DOMContentLoaded', async function() {
+// Esperar a que el DOM esté completamente cargado
+document.addEventListener('DOMContentLoaded', function() {
     
-    // Obtener el cliente de Supabase
-    const supabase = window.supabaseClient;
+    // 1. Obtener elementos del DOM PRIMERO
+    const messageDiv = document.getElementById('message');
+    const loginForm = document.getElementById('loginForm');
     
-    if (!supabase) {
+    // 2. Obtener el cliente de Supabase
+    const db = window.supabaseClient;
+    
+    if (!db) {
         console.error('❌ No se pudo obtener el cliente de Supabase');
-        showMessage('Error: No se pudo conectar con el servidor', 'error');
+        if (messageDiv) {
+            messageDiv.textContent = 'Error: No se pudo conectar con el servidor';
+            messageDiv.className = 'message error';
+        }
         return;
     }
-    
-    const loginForm = document.getElementById('loginForm');
-    const messageDiv = document.getElementById('message');
-    
-    // Login con email y contraseña
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        
-        showMessage('Iniciando sesión...', 'info');
-        
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-            
-            if (error) {
-                if (error.message.includes('Email not confirmed')) {
-                    showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
-                } else if (error.message.includes('Invalid login credentials')) {
-                    showMessage('Correo o contraseña incorrectos.', 'error');
-                } else {
-                    showMessage('Error: ' + error.message, 'error');
-                }
-                return;
-            }
-            
-            if (data.user && !data.user.email_confirmed_at) {
-                await supabase.auth.signOut();
-                showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
-                return;
-            }
-            
-            showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
-            
-            setTimeout(() => {
-                window.location.href = APP_CONFIG.REDIRECT_AFTER_LOGIN;
-            }, 1500);
-            
-        } catch (err) {
-            showMessage('Error inesperado: ' + err.message, 'error');
+
+    // 3. Función para mostrar mensajes (definida antes de usarse)
+    function showMessage(text, type) {
+        if (messageDiv) {
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
         }
-    });
-    
-    // Login con Google
+    }
+
+    // 4. Login con email y contraseña
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            showMessage('Iniciando sesión...', 'info');
+            
+            try {
+                const { data, error } = await db.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    if (error.message.includes('Email not confirmed')) {
+                        showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
+                    } else if (error.message.includes('Invalid login credentials')) {
+                        showMessage('Correo o contraseña incorrectos.', 'error');
+                    } else {
+                        showMessage('Error: ' + error.message, 'error');
+                    }
+                    return;
+                }
+                
+                if (data.user && !data.user.email_confirmed_at) {
+                    await db.auth.signOut();
+                    showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
+                    return;
+                }
+                
+                showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = APP_CONFIG.REDIRECT_AFTER_LOGIN;
+                }, 1500);
+                
+            } catch (err) {
+                showMessage('Error inesperado: ' + err.message, 'error');
+            }
+        });
+    }
+
+    // 5. Login con Google (función global para el onclick del HTML)
     window.loginWithGoogle = async function() {
+        showMessage('Conectando con Google...', 'info');
         try {
-            const { data, error } = await supabase.auth.signInWithOAuth({
+            const { data, error } = await db.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: window.location.origin + '/html/dashboard.html'
@@ -73,18 +88,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             showMessage('Error inesperado: ' + err.message, 'error');
         }
     };
-    
-    function showMessage(text, type) {
-        messageDiv.textContent = text;
-        messageDiv.className = 'message ' + type;
-    }
-    
+
+    // 6. Verificar sesión activa al cargar la página
     async function checkSession() {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await db.auth.getSession();
         if (session) {
             window.location.href = APP_CONFIG.REDIRECT_AFTER_LOGIN;
         }
     }
-    
+
     checkSession();
 });
