@@ -9,37 +9,113 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Montserrat', sans-serif; background: #000000; min-height: 100vh; color: #ffffff; padding: 20px; }
-        .header { text-align: center; margin-bottom: 40px; padding: 20px; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); border-radius: 12px; border: 1px solid #FFD700; }
-        .header h1 { color: #FFD700; font-size: 2rem; margin-bottom: 10px; }
-        .header p { color: #999; }
-        .user-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 25px; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
+        
+        .back-link { display: inline-block; margin-bottom: 20px; color: #FFD700; text-decoration: none; padding: 8px 16px; border: 1px solid #FFD700; border-radius: 6px; }
+        .back-link:hover { background: #FFD700; color: #000; }
+        
+        .header { text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); border-radius: 12px; border: 1px solid #FFD700; }
+        .header h1 { color: #FFD700; font-size: 1.8rem; margin-bottom: 10px; }
+        
+        /* Tabs de navegación */
+        .admin-tabs { display: flex; gap: 15px; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
+        .tab-btn { padding: 15px 30px; background: #0a0a0a; border: 2px solid #333; border-radius: 10px; color: #999; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Montserrat', sans-serif; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
+        .tab-btn:hover { border-color: #FFD700; color: #FFD700; }
+        .tab-btn.active { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border-color: #FFD700; }
+        .tab-btn .badge { background: #ff4444; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Stats */
+        .stats-bar { display: flex; gap: 20px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+        .stat-box { background: #0a0a0a; border: 1px solid #222; padding: 20px; border-radius: 8px; text-align: center; min-width: 150px; flex: 1; max-width: 200px; }
+        .stat-box .number { font-size: 2rem; font-weight: 800; color: #FFD700; }
+        .stat-box .label { color: #999; font-size: 0.85rem; margin-top: 5px; }
+        
+        /* Búsqueda */
+        .search-container { max-width: 900px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .search-input { flex: 1; min-width: 250px; padding: 12px 16px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; font-family: 'Montserrat', sans-serif; }
+        .search-input:focus { outline: none; border-color: #FFD700; }
+        .search-select { padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; }
+        
+        /* Cards de usuarios */
+        .user-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 25px; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; transition: all 0.3s; }
+        .user-card:hover { border-color: #444; }
         .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .user-name { font-size: 1.3rem; font-weight: 700; color: #FFD700; }
         .user-id { color: #999; font-size: 0.9rem; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+        .status-pending { background: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid #FFA500; }
+        .status-verified { background: rgba(0, 255, 0, 0.2); color: #00ff00; border: 1px solid #00ff00; }
+        .status-rejected { background: rgba(255, 0, 0, 0.2); color: #ff4444; border: 1px solid #ff4444; }
+        .status-blocked { background: rgba(128, 128, 128, 0.2); color: #888; border: 1px solid #888; }
+        
         .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .info-item label { display: block; color: #666; font-size: 0.8rem; margin-bottom: 5px; }
         .info-item span { color: #fff; font-weight: 600; word-break: break-all; }
+        
         .images-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .image-box { text-align: center; }
-        .image-box img { width: 100%; border-radius: 8px; border: 1px solid #333; margin-bottom: 8px; max-height: 200px; object-fit: cover; }
+        .image-box img { width: 100%; border-radius: 8px; border: 1px solid #333; margin-bottom: 8px; max-height: 200px; object-fit: cover; cursor: pointer; }
+        .image-box img:hover { border-color: #FFD700; }
         .image-box p { font-size: 0.85rem; color: #999; }
+        
         .actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
-        .btn { padding: 12px 25px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s; }
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s; display: flex; align-items: center; gap: 8px; }
+        .btn:hover { transform: translateY(-2px); }
         .btn-approve { background: #00ff00; color: #000; }
-        .btn-approve:hover { background: #00cc00; transform: translateY(-2px); }
+        .btn-approve:hover { background: #00cc00; }
         .btn-reject { background: #ff4444; color: #fff; }
-        .btn-reject:hover { background: #cc0000; transform: translateY(-2px); }
+        .btn-reject:hover { background: #cc0000; }
+        .btn-block { background: #666; color: #fff; }
+        .btn-block:hover { background: #444; }
+        .btn-unblock { background: #00aaff; color: #fff; }
+        .btn-unblock:hover { background: #0088cc; }
+        .btn-coins { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
+        .btn-coins:hover { background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); }
+        .btn-view { background: #333; color: #fff; }
+        .btn-view:hover { background: #444; }
+        
+        /* Tabla de usuarios */
+        .users-table { width: 100%; max-width: 900px; margin: 0 auto; border-collapse: collapse; }
+        .users-table th { background: #0a0a0a; color: #FFD700; padding: 12px; text-align: left; border-bottom: 2px solid #333; font-size: 0.9rem; }
+        .users-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .users-table tr:hover { background: rgba(255, 215, 0, 0.05); }
+        .users-table tr { cursor: pointer; }
+        
+        /* Paginación */
+        .pagination { display: flex; gap: 10px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+        .page-btn { padding: 10px 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 6px; color: #fff; cursor: pointer; font-family: 'Montserrat', sans-serif; }
+        .page-btn:hover { border-color: #FFD700; color: #FFD700; }
+        .page-btn.active { background: #FFD700; color: #000; border-color: #FFD700; }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .modal.show { display: flex; }
+        .modal-content { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 30px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #333; }
+        .modal-title { color: #FFD700; font-size: 1.5rem; font-weight: 800; }
+        .modal-close { background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
+        .modal-close:hover { color: #FFD700; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; color: #999; font-size: 0.85rem; margin-bottom: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; background: #111; border: 1px solid #333; border-radius: 6px; color: #fff; font-family: 'Montserrat', sans-serif; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #FFD700; }
+        
         .loading { text-align: center; color: #FFD700; margin-top: 50px; font-size: 1.2rem; }
         .empty { text-align: center; color: #666; margin-top: 50px; padding: 40px; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: #FFD700; text-decoration: none; padding: 8px 16px; border: 1px solid #FFD700; border-radius: 6px; }
-        .back-link:hover { background: #FFD700; color: #000; }
         .access-denied { text-align: center; padding: 60px 20px; }
         .access-denied i { font-size: 5rem; color: #ff4444; margin-bottom: 20px; }
         .access-denied h2 { color: #ff4444; margin-bottom: 15px; }
-        .stats-bar { display: flex; gap: 20px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
-        .stat-box { background: #0a0a0a; border: 1px solid #222; padding: 20px; border-radius: 8px; text-align: center; min-width: 150px; }
-        .stat-box .number { font-size: 2rem; font-weight: 800; color: #FFD700; }
-        .stat-box .label { color: #999; font-size: 0.85rem; margin-top: 5px; }
+        
+        @media (max-width: 768px) {
+            .users-table { font-size: 0.8rem; }
+            .users-table th, .users-table td { padding: 8px; }
+            .admin-tabs { flex-direction: column; }
+            .tab-btn { width: 100%; justify-content: center; }
+        }
     </style>
 </head>
 <body>
@@ -48,20 +124,73 @@
     <div id="accessDenied" style="display: none;" class="access-denied">
         <i class="fas fa-shield-alt"></i>
         <h2>Acceso Denegado</h2>
-        <p>No tienes permisos de administrador para acceder a este panel.</p>
-        <p style="margin-top: 20px; color: #999;">Si crees que esto es un error, contacta al soporte.</p>
+        <p>No tienes permisos de administrador.</p>
     </div>
 
     <div id="adminContent" style="display: none;">
         <div class="header">
-            <h1><i class="fas fa-user-shield"></i> Panel de Verificación KYC</h1>
-            <p>Revisa los documentos y aprueba o rechaza las solicitudes de verificación.</p>
+            <h1><i class="fas fa-user-shield"></i> Panel de Administración</h1>
+            <p>Gestión completa de usuarios y verificaciones</p>
         </div>
 
-        <div id="statsBar" class="stats-bar"></div>
+        <!-- Tabs -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="cambiarTab('kyc')">
+                <i class="fas fa-id-card"></i> Verificaciones KYC
+                <span class="badge" id="kycBadge">0</span>
+            </button>
+            <button class="tab-btn" onclick="cambiarTab('usuarios')">
+                <i class="fas fa-users"></i> Gestión de Usuarios
+            </button>
+        </div>
 
-        <div id="loading" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando solicitudes...</div>
-        <div id="container"></div>
+        <!-- TAB 1: Verificaciones KYC -->
+        <div id="tab-kyc" class="tab-content active">
+            <div id="statsBar" class="stats-bar"></div>
+            <div id="loadingKyc" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando solicitudes KYC...</div>
+            <div id="containerKyc"></div>
+        </div>
+
+        <!-- TAB 2: Gestión de Usuarios -->
+        <div id="tab-usuarios" class="tab-content">
+            <div class="search-container">
+                <select id="searchType" class="search-select">
+                    <option value="email">Buscar por Correo</option>
+                    <option value="user_id">Buscar por ID</option>
+                    <option value="numero_documento">Buscar por Cédula</option>
+                    <option value="nombre">Buscar por Nombre</option>
+                </select>
+                <input type="text" id="searchInput" class="search-input" placeholder="Escribe para buscar...">
+                <button class="btn btn-view" onclick="buscarUsuarios()"><i class="fas fa-search"></i> Buscar</button>
+                <button class="btn btn-view" onclick="limpiarBusqueda()"><i class="fas fa-times"></i> Limpiar</button>
+            </div>
+            
+            <div id="loadingUsers" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando usuarios...</div>
+            <div id="containerUsers"></div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+    </div>
+
+    <!-- Modal de perfil de usuario -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-user"></i> Perfil de Usuario</h2>
+                <button class="modal-close" onclick="cerrarModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar monedas -->
+    <div id="coinsModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-coins"></i> Agregar Monedas BC</h2>
+                <button class="modal-close" onclick="cerrarCoinsModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="coinsModalBody"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
