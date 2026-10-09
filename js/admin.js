@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (err) { console.error('Error en cargarConfigStream:', err); }
     }
 
-    window.guardarConfigStream = async function() {
+        window.guardarConfigStream = async function() {
         const msgDiv = document.getElementById('streamStatusMsg');
         msgDiv.style.display = 'none';
         msgDiv.className = 'stream-status-msg';
@@ -404,24 +404,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         if (datos.activo && !datos.url_stream) {
-            msgDiv.textContent = '️ Debes ingresar una URL de stream si activas la transmisión.';
+            msgDiv.textContent = '⚠️ Debes ingresar una URL de stream si activas la transmisión.';
             msgDiv.classList.add('error');
             return;
         }
 
         try {
-            // Intentar actualizar la fila con id=1
             const { error } = await db.from('config_stream_vivo').update(datos).eq('id', 1);
             
-            if (error) {
-                // Si no existe la fila con id=1, la insertamos
-                if (error.code === 'PGRST116') {
-                    datos.id = 1;
-                    const { error: insertError } = await db.from('config_stream_vivo').insert(datos);
-                    if (insertError) throw insertError;
-                } else {
-                    throw error;
-                }
+            if (error && error.code === 'PGRST116') {
+                datos.id = 1;
+                const { error: insertError } = await db.from('config_stream_vivo').insert(datos);
+                if (insertError) throw insertError;
+            } else if (error) {
+                throw error;
             }
 
             msgDiv.textContent = '✅ Configuración de transmisión guardada exitosamente.';
@@ -435,7 +431,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             msgDiv.classList.add('error');
         }
     };
-
     // ============================================
     // INICIALIZAR
     // ============================================
