@@ -254,6 +254,11 @@
             margin-bottom: 30px;
             position: relative;
             overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .bochador-header::before {
@@ -266,6 +271,11 @@
             background: radial-gradient(circle at 20% 50%, rgba(0, 255, 0, 0.05) 0%, transparent 50%);
         }
 
+        .bochador-title-container {
+            position: relative;
+            z-index: 1;
+        }
+
         .bochador-title {
             font-size: 2.5rem;
             font-weight: 900;
@@ -273,16 +283,35 @@
             text-transform: uppercase;
             letter-spacing: 3px;
             margin-bottom: 10px;
-            position: relative;
-            z-index: 1;
         }
 
         .bochador-subtitle {
             font-size: 1.2rem;
             color: #999;
             font-style: italic;
+        }
+
+        .btn-ranking {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             position: relative;
             z-index: 1;
+        }
+
+        .btn-ranking:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
         }
 
         /* Perfil Público */
@@ -325,15 +354,32 @@
             border: 3px solid #00ff00;
         }
 
-        .profile-info h2 {
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .profile-name {
             font-size: 2rem;
             font-weight: 800;
             color: #ffffff;
-            margin-bottom: 10px;
         }
 
-        .profile-info .ranking {
-            display: inline-block;
+        .profile-flag {
+            font-size: 2rem;
+        }
+
+        .profile-ranking {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             background: rgba(0, 255, 0, 0.1);
             border: 1px solid #00ff00;
             padding: 6px 16px;
@@ -423,84 +469,20 @@
         }
 
         /* Eventos disponibles */
-        .events-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+        .events-container {
+            text-align: center;
+            padding: 40px 20px;
         }
 
-        .event-card {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 25px;
-            transition: all 0.3s ease;
+        .events-container i {
+            font-size: 4rem;
+            color: #666;
+            margin-bottom: 20px;
         }
 
-        .event-card:hover {
-            border-color: #00ff00;
-            transform: translateY(-5px);
-        }
-
-        .event-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .event-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #ffffff;
-        }
-
-        .event-date {
-            font-size: 0.85rem;
+        .events-container p {
             color: #999;
-        }
-
-        .event-description {
-            color: #cccccc;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-
-        .event-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .event-cost {
             font-size: 1.1rem;
-            font-weight: 700;
-            color: #FFD700;
-        }
-
-        .btn-inscribir {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .btn-inscribir:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
-        }
-
-        .btn-inscribir:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
         }
 
         /* Responsive */
@@ -522,6 +504,11 @@
                 justify-content: center;
             }
 
+            .bochador-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
             .bochador-title {
                 font-size: 1.8rem;
             }
@@ -531,7 +518,11 @@
                 text-align: center;
             }
 
-            .profile-info h2 {
+            .profile-name-container {
+                justify-content: center;
+            }
+
+            .profile-name {
                 font-size: 1.5rem;
             }
 
@@ -541,10 +532,6 @@
 
             .stat-value {
                 font-size: 2rem;
-            }
-
-            .events-grid {
-                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -602,8 +589,13 @@
         <div id="contentState" style="display: none;">
             <!-- Header del Bochador -->
             <div class="bochador-header">
-                <h1 class="bochador-title">🎯 Bochador</h1>
-                <p class="bochador-subtitle">El talento que inspira</p>
+                <div class="bochador-title-container">
+                    <h1 class="bochador-title">🎯 Bochador</h1>
+                    <p class="bochador-subtitle">El talento que inspira</p>
+                </div>
+                <button class="btn-ranking" onclick="verRanking()">
+                    <i class="fas fa-trophy"></i> Ver Ranking
+                </button>
             </div>
 
             <!-- Perfil Público -->
@@ -611,8 +603,11 @@
                 <div class="profile-header">
                     <div id="profileAvatarContainer"></div>
                     <div class="profile-info">
-                        <h2 id="profileName">Usuario</h2>
-                        <div class="ranking" id="profileRanking">
+                        <div class="profile-name-container">
+                            <h2 class="profile-name" id="profileName">Usuario</h2>
+                            <span class="profile-flag" id="profileFlag">🏳️</span>
+                        </div>
+                        <div class="profile-ranking">
                             <i class="fas fa-trophy"></i> Ranking Nacional: <span id="rankingNumber">#--</span>
                         </div>
                     </div>
@@ -636,6 +631,14 @@
                         <div class="stat-value" id="statEventos">0</div>
                         <div class="stat-label">Eventos Disputados</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statVictorias">0</div>
+                        <div class="stat-label">Victorias</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statDerrotas">0</div>
+                        <div class="stat-label">Derrotas</div>
+                    </div>
                 </div>
             </div>
 
@@ -654,8 +657,9 @@
             <!-- Eventos Disponibles -->
             <div class="info-section">
                 <h3><i class="fas fa-calendar-alt"></i> Eventos Disponibles</h3>
-                <div id="eventsContainer" class="events-grid">
-                    <p style="color: #999; text-align: center; grid-column: 1/-1;">Cargando eventos...</p>
+                <div class="events-container">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No hay eventos disponibles en este momento. ¡Pronto anunciaremos nuevos torneos!</p>
                 </div>
             </div>
         </div>
