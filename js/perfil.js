@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-   async function cargarPerfil() {
+  async function cargarPerfil() {
     try {
         const { data: { user } } = await db.auth.getUser();
         if (!user) { window.location.href = 'login.html'; return; }
@@ -93,13 +93,30 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         const kycStatus = document.getElementById('kycStatus');
         const submitBtn = document.getElementById('submitBtn');
-        const kycSection = document.querySelector('.form-section:last-of-type'); // Sección KYC
+        const kycSection = document.querySelectorAll('.form-section')[2]; // Sección KYC (tercera)
+        
+        const estado = perfil.estado_kyc; // Puede ser NULL, 'pendiente', 'verificado', 'rechazado'
 
-        if (perfil.estado_kyc === 'verificado') {
+        if (!estado || estado === '') {
+            // USUARIO NUEVO - Nunca ha enviado KYC
+            kycStatus.className = 'kyc-status pending';
+            kycStatus.innerHTML = '<i class="fas fa-id-card"></i> Verificación KYC Pendiente - Completa tus datos';
+            
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Guardar Perfil y Enviar KYC';
+                submitBtn.style.background = '';
+            }
+            if (kycSection) {
+                kycSection.style.opacity = '1';
+                kycSection.style.pointerEvents = 'auto';
+            }
+            
+        } else if (estado === 'verificado') {
+            // VERIFICADO
             kycStatus.className = 'kyc-status verified';
             kycStatus.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
             
-            // Bloquear formulario KYC
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Ya Verificado';
@@ -109,13 +126,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 kycSection.style.opacity = '0.5';
                 kycSection.style.pointerEvents = 'none';
             }
-            showMessage('✅ Tu identidad ha sido verificada exitosamente.', 'success');
             
-        } else if (perfil.estado_kyc === 'rechazado') {
+        } else if (estado === 'rechazado') {
+            // RECHAZADO - Puede reenviar
             kycStatus.className = 'kyc-status rejected';
             kycStatus.innerHTML = '<i class="fas fa-times-circle"></i> KYC Rechazado - Puede Reenviar';
             
-            // Permitir reenvío - formulario activo
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Reenviar Documentos para Verificación';
@@ -127,12 +143,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             showMessage('⚠️ Tu KYC fue rechazado. Por favor, corrige la información y reenvía los documentos.', 'error');
             
-        } else {
-            // Pendiente - EN REVISIÓN
+        } else if (estado === 'pendiente') {
+            // PENDIENTE - En revisión (ya envió documentos)
             kycStatus.className = 'kyc-status pending';
             kycStatus.innerHTML = '<i class="fas fa-hourglass-half"></i> KYC en Revisión';
             
-            // Bloquear formulario KYC
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - No puede reenviar';
@@ -157,12 +172,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('codigoPostal').value = perfil.codigo_postal || '';
         document.getElementById('tipoDocumento').value = perfil.tipo_documento || '';
         document.getElementById('numeroDocumento').value = perfil.numero_documento || '';
-
-        // Si está pendiente o verificado, deshabilitar campos de KYC
-        if (perfil.estado_kyc === 'pendiente' || perfil.estado_kyc === 'verificado') {
-            const kycInputs = document.querySelectorAll('#tipoDocumento, #numeroDocumento, input[type="hidden"]');
-            kycInputs.forEach(input => input.disabled = true);
-        }
 
         loadingState.style.display = 'none';
         contentState.style.display = 'block';
