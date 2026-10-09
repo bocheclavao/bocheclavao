@@ -15,6 +15,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     const avatarImage = document.getElementById('avatarImage');
     const avatarPlaceholder = document.getElementById('avatarDisplay');
     const navAvatar = document.getElementById('navAvatar');
+    const kycBanner = document.getElementById('kycBanner');
+    const kycTitle = document.getElementById('kycTitle');
+    const kycMessage = document.getElementById('kycMessage');
+    const kycBtn = document.getElementById('kycBtn');
+    const cardBochador = document.getElementById('cardBochador');
+    const cardPatrocinador = document.getElementById('cardPatrocinador');
+
+    let estadoKyc = 'pendiente';
 
     // Escuchar cambios de autenticación
     db.auth.onAuthStateChange((event, session) => {
@@ -45,20 +53,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             console.log('Buscando perfil de:', user.email);
             
-            // Intentar obtener el perfil existente
             const { data: perfil, error } = await db
                 .from('perfiles')
                 .select('*')
                 .eq('id', user.id)
                 .single();
             
-            // Si existe, retornarlo
             if (perfil) {
                 console.log('Perfil encontrado:', perfil.user_id);
                 return perfil;
             }
             
-            // Si no existe (error PGRST116 = no rows), crear uno nuevo
             if (error && error.code === 'PGRST116') {
                 console.log('Perfil no existe, creando uno nuevo...');
                 
@@ -94,19 +99,63 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    // Actualizar banner KYC según estado
+    function actualizarBannerKYC(estado) {
+        estadoKyc = estado;
+        
+        if (estado === 'verificado') {
+            kycBanner.classList.add('verified');
+            kycBanner.classList.remove('rejected');
+            kycTitle.textContent = '✅ Verificación KYC Completada';
+            kycMessage.textContent = 'Tu identidad ha sido verificada. Ya puedes participar como Bochador o Patrocinador.';
+            kycBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
+            kycBtn.style.pointerEvents = 'none';
+            kycBtn.style.opacity = '0.7';
+            
+            // Habilitar tarjetas de rol
+            cardBochador.classList.remove('disabled');
+            cardPatrocinador.classList.remove('disabled');
+            
+        } else if (estado === 'rechazado') {
+            kycBanner.classList.add('rejected');
+            kycBanner.classList.remove('verified');
+            kycTitle.textContent = '❌ Verificación KYC Rechazada';
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a intentarlo.';
+            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar KYC';
+            kycBtn.style.pointerEvents = 'auto';
+            kycBtn.style.opacity = '1';
+            
+            // Deshabilitar tarjetas de rol
+            cardBochador.classList.add('disabled');
+            cardPatrocinador.classList.add('disabled');
+            
+        } else {
+            // Pendiente
+            kycBanner.classList.remove('verified', 'rejected');
+            kycTitle.textContent = '⚠️ Verificación KYC Pendiente';
+            kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC). Es rápido y seguro.';
+            kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
+            kycBtn.style.pointerEvents = 'auto';
+            kycBtn.style.opacity = '1';
+            
+            // Deshabilitar tarjetas de rol
+            cardBochador.classList.add('disabled');
+            cardPatrocinador.classList.add('disabled');
+        }
+    }
+
     // Mostrar datos en la pantalla
     function mostrarDatos(user, perfil) {
         const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
         const email = user.email;
         const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
+        const estado = perfil?.estado_kyc || 'pendiente';
 
-        // Actualizar textos
         userNameDisplay.textContent = nombre;
         userEmailDisplay.textContent = email;
         userIdDisplay.textContent = `ID: ${userId}`;
 
-        // Mostrar avatar
         if (avatarUrl) {
             avatarImage.src = avatarUrl;
             avatarImage.style.display = 'block';
@@ -121,7 +170,25 @@ document.addEventListener('DOMContentLoaded', async function() {
             avatarImage.style.display = 'none';
             navAvatar.style.display = 'none';
         }
+
+        // Actualizar banner KYC
+        actualizarBannerKYC(estado);
     }
+
+    // Función global para seleccionar rol
+    window.seleccionarRol = function(rol) {
+        if (estadoKyc !== 'verificado') {
+            alert('Debes completar la verificación KYC antes de poder participar. Serás redirigido a tu perfil.');
+            window.location.href = 'perfil.html';
+            return;
+        }
+        
+        if (rol === 'bochador') {
+            window.location.href = 'dashboard-bochador.html';
+        } else if (rol === 'patrocinador') {
+            window.location.href = 'dashboard-patrocinador.html';
+        }
+    };
 
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
@@ -141,10 +208,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 throw new Error('No se pudo obtener la información del usuario');
             }
 
-            // Cargar o crear perfil
             const perfil = await cargarOCrearPerfil(user);
-
-            // Mostrar datos
             mostrarDatos(user, perfil);
             
             loadingState.style.display = 'none';
