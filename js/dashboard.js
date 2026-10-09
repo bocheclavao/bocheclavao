@@ -146,46 +146,51 @@ document.addEventListener('DOMContentLoaded', async function() {
         alert('🚧 El sistema de depósitos estará disponible próximamente');
     };
 
-    // Actualizar banner KYC según estado
     function actualizarBannerKYC(estado) {
-        estadoKyc = estado;
+    estadoKyc = estado;
+    
+    if (estado === 'verificado') {
+        kycBanner.classList.add('verified');
+        kycBanner.classList.remove('rejected');
+        kycTitle.textContent = '✅ Verificación KYC Completada';
+        kycMessage.textContent = 'Tu identidad ha sido verificada exitosamente. Ya puedes participar como Bochador o Patrocinador.';
+        kycBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
+        kycBtn.style.pointerEvents = 'none';
+        kycBtn.style.opacity = '0.7';
+        kycBtn.onclick = null;
         
-        if (estado === 'verificado') {
-            kycBanner.classList.add('verified');
-            kycBanner.classList.remove('rejected');
-            kycTitle.textContent = '✅ Verificación KYC Completada';
-            kycMessage.textContent = 'Tu identidad ha sido verificada. Ya puedes participar como Bochador o Patrocinador.';
-            kycBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
-            kycBtn.style.pointerEvents = 'none';
-            kycBtn.style.opacity = '0.7';
-            
-            cardBochador.classList.remove('disabled');
-            cardPatrocinador.classList.remove('disabled');
-            
-        } else if (estado === 'rechazado') {
-            kycBanner.classList.add('rejected');
-            kycBanner.classList.remove('verified');
-            kycTitle.textContent = '❌ Verificación KYC Rechazada';
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a intentarlo.';
-            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar KYC';
-            kycBtn.style.pointerEvents = 'auto';
-            kycBtn.style.opacity = '1';
-            
-            cardBochador.classList.add('disabled');
-            cardPatrocinador.classList.add('disabled');
-            
-        } else {
-            kycBanner.classList.remove('verified', 'rejected');
-            kycTitle.textContent = '️ Verificación KYC Pendiente';
-            kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC). Es rápido y seguro.';
-            kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
-            kycBtn.style.pointerEvents = 'auto';
-            kycBtn.style.opacity = '1';
-            
-            cardBochador.classList.add('disabled');
-            cardPatrocinador.classList.add('disabled');
-        }
+        cardBochador.classList.remove('disabled');
+        cardPatrocinador.classList.remove('disabled');
+        
+    } else if (estado === 'rechazado') {
+        kycBanner.classList.add('rejected');
+        kycBanner.classList.remove('verified');
+        kycTitle.textContent = '❌ Verificación KYC Rechazada';
+        kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla para ser verificado.';
+        kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar Verificación';
+        kycBtn.style.pointerEvents = 'auto';
+        kycBtn.style.opacity = '1';
+        kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
+        
+        cardBochador.classList.add('disabled');
+        cardPatrocinador.classList.add('disabled');
+        
+    } else {
+        // Pendiente - EN REVISIÓN
+        kycBanner.classList.remove('verified', 'rejected');
+        kycBanner.style.borderColor = '#FFA500';
+        kycTitle.textContent = '⏳ Verificación KYC en Revisión';
+        kycMessage.textContent = 'Tus documentos han sido enviados y están siendo revisados por nuestro equipo. Recibirás una notificación cuando sean aprobados. Este proceso puede tomar hasta 24 horas.';
+        kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - Espere Aprobación';
+        kycBtn.style.pointerEvents = 'none';
+        kycBtn.style.opacity = '0.6';
+        kycBtn.style.background = '#666';
+        kycBtn.onclick = null;
+        
+        cardBochador.classList.add('disabled');
+        cardPatrocinador.classList.add('disabled');
     }
+}
 
     // Mostrar avatar en navbar
     function mostrarAvatarNavbar(nombre, avatarUrl) {
