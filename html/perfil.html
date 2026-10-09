@@ -6,6 +6,8 @@
     <title>Boche Clava'o - Mi Perfil</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Face API para detección facial -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -101,6 +103,13 @@
             font-weight: 800;
             color: #000;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .profile-name {
@@ -166,6 +175,9 @@
             margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .form-group {
@@ -198,6 +210,123 @@
             outline: none;
             border-color: #FFD700;
             background: #1a1a1a;
+        }
+
+        /* Select con bandera */
+        .select-with-flag {
+            display: flex;
+            gap: 10px;
+        }
+
+        .select-with-flag select {
+            flex: 0 0 120px;
+            padding: 12px;
+        }
+
+        .select-with-flag input {
+            flex: 1;
+        }
+
+        .country-flag {
+            font-size: 1.2rem;
+            margin-right: 5px;
+        }
+
+        /* Cámara y upload */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .camera-preview {
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid #333;
+            background: #000;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .btn-camera {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-camera.primary {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+        }
+
+        .btn-camera.secondary {
+            background: #333;
+            color: #fff;
+        }
+
+        .btn-camera:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .btn-camera:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .image-preview {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 2px solid #FFD700;
+        }
+
+        .face-detection-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .face-detection-status.detecting {
+            display: block;
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid #FFA500;
+            color: #FFA500;
+        }
+
+        .face-detection-status.success {
+            display: block;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+
+        .face-detection-status.error {
+            display: block;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff4444;
+            color: #ff4444;
         }
 
         .btn-primary {
@@ -256,6 +385,42 @@
             display: block;
         }
 
+        /* Modal para cámara */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #0a0a0a;
+            border: 2px solid #FFD700;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
@@ -268,6 +433,14 @@
 
             .form-section {
                 padding: 20px;
+            }
+
+            .select-with-flag {
+                flex-direction: column;
+            }
+
+            .select-with-flag select {
+                flex: 1;
             }
         }
     </style>
@@ -291,7 +464,10 @@
         <div id="contentState" style="display: none;">
             <!-- Header del perfil -->
             <div class="profile-header">
-                <div class="profile-avatar" id="profileAvatar">?</div>
+                <div class="profile-avatar" id="profileAvatar">
+                    <span id="avatarInitial">?</span>
+                    <img id="avatarImage" src="" alt="Avatar" style="display: none;">
+                </div>
                 <h1 class="profile-name" id="profileName">Usuario</h1>
                 <div class="profile-id" id="profileId">ID: BC-00000000</div>
                 <p class="profile-email" id="profileEmail">email@ejemplo.com</p>
@@ -300,7 +476,7 @@
                 </div>
             </div>
 
-            <!-- Formulario de información personal -->
+            <!-- Información Personal -->
             <div class="form-section">
                 <h2><i class="fas fa-user"></i> Información Personal</h2>
                 <form id="personalForm">
@@ -308,25 +484,66 @@
                         <label for="nombre">Nombre completo *</label>
                         <input type="text" id="nombre" required>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="telefono">Teléfono</label>
-                        <input type="tel" id="telefono" placeholder="+57 300 000 0000">
+                        <label for="telefono">Teléfono *</label>
+                        <div class="select-with-flag">
+                            <select id="phoneCountry" required>
+                                <option value="">🌍 País</option>
+                            </select>
+                            <input type="tel" id="telefono" placeholder="300 123 4567" required>
+                        </div>
                     </div>
+                    
                     <div class="form-group">
                         <label for="fechaNacimiento">Fecha de nacimiento *</label>
                         <input type="date" id="fechaNacimiento" required>
                     </div>
+                    
                     <div class="form-group">
                         <label for="nacionalidad">Nacionalidad *</label>
-                        <input type="text" id="nacionalidad" required>
+                        <select id="nacionalidad" required>
+                            <option value="">Selecciona tu nacionalidad</option>
+                        </select>
                     </div>
+                    
                     <button type="submit" class="btn-primary">Guardar información</button>
                 </form>
             </div>
 
-            <!-- Formulario KYC -->
+            <!-- Dirección -->
             <div class="form-section">
-                <h2><i class="fas fa-shield-alt"></i> Verificación KYC</h2>
+                <h2><i class="fas fa-map-marker-alt"></i> Dirección</h2>
+                <form id="addressForm">
+                    <div class="form-group">
+                        <label for="direccion">Dirección completa *</label>
+                        <input type="text" id="direccion" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ciudad">Ciudad *</label>
+                        <input type="text" id="ciudad" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pais">País *</label>
+                        <select id="pais" required>
+                            <option value="">Selecciona tu país</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="codigoPostal">Código postal</label>
+                        <input type="text" id="codigoPostal">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Guardar dirección</button>
+                </form>
+            </div>
+
+            <!-- Verificación KYC con Cámara -->
+            <div class="form-section">
+                <h2><i class="fas fa-shield-alt"></i> Verificación KYC con IA</h2>
                 <form id="kycForm">
                     <div class="form-group">
                         <label for="tipoDocumento">Tipo de documento *</label>
@@ -337,31 +554,94 @@
                             <option value="licencia">Licencia de conducir</option>
                         </select>
                     </div>
+                    
                     <div class="form-group">
                         <label for="numeroDocumento">Número de documento *</label>
                         <input type="text" id="numeroDocumento" required>
                     </div>
+
+                    <!-- Foto del documento frontal -->
                     <div class="form-group">
-                        <label for="direccion">Dirección *</label>
-                        <input type="text" id="direccion" required>
+                        <label> Foto del documento (Frente) *</label>
+                        <div class="camera-container">
+                            <video id="docFrontVideo" class="camera-preview" autoplay playsinline style="display: none;"></video>
+                            <canvas id="docFrontCanvas" style="display: none;"></canvas>
+                            <div id="docFrontPreview" class="image-preview"></div>
+                        </div>
+                        <div class="camera-controls">
+                            <button type="button" class="btn-camera secondary" onclick="openCamera('docFront')">
+                                <i class="fas fa-camera"></i> Abrir cámara
+                            </button>
+                            <button type="button" class="btn-camera primary" onclick="takePhoto('docFront')" id="btnDocFront" disabled>
+                                <i class="fas fa-camera"></i> Capturar
+                            </button>
+                        </div>
+                        <input type="hidden" id="docFrontalUrl">
                     </div>
+
+                    <!-- Foto del documento trasero -->
                     <div class="form-group">
-                        <label for="ciudad">Ciudad *</label>
-                        <input type="text" id="ciudad" required>
+                        <label> Foto del documento (Reverso)</label>
+                        <div class="camera-container">
+                            <video id="docBackVideo" class="camera-preview" autoplay playsinline style="display: none;"></video>
+                            <canvas id="docBackCanvas" style="display: none;"></canvas>
+                            <div id="docBackPreview" class="image-preview"></div>
+                        </div>
+                        <div class="camera-controls">
+                            <button type="button" class="btn-camera secondary" onclick="openCamera('docBack')">
+                                <i class="fas fa-camera"></i> Abrir cámara
+                            </button>
+                            <button type="button" class="btn-camera primary" onclick="takePhoto('docBack')" id="btnDocBack" disabled>
+                                <i class="fas fa-camera"></i> Capturar
+                            </button>
+                        </div>
+                        <input type="hidden" id="docTraseroUrl">
                     </div>
+
+                    <!-- Selfie con detección facial -->
                     <div class="form-group">
-                        <label for="pais">País *</label>
-                        <input type="text" id="pais" required>
+                        <label> Selfie con detección facial *</label>
+                        <div class="camera-container">
+                            <video id="selfieVideo" class="camera-preview" autoplay playsinline style="display: none;"></video>
+                            <canvas id="selfieCanvas" style="display: none;"></canvas>
+                            <div id="selfiePreview" class="image-preview"></div>
+                        </div>
+                        <div id="faceDetectionStatus" class="face-detection-status"></div>
+                        <div class="camera-controls">
+                            <button type="button" class="btn-camera secondary" onclick="openCamera('selfie')">
+                                <i class="fas fa-camera"></i> Abrir cámara
+                            </button>
+                            <button type="button" class="btn-camera primary" onclick="takePhoto('selfie')" id="btnSelfie" disabled>
+                                <i class="fas fa-camera"></i> Capturar selfie
+                            </button>
+                        </div>
+                        <input type="hidden" id="selfieUrl">
                     </div>
-                    <div class="form-group">
-                        <label for="codigoPostal">Código postal</label>
-                        <input type="text" id="codigoPostal">
-                    </div>
-                    <button type="submit" class="btn-primary">Enviar documentos para verificación</button>
+
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i> Enviar documentos para verificación
+                    </button>
                 </form>
             </div>
 
             <div id="message" class="message"></div>
+        </div>
+    </div>
+
+    <!-- Modal para cámara -->
+    <div class="modal" id="cameraModal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="modalTitle">Cámara</h3>
+            <video id="modalVideo" class="camera-preview" autoplay playsinline></video>
+            <canvas id="modalCanvas" style="display: none;"></canvas>
+            <div class="camera-controls">
+                <button type="button" class="btn-camera secondary" onclick="closeCamera()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-camera primary" onclick="captureFromModal()">
+                    <i class="fas fa-camera"></i> Capturar
+                </button>
+            </div>
         </div>
     </div>
 
