@@ -6,6 +6,8 @@
     <title>Boche Clava'o - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- HLS.js para streaming en vivo -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -18,6 +20,7 @@
             flex-direction: column;
         }
 
+        /* Navbar */
         .navbar {
             background: #0a0a0a;
             border-bottom: 1px solid #222;
@@ -51,7 +54,6 @@
             text-transform: uppercase;
         }
 
-        /* Saldo y botón depositar */
         .balance-container {
             display: flex;
             align-items: center;
@@ -95,30 +97,6 @@
             letter-spacing: 1px;
         }
 
-        .btn-depositar {
-            background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-family: 'Montserrat', sans-serif;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-depositar:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
-        }
-
-        /* Menú de usuario */
         .user-menu-container {
             position: relative;
             display: flex;
@@ -169,15 +147,6 @@
             border-color: #FFD700;
         }
 
-        .menu-toggle i {
-            transition: transform 0.3s ease;
-        }
-
-        .menu-toggle.active i {
-            transform: rotate(180deg);
-        }
-
-        /* Dropdown menu */
         .dropdown-menu {
             position: absolute;
             top: calc(100% + 10px);
@@ -218,9 +187,6 @@
         .dropdown-header .user-email {
             font-size: 0.75rem;
             color: #999;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         .dropdown-item {
@@ -262,11 +228,6 @@
         }
 
         .dropdown-item.logout i {
-            color: #ff4444;
-        }
-
-        .dropdown-item.logout:hover {
-            background: rgba(255, 68, 68, 0.1);
             color: #ff4444;
         }
 
@@ -626,6 +587,164 @@
             color: #000;
         }
 
+        /* 🎥 TRANSMISIÓN EN VIVO */
+        .live-stream-section {
+            background: #0a0a0a;
+            border: 2px solid #222;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .live-stream-section.active {
+            border-color: #ff0000;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+        }
+
+        .live-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .live-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ff0000;
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: pulse-live 2s infinite;
+        }
+
+        @keyframes pulse-live {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+            }
+            50% {
+                opacity: 0.9;
+                box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+            }
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .live-viewers {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .live-viewers i {
+            color: #ff0000;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .video-container video,
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            color: #666;
+        }
+
+        .video-placeholder i {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .video-placeholder p {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .video-placeholder span {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        .live-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+
+        .live-info h4 {
+            color: #FFD700;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .live-info p {
+            color: #cccccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Tarjetas adicionales */
         .info-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -730,8 +849,8 @@
                 grid-template-columns: 1fr;
             }
 
-            .dropdown-menu {
-                right: -50px;
+            .live-title {
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -869,6 +988,33 @@
                 </div>
             </div>
 
+            <!-- 🎥 TRANSMISIÓN EN VIVO -->
+            <div class="live-stream-section" id="liveStreamSection">
+                <div class="live-header">
+                    <div class="live-title">
+                        <i class="fas fa-broadcast-tower"></i>
+                        Transmisión en Vivo
+                    </div>
+                    <div id="liveBadgeContainer"></div>
+                </div>
+
+                <div class="video-container" id="videoContainer">
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <i class="fas fa-video-slash"></i>
+                        <p>No hay transmisión activa</p>
+                        <span>Pronto habrá eventos en vivo</span>
+                    </div>
+                    <video id="liveVideo" style="display: none;" controls autoplay muted></video>
+                    <iframe id="liveIframe" style="display: none;" allowfullscreen></iframe>
+                </div>
+
+                <div class="live-info" id="liveInfo" style="display: none;">
+                    <h4 id="liveTitle">Título del evento</h4>
+                    <p id="liveDescription">Descripción del evento en vivo</p>
+                </div>
+            </div>
+
+            <!-- Tarjetas adicionales -->
             <div class="info-cards">
                 <div class="info-card" onclick="window.location.href='perfil.html'">
                     <i class="fas fa-user-circle"></i>
