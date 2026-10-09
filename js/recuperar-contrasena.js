@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ Script de recuperación cargado');
+    console.log('Script de recuperación cargado');
     
     const messageDiv = document.getElementById('message');
     const emailForm = document.getElementById('emailForm');
@@ -12,16 +12,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let debounceTimer = null;
 
     if (!db) {
-        console.error('❌ No se pudo obtener el cliente de Supabase');
+        console.error('No se pudo obtener el cliente de Supabase');
         return;
-    }
-
-    /
-    function construirURL(base) {
-        // Si estamos en GitHub Pages, la ruta incluye el nombre del repo
-        const path = window.location.pathname;
-        const repoPath = path.substring(0, path.lastIndexOf('/')); // "/boche-clavo/html"
-        return window.location.origin + repoPath + base;
     }
 
     function showMessage(text, type) {
@@ -31,32 +23,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 🔍 Detectar si el usuario viene del enlace del correo
-    // Supabase añade automáticamente ?type=recovery&token=... a la URL
+    function construirURL(base) {
+        const path = window.location.pathname;
+        const repoPath = path.substring(0, path.lastIndexOf('/'));
+        return window.location.origin + repoPath + base;
+    }
+
     async function verificarVueltaDelCorreo() {
         const urlParams = new URLSearchParams(window.location.search);
         const tipo = urlParams.get('type');
         const token = urlParams.get('token');
         const tokenHash = urlParams.get('token_hash');
         
-        console.log(' Parámetros URL:', { tipo, token: token ? 'presente' : 'no', tokenHash: tokenHash ? 'presente' : 'no' });
+        console.log('Parametros URL:', { tipo, token: token ? 'presente' : 'no', tokenHash: tokenHash ? 'presente' : 'no' });
         
-        // Si viene del correo con tipo recovery
         if (tipo === 'recovery' && (token || tokenHash)) {
-            console.log('✅ Usuario viene del enlace de recuperación');
+            console.log('Usuario viene del enlace de recuperación');
             
-            // Verificar que la sesión esté activa (Supabase la crea automáticamente al hacer clic en el enlace)
             const { data: { session }, error } = await db.auth.getSession();
             
             if (error || !session) {
-                console.error('❌ No hay sesión activa:', error);
+                console.error('No hay sesión activa:', error);
                 showMessage('El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo.', 'error');
                 return false;
             }
             
-            console.log('✅ Sesión activa verificada, mostrando formulario de nueva contraseña');
+            console.log('Sesión activa verificada, mostrando formulario de nueva contraseña');
             
-            // Ocultar paso 1 y mostrar paso 3 directamente
             const step1 = document.getElementById('step1');
             const step3 = document.getElementById('step3');
             if (step1 && step3) {
@@ -69,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return false;
     }
 
-    // Validación visual del email
     if (emailInput) {
         emailInput.addEventListener('input', function() {
             const email = this.value.trim();
@@ -113,7 +105,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Enviar enlace de recuperación
     if (emailForm) {
         emailForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -129,9 +120,8 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Enviando enlace de recuperación...', 'info');
             
             try {
-                // Construir la URL de redirección correcta
                 const redirectURL = construirURL('/recuperar-contrasena.html');
-                console.log('🔗 URL de redirección:', redirectURL);
+                console.log('URL de redirección:', redirectURL);
                 
                 const { data, error } = await db.auth.resetPasswordForEmail(email, {
                     redirectTo: redirectURL
@@ -157,9 +147,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Éxito
                 emailForm.style.display = 'none';
-                showMessage('✅ Enlace de recuperación enviado. Revisa tu correo (y la carpeta de Spam). Haz clic en el botón para crear tu nueva contraseña.', 'success');
+                showMessage('Enlace de recuperación enviado. Revisa tu correo (y la carpeta de Spam). Haz clic en el botón para crear tu nueva contraseña.', 'success');
                 
             } catch (err) {
                 console.error('Error inesperado:', err);
@@ -168,7 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Validación de nueva contraseña
     const newPasswordInput = document.getElementById('newPassword');
     if (newPasswordInput) {
         newPasswordInput.addEventListener('input', function() {
@@ -195,7 +183,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Actualizar contraseña
     const passwordForm = document.getElementById('passwordForm');
     if (passwordForm) {
         passwordForm.addEventListener('submit', async (e) => {
@@ -229,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 await db.auth.signOut();
                 
-                showMessage('✅ Contraseña actualizada exitosamente. Redirigiendo al login...', 'success');
+                showMessage('Contraseña actualizada exitosamente. Redirigiendo al login...', 'success');
                 
                 setTimeout(() => {
                     window.location.href = 'login.html';
@@ -242,6 +229,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    //  EJECUTAR AL CARGAR: verificar si viene del correo
     verificarVueltaDelCorreo();
 });
