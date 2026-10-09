@@ -23,20 +23,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // 1. Función global para los ojitos (MUY IMPORTANTE)
+    window.togglePassword = function(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (!input || !iconElement) return;
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            iconElement.classList.remove('fa-eye');
+            iconElement.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            iconElement.classList.remove('fa-eye-slash');
+            iconElement.classList.add('fa-eye');
+        }
+    };
+
     function construirURL(base) {
         const path = window.location.pathname;
         const repoPath = path.substring(0, path.lastIndexOf('/'));
         return window.location.origin + repoPath + base;
     }
 
-    // 🔑 SOLUCIÓN CLAVE: Usar onAuthStateChange para detectar recuperación
+    // 2. Inicializar requisitos en estado inválido (gris) al cargar
+    function inicializarRequisitos() {
+        const ids = ['req-length', 'req-letter', 'req-number', 'req-special'];
+        ids.forEach(id => {
+            const li = document.getElementById(id);
+            if (li) {
+                li.classList.remove('req-valid');
+                li.classList.add('req-invalid');
+                const icon = li.querySelector('i');
+                if (icon) icon.className = 'fas fa-circle';
+            }
+        });
+    }
+
+    // 3. Detectar recuperación de contraseña
     db.auth.onAuthStateChange((event, session) => {
         console.log('Evento de autenticación:', event);
         
         if (event === 'PASSWORD_RECOVERY') {
-            console.log('Usuario viene del enlace de recuperación de contraseña');
+            console.log('Usuario viene del enlace de recuperación');
             
-            // Ocultar paso 1 (email) y mostrar paso 3 (nueva contraseña)
             const step1 = document.getElementById('step1');
             const step3 = document.getElementById('step3');
             
@@ -45,11 +74,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 step3.style.display = 'block';
             }
             
+            // Inicializar requisitos en gris cuando se muestra el paso 3
+            inicializarRequisitos();
+            
             showMessage('Enlace verificado. Ahora crea tu nueva contraseña.', 'success');
         }
     });
 
-    // Validación visual del email
+    // 4. Validación visual del email
     if (emailInput) {
         emailInput.addEventListener('input', function() {
             const email = this.value.trim();
@@ -93,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Enviar enlace de recuperación
+    // 5. Enviar enlace de recuperación
     if (emailForm) {
         emailForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -146,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Validación de nueva contraseña
+    // 6. Validación en tiempo real de la nueva contraseña
     const newPasswordInput = document.getElementById('newPassword');
     if (newPasswordInput) {
         newPasswordInput.addEventListener('input', function() {
@@ -173,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Actualizar contraseña
+    // 7. Actualizar contraseña
     const passwordForm = document.getElementById('passwordForm');
     if (passwordForm) {
         passwordForm.addEventListener('submit', async (e) => {
