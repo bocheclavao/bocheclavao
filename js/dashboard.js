@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     
     if (!db) {
-        console.error('❌ No se pudo obtener el cliente de Supabase');
+        console.error('No se pudo obtener el cliente de Supabase');
         return;
     }
 
@@ -49,20 +49,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function cargarOCrearPerfil(user) {
         try {
-            console.log('🔍 Buscando perfil en BD para:', user.id);
             const { data: perfil, error } = await db
                 .from('perfiles')
                 .select('*')
                 .eq('id', user.id)
                 .single();
             
-            if (perfil) {
-                console.log('✅ Perfil encontrado:', perfil);
-                return perfil;
-            }
+            if (perfil) return perfil;
             
             if (error && error.code === 'PGRST116') {
-                console.log('⚠️ Perfil no existe, creando uno nuevo...');
                 const nuevoPerfil = {
                     id: user.id,
                     user_id: generarIdUnico(),
@@ -80,14 +75,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .single();
                 
                 if (insertError) {
-                    console.error('❌ Error al crear perfil:', insertError);
+                    console.error('Error al crear perfil:', insertError);
                     return null;
                 }
                 return creado;
             }
             return null;
         } catch (err) {
-            console.error('❌ Error en cargarOCrearPerfil:', err);
+            console.error('Error en cargarOCrearPerfil:', err);
             return null;
         }
     }
@@ -146,6 +141,84 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
     window.irADepositar = function() { alert('El sistema de depósitos estará disponible próximamente'); };
 
+    // 🎥 CARGAR TRANSMISIÓN EN VIVO
+    async function cargarStreamEnVivo() {
+        try {
+            const { data: streamConfig, error } = await db
+                .from('config_stream_vivo')
+                .select('*')
+                .eq('activo', true)
+                .single();
+
+            const liveSection = document.getElementById('liveStreamSection');
+            const liveBadgeContainer = document.getElementById('liveBadgeContainer');
+            const videoPlaceholder = document.getElementById('videoPlaceholder');
+            const liveVideo = document.getElementById('liveVideo');
+            const liveIframe = document.getElementById('liveIframe');
+            const liveInfo = document.getElementById('liveInfo');
+            const liveTitle = document.getElementById('liveTitle');
+            const liveDescription = document.getElementById('liveDescription');
+
+            if (error || !streamConfig || !streamConfig.activo) {
+                // No hay stream activo
+                liveSection.classList.remove('active');
+                videoPlaceholder.style.display = 'flex';
+                liveVideo.style.display = 'none';
+                liveIframe.style.display = 'none';
+                liveInfo.style.display = 'none';
+                liveBadgeContainer.innerHTML = '';
+                return;
+            }
+
+            // Hay stream activo
+            liveSection.classList.add('active');
+            videoPlaceholder.style.display = 'none';
+            liveInfo.style.display = 'block';
+            liveTitle.textContent = streamConfig.titulo || 'Transmisión en Vivo';
+            liveDescription.textContent = streamConfig.descripcion || 'Evento en vivo';
+
+            // Mostrar badge EN VIVO
+            liveBadgeContainer.innerHTML = `
+                <div class="live-badge">
+                    <div class="live-dot"></div>
+                    EN VIVO
+                </div>
+                ${streamConfig.espectadores ? `<div class="live-viewers"><i class="fas fa-eye"></i> ${streamConfig.espectadores} espectadores</div>` : ''}
+            `;
+
+            // Cargar video según tipo
+            if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
+                liveVideo.style.display = 'block';
+                liveIframe.style.display = 'none';
+                
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(streamConfig.url_stream);
+                    hls.attachMedia(liveVideo);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        liveVideo.play();
+                    });
+                } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                    liveVideo.src = streamConfig.url_stream;
+                    liveVideo.addEventListener('loadedmetadata', function() {
+                        liveVideo.play();
+                    });
+                }
+            } else if (streamConfig.tipo_stream === 'youtube' && streamConfig.url_stream) {
+                liveIframe.style.display = 'block';
+                liveVideo.style.display = 'none';
+                liveIframe.src = streamConfig.url_stream;
+            } else if (streamConfig.tipo_stream === 'twitch' && streamConfig.url_stream) {
+                liveIframe.style.display = 'block';
+                liveVideo.style.display = 'none';
+                liveIframe.src = streamConfig.url_stream;
+            }
+
+        } catch (err) {
+            console.error('Error cargando stream en vivo:', err);
+        }
+    }
+
     function actualizarBannerKYC(estado) {
         if (estado === 'verificado') {
             kycBanner.style.display = 'none';
@@ -166,30 +239,35 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.opacity = '1';
             kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
+            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
+            
         } else if (estado === 'pendiente') {
             kycBanner.classList.remove('verified', 'rejected');
             kycBanner.style.borderColor = '#FFA500';
             kycTitle.textContent = '⏳ Verificación KYC en Revisión';
-            kycMessage.textContent = 'Tus documentos han sido enviados y están siendo revisados por nuestro equipo.';
+            kycMessage.textContent = 'Tus documentos han sido enviados y están siendo revisados por nuestro equipo. Recibirás una notificación cuando sean aprobados. Este proceso puede tomar hasta 24 horas.';
             kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - Espere Aprobación';
             kycBtn.style.pointerEvents = 'none';
             kycBtn.style.opacity = '0.6';
             kycBtn.style.background = '#666';
             kycBtn.onclick = null;
+            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
+            
         } else if (estado === 'rechazado') {
             kycBanner.classList.add('rejected');
             kycBanner.classList.remove('verified');
             kycTitle.textContent = '❌ Verificación KYC Rechazada';
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla.';
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla para ser verificado.';
             kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar Verificación';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
             kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
+            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
         }
@@ -205,18 +283,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function mostrarDatos(user, perfil) {
-        // 🕵️ RASTREADOR: Ver qué datos llegan exactamente
-        console.log('📊 Datos del perfil recibidos:', perfil);
-        
         const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
         const email = user.email;
         const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
         const estado = perfil?.estado_kyc || null;
-        
-        // 🕵️ RASTREADOR: Forzar que sea número y mostrarlo en consola
-        saldoBC = typeof perfil?.saldo_bc === 'number' ? perfil.saldo_bc : 0;
-        console.log('💰 Saldo BC detectado en dashboard:', saldoBC);
+        saldoBC = perfil?.saldo_bc || 0;
 
         userNameDisplay.textContent = nombre;
         userEmailDisplay.textContent = email;
@@ -229,11 +301,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         dropdownUserName.textContent = nombre;
         dropdownUserEmail.textContent = email;
-        
-        // 🕵️ RASTREADOR: Ver qué se está pintando en pantalla
-        const textoSaldo = `${saldoBC.toFixed(2)} BC`;
-        console.log('🖥️ Texto de saldo a mostrar:', textoSaldo);
-        balanceAmount.textContent = textoSaldo;
+        balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
 
         if (avatarUrl) {
             avatarImage.src = avatarUrl;
@@ -260,12 +328,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.location.href = 'perfil.html';
             return;
         }
-        if (rol === 'bochador') window.location.href = 'dashboard-bochador.html';
-        else if (rol === 'patrocinador') window.location.href = 'dashboard-patrocinador.html';
+        
+        if (rol === 'bochador') {
+            window.location.href = 'dashboard-bochador.html';
+        } else if (rol === 'patrocinador') {
+            window.location.href = 'dashboard-patrocinador.html';
+        }
     };
 
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
+        
         if (!session || error) {
             window.location.href = 'login.html';
             return;
@@ -273,22 +346,31 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         try {
             await asegurarSesionUnica();
+
             const { data: { user }, error: userError } = await db.auth.getUser();
             
-            if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
+            if (userError || !user) {
+                throw new Error('No se pudo obtener la información del usuario');
+            }
 
             const perfil = await cargarOCrearPerfil(user);
             estadoKyc = perfil?.estado_kyc || null;
             mostrarDatos(user, perfil);
             
+            // 🎥 Cargar stream en vivo
+            await cargarStreamEnVivo();
+            
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
 
         } catch (err) {
-            console.error('❌ Error al obtener usuario:', err);
+            console.error('Error al obtener usuario:', err);
             loadingState.style.display = 'none';
             errorState.style.display = 'block';
-            setTimeout(() => { window.location.href = 'login.html'; }, 3000);
+            
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 3000);
         }
     }
 
@@ -298,6 +380,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function cerrarSesion() {
     const db = window.supabaseClient;
     if (!db) return;
+
     try {
         const { error } = await db.auth.signOut({ scope: 'global' });
         if (error) throw error;
