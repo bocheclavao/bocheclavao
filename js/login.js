@@ -89,7 +89,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 6. Verificar sesión activa al cargar la página
+    // 6. Recuperar contraseña (Redirige a la página de recuperación)
+    window.mostrarRecuperarContrasena = function() {
+        window.location.href = 'recuperar-contrasena.html';
+    };
+
+    // 7. Verificar sesión activa al cargar la página
     async function checkSession() {
         const { data: { session } } = await db.auth.getSession();
         if (session) {
