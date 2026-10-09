@@ -67,59 +67,110 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    async function cargarPerfil() {
-        try {
-            const { data: { user } } = await db.auth.getUser();
-            if (!user) { window.location.href = 'login.html'; return; }
+   async function cargarPerfil() {
+    try {
+        const { data: { user } } = await db.auth.getUser();
+        if (!user) { window.location.href = 'login.html'; return; }
 
-            const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
-            if (error) { console.error('Error al cargar perfil:', error); return; }
+        const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
+        if (error) { console.error('Error al cargar perfil:', error); return; }
 
-            document.getElementById('profileName').textContent = perfil.nombre || 'Usuario';
-            document.getElementById('profileId').textContent = `ID: ${perfil.user_id}`;
-            document.getElementById('profileEmail').textContent = perfil.email;
-            
-            const avatarInitial = document.getElementById('avatarInitial');
-            const avatarImage = document.getElementById('avatarImage');
-            if (perfil.avatar_url) {
-                avatarImage.src = perfil.avatar_url;
-                avatarImage.style.display = 'block';
-                avatarInitial.style.display = 'none';
-            } else {
-                avatarInitial.textContent = (perfil.nombre || 'U').charAt(0).toUpperCase();
-                avatarInitial.style.display = 'flex';
-                avatarImage.style.display = 'none';
-            }
-
-            const kycStatus = document.getElementById('kycStatus');
-            if (perfil.estado_kyc === 'verificado') {
-                kycStatus.className = 'kyc-status verified';
-                kycStatus.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
-            } else if (perfil.estado_kyc === 'rechazado') {
-                kycStatus.className = 'kyc-status rejected';
-                kycStatus.innerHTML = '<i class="fas fa-times-circle"></i> KYC Rechazado';
-            }
-
-            // Llenar formulario
-            document.getElementById('nombre').value = perfil.nombre || '';
-            document.getElementById('telefono').value = perfil.telefono ? perfil.telefono.split(' ').slice(1).join(' ') : '';
-            document.getElementById('phoneCountry').value = perfil.telefono ? perfil.telefono.split(' ')[0] : '';
-            document.getElementById('fechaNacimiento').value = perfil.fecha_nacimiento || '';
-            document.getElementById('nacionalidad').value = perfil.nacionalidad || '';
-            document.getElementById('direccion').value = perfil.direccion || '';
-            document.getElementById('ciudad').value = perfil.ciudad || '';
-            document.getElementById('pais').value = perfil.pais || '';
-            document.getElementById('codigoPostal').value = perfil.codigo_postal || '';
-            document.getElementById('tipoDocumento').value = perfil.tipo_documento || '';
-            document.getElementById('numeroDocumento').value = perfil.numero_documento || '';
-
-            loadingState.style.display = 'none';
-            contentState.style.display = 'block';
-
-        } catch (err) {
-            console.error('Error:', err);
+        document.getElementById('profileName').textContent = perfil.nombre || 'Usuario';
+        document.getElementById('profileId').textContent = `ID: ${perfil.user_id}`;
+        document.getElementById('profileEmail').textContent = perfil.email;
+        
+        const avatarInitial = document.getElementById('avatarInitial');
+        const avatarImage = document.getElementById('avatarImage');
+        if (perfil.avatar_url) {
+            avatarImage.src = perfil.avatar_url;
+            avatarImage.style.display = 'block';
+            avatarInitial.style.display = 'none';
+        } else {
+            avatarInitial.textContent = (perfil.nombre || 'U').charAt(0).toUpperCase();
+            avatarInitial.style.display = 'flex';
+            avatarImage.style.display = 'none';
         }
+
+        const kycStatus = document.getElementById('kycStatus');
+        const submitBtn = document.getElementById('submitBtn');
+        const kycSection = document.querySelector('.form-section:last-of-type'); // Sección KYC
+
+        if (perfil.estado_kyc === 'verificado') {
+            kycStatus.className = 'kyc-status verified';
+            kycStatus.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
+            
+            // Bloquear formulario KYC
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Ya Verificado';
+                submitBtn.style.background = '#00ff00';
+            }
+            if (kycSection) {
+                kycSection.style.opacity = '0.5';
+                kycSection.style.pointerEvents = 'none';
+            }
+            showMessage('✅ Tu identidad ha sido verificada exitosamente.', 'success');
+            
+        } else if (perfil.estado_kyc === 'rechazado') {
+            kycStatus.className = 'kyc-status rejected';
+            kycStatus.innerHTML = '<i class="fas fa-times-circle"></i> KYC Rechazado - Puede Reenviar';
+            
+            // Permitir reenvío - formulario activo
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Reenviar Documentos para Verificación';
+                submitBtn.style.background = '';
+            }
+            if (kycSection) {
+                kycSection.style.opacity = '1';
+                kycSection.style.pointerEvents = 'auto';
+            }
+            showMessage('⚠️ Tu KYC fue rechazado. Por favor, corrige la información y reenvía los documentos.', 'error');
+            
+        } else {
+            // Pendiente - EN REVISIÓN
+            kycStatus.className = 'kyc-status pending';
+            kycStatus.innerHTML = '<i class="fas fa-hourglass-half"></i> KYC en Revisión';
+            
+            // Bloquear formulario KYC
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - No puede reenviar';
+                submitBtn.style.background = '#666';
+            }
+            if (kycSection) {
+                kycSection.style.opacity = '0.5';
+                kycSection.style.pointerEvents = 'none';
+            }
+            showMessage('⏳ Tus documentos están siendo revisados. Por favor, espera la aprobación del administrador.', 'info');
+        }
+
+        // Llenar formulario con datos existentes
+        document.getElementById('nombre').value = perfil.nombre || '';
+        document.getElementById('telefono').value = perfil.telefono ? perfil.telefono.split(' ').slice(1).join(' ') : '';
+        document.getElementById('phoneCountry').value = perfil.telefono ? perfil.telefono.split(' ')[0] : '';
+        document.getElementById('fechaNacimiento').value = perfil.fecha_nacimiento || '';
+        document.getElementById('nacionalidad').value = perfil.nacionalidad || '';
+        document.getElementById('direccion').value = perfil.direccion || '';
+        document.getElementById('ciudad').value = perfil.ciudad || '';
+        document.getElementById('pais').value = perfil.pais || '';
+        document.getElementById('codigoPostal').value = perfil.codigo_postal || '';
+        document.getElementById('tipoDocumento').value = perfil.tipo_documento || '';
+        document.getElementById('numeroDocumento').value = perfil.numero_documento || '';
+
+        // Si está pendiente o verificado, deshabilitar campos de KYC
+        if (perfil.estado_kyc === 'pendiente' || perfil.estado_kyc === 'verificado') {
+            const kycInputs = document.querySelectorAll('#tipoDocumento, #numeroDocumento, input[type="hidden"]');
+            kycInputs.forEach(input => input.disabled = true);
+        }
+
+        loadingState.style.display = 'none';
+        contentState.style.display = 'block';
+
+    } catch (err) {
+        console.error('Error:', err);
     }
+}
 
     window.openCamera = async function(type) {
         currentCameraType = type;
