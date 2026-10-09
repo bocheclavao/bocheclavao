@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Guardar información personal
+    // Guardar información 
     const personalForm = document.getElementById('personalForm');
     if (personalForm) {
         personalForm.addEventListener('submit', async (e) => {
