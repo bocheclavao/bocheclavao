@@ -14,15 +14,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     const userIdDisplay = document.getElementById('userIdDisplay');
     const avatarImage = document.getElementById('avatarImage');
     const avatarPlaceholder = document.getElementById('avatarDisplay');
-    const navAvatar = document.getElementById('navAvatar');
+    const navAvatarContainer = document.getElementById('navAvatarContainer');
     const kycBanner = document.getElementById('kycBanner');
     const kycTitle = document.getElementById('kycTitle');
     const kycMessage = document.getElementById('kycMessage');
     const kycBtn = document.getElementById('kycBtn');
     const cardBochador = document.getElementById('cardBochador');
     const cardPatrocinador = document.getElementById('cardPatrocinador');
+    const balanceAmount = document.getElementById('balanceAmount');
+    const dropdownUserName = document.getElementById('dropdownUserName');
+    const dropdownUserEmail = document.getElementById('dropdownUserEmail');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const menuToggle = document.getElementById('menuToggle');
 
     let estadoKyc = 'pendiente';
+    let saldoBC = 0;
 
     // Escuchar cambios de autenticación
     db.auth.onAuthStateChange((event, session) => {
@@ -72,7 +78,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     user_id: generarIdUnico(),
                     nombre: user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario',
                     email: user.email,
-                    avatar_url: user.user_metadata?.avatar_url || null
+                    avatar_url: user.user_metadata?.avatar_url || null,
+                    saldo_bc: 0
                 };
                 
                 const { data: creado, error: insertError } = await db
@@ -99,6 +106,46 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    // Toggle del menú desplegable
+    window.toggleMenu = function() {
+        dropdownMenu.classList.toggle('show');
+        menuToggle.classList.toggle('active');
+    };
+
+    // Cerrar menú al hacer clic fuera
+    document.addEventListener('click', function(event) {
+        const menuContainer = document.querySelector('.user-menu-container');
+        if (!menuContainer.contains(event.target)) {
+            dropdownMenu.classList.remove('show');
+            menuToggle.classList.remove('active');
+        }
+    });
+
+    // Funciones de navegación del menú
+    window.irAPerfil = function() {
+        window.location.href = 'perfil.html';
+    };
+
+    window.irABilletera = function() {
+        alert('🚧 La billetera estará disponible próximamente');
+    };
+
+    window.irAApuestas = function() {
+        alert('🚧 Mis apuestas estará disponible próximamente');
+    };
+
+    window.irASoporte = function() {
+        alert('🚧 Soporte estará disponible próximamente');
+    };
+
+    window.irAConfiguracion = function() {
+        alert('🚧 Configuración estará disponible próximamente');
+    };
+
+    window.irADepositar = function() {
+        alert('🚧 El sistema de depósitos estará disponible próximamente');
+    };
+
     // Actualizar banner KYC según estado
     function actualizarBannerKYC(estado) {
         estadoKyc = estado;
@@ -112,7 +159,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.pointerEvents = 'none';
             kycBtn.style.opacity = '0.7';
             
-            // Habilitar tarjetas de rol
             cardBochador.classList.remove('disabled');
             cardPatrocinador.classList.remove('disabled');
             
@@ -125,22 +171,29 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
             
-            // Deshabilitar tarjetas de rol
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
             
         } else {
-            // Pendiente
             kycBanner.classList.remove('verified', 'rejected');
-            kycTitle.textContent = '⚠️ Verificación KYC Pendiente';
+            kycTitle.textContent = '️ Verificación KYC Pendiente';
             kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC). Es rápido y seguro.';
             kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
             
-            // Deshabilitar tarjetas de rol
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
+        }
+    }
+
+    // Mostrar avatar en navbar
+    function mostrarAvatarNavbar(nombre, avatarUrl) {
+        if (avatarUrl) {
+            navAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-small" onclick="toggleMenu()">`;
+        } else {
+            const inicial = (nombre || 'U').charAt(0).toUpperCase();
+            navAvatarContainer.innerHTML = `<div class="avatar-placeholder-small" onclick="toggleMenu()">${inicial}</div>`;
         }
     }
 
@@ -151,27 +204,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
         const estado = perfil?.estado_kyc || 'pendiente';
+        saldoBC = perfil?.saldo_bc || 0;
 
         userNameDisplay.textContent = nombre;
         userEmailDisplay.textContent = email;
         userIdDisplay.textContent = `ID: ${userId}`;
+        
+        dropdownUserName.textContent = nombre;
+        dropdownUserEmail.textContent = email;
+        
+        balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
 
         if (avatarUrl) {
             avatarImage.src = avatarUrl;
             avatarImage.style.display = 'block';
             avatarPlaceholder.style.display = 'none';
-            
-            navAvatar.src = avatarUrl;
-            navAvatar.style.display = 'block';
         } else {
             const inicial = nombre.charAt(0).toUpperCase();
             avatarPlaceholder.textContent = inicial;
             avatarPlaceholder.style.display = 'flex';
             avatarImage.style.display = 'none';
-            navAvatar.style.display = 'none';
         }
 
-        // Actualizar banner KYC
+        mostrarAvatarNavbar(nombre, avatarUrl);
         actualizarBannerKYC(estado);
     }
 
