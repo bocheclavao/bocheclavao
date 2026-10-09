@@ -71,7 +71,37 @@
         .modal-content { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 20px; max-width: 500px; width: 100%; text-align: center; }
         .modal-title { font-size: 1.2rem; font-weight: 800; color: #FFD700; margin-bottom: 15px; }
         .camera-error { color: #ff4444; font-size: 0.9rem; margin-top: 10px; display: none; }
+.kyc-status.reviewing {
+    background: rgba(255, 165, 0, 0.1);
+    border: 1px solid #FFA500;
+    color: #FFA500;
+    animation: pulse 2s infinite;
+}
 
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.form-section[style*="opacity: 0.5"] {
+    position: relative;
+}
+
+.form-section[style*="opacity: 0.5"]::after {
+    content: '🔒 Bloqueado - En Revisión';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #FFD700;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    border: 2px solid #FFD700;
+    z-index: 10;
+}
         @media (max-width: 768px) {
             .navbar { flex-direction: column; gap: 15px; }
             .profile-name { font-size: 1.5rem; }
