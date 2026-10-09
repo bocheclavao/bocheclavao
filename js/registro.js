@@ -7,9 +7,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const emailDisplay = document.getElementById('emailDisplay');
     const otpInput = document.getElementById('otpCode');
     const passwordInput = document.getElementById('password');
+    const emailInput = document.getElementById('email');
+    const emailError = document.getElementById('emailError');
+    const emailErrorText = document.getElementById('emailErrorText');
+    const submitBtn = registroForm ? registroForm.querySelector('button[type="submit"]') : null;
     
     const db = window.supabaseClient;
     let emailRegistrado = '';
+    let emailYaExiste = false;
+    let debounceTimer = null;
 
     if (!db) {
         console.error('❌ No se pudo obtener el cliente de Supabase');
@@ -39,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 2. Validación en tiempo real
+    // 2. Validación en tiempo real de la contraseña
     if (passwordInput) {
         passwordInput.addEventListener('input', function() {
             const val = this.value;
@@ -65,13 +71,81 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // 3. 🎯 VALIDACIÓN EN TIEMPO REAL DEL EMAIL
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            const email = this.value.trim();
+            
+            // Limpiar estado anterior
+            emailInput.classList.remove('input-error', 'input-valid');
+            if (emailError) emailError.style.display = 'none';
+            emailYaExiste = false;
+            if (submitBtn) submitBtn.disabled = false;
+            
+            // Validar formato básico de email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email) || email.length < 5) {
+                return; // No consultar si no es un email válido
+            }
+            
+            // Debounce: esperar 800ms después de que el usuario deje de escribir
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                verificarEmailExiste(email);
+            }, 800);
+        });
+    }
+
+    async function verificarEmailExiste(email) {
+        try {
+            // Consultar la tabla 'usuarios' (la que creamos con el trigger)
+            const { data, error } = await db
+                .from('usuarios')
+                .select('id, email')
+                .eq('email', email)
+                .limit(1);
+            
+            if (error) {
+                console.error('Error al verificar email:', error);
+                return;
+            }
+            
+            if (data && data.length > 0) {
+                // El correo YA existe
+                emailYaExiste = true;
+                emailInput.classList.add('input-error');
+                emailInput.classList.remove('input-valid');
+                
+                if (emailError) {
+                    emailErrorText.textContent = 'Este correo ya está registrado';
+                    emailError.style.display = 'flex';
+                }
+                
+                if (submitBtn) submitBtn.disabled = true;
+                
+                console.log('⚠️ Correo ya registrado:', email);
+            } else {
+                // El correo NO existe, está disponible
+                emailYaExiste = false;
+                emailInput.classList.add('input-valid');
+                emailInput.classList.remove('input-error');
+                
+                if (emailError) emailError.style.display = 'none';
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error('Error inesperado:', err);
+        }
+    }
+
+    // Solo permitir números en el input del código OTP
     if (otpInput) {
         otpInput.addEventListener('input', function() {
             this.value = this.value.replace(/[^0-9]/g, '');
         });
     }
 
-    // 3. PASO 1: Registro con validación de correo existente
+    // 4. PASO 1: Registro
     if (registroForm) {
         registroForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -80,6 +154,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validación de email existente (doble check por seguridad)
+            if (emailYaExiste) {
+                showMessage('Este correo ya está registrado. Usa "Recuperar contraseña" en el login.', 'error');
+                return;
+            }
             
             if (password !== confirmPassword) {
                 showMessage('Las contraseñas no coinciden', 'error');
@@ -99,29 +179,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-                showMessage('La contraseña debe tener al menos un carácter especial (ej: @, #, $, !)', 'error');
+                showMessage('La contraseña debe tener al menos un carácter especial', 'error');
                 return;
             }
             
-            showMessage('Verificando correo...', 'info');
+            showMessage('Enviando código de verificación...', 'info');
             
             try {
-                // Primero verificamos si el correo ya existe
-                const { data: existingUser, error: checkError } = await db
-                    .from('usuarios')
-                    .select('id')
-                    .eq('email', email)
-                    .single();
-                
-                if (existingUser) {
-                    // El correo ya está registrado
-                    showMessage('Este correo ya está registrado. Si no puedes acceder, usa "Recuperar contraseña" en el login.', 'error');
-                    return;
-                }
-                
-                // Si no existe, procedemos con el registro
-                showMessage('Enviando código de verificación...', 'info');
-                
                 const { data, error } = await db.auth.signUp({
                     email: email,
                     password: password,
@@ -131,9 +195,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 if (error) {
-                    // Manejo específico de errores
                     if (error.message.includes('already registered')) {
-                        showMessage('Este correo ya está registrado. Si no puedes acceder, usa "Recuperar contraseña" en el login.', 'error');
+                        emailInput.classList.add('input-error');
+                        if (emailError) {
+                            emailErrorText.textContent = 'Este correo ya está registrado';
+                            emailError.style.display = 'flex';
+                        }
+                        showMessage('Este correo ya está registrado', 'error');
                     } else {
                         showMessage('Error: ' + error.message, 'error');
                     }
@@ -145,18 +213,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 step1.style.display = 'none';
                 step2.style.display = 'block';
-                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y la carpeta de Spam).', 'success');
+                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y Spam).', 'success');
                 
                 setTimeout(() => otpInput.focus(), 100);
                 
             } catch (err) {
-                console.error('Error:', err);
                 showMessage('Error inesperado: ' + err.message, 'error');
             }
         });
     }
 
-    // 4. PASO 2: Verificar OTP
+    // 5. PASO 2: Verificar OTP
     if (otpForm) {
         otpForm.addEventListener('submit', async (e) => {
             e.preventDefault();
