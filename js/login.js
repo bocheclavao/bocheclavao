@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // 🔧 Función para construir URLs correctas en GitHub Pages
     function construirURL(base) {
         const path = window.location.pathname;
         const repoPath = path.substring(0, path.lastIndexOf('/'));
@@ -26,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 4. Login con email y contraseña
+    // Login con email y contraseña
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -59,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                showMessage('Inicio de sesión exitoso! Redirigiendo...', 'success');
+                showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 
                 setTimeout(() => {
                     window.location.href = APP_CONFIG.REDIRECT_AFTER_LOGIN;
@@ -71,11 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 5. Login con Google - URL CORREGIDA
+    // Login con Google - Con validación de cuenta duplicada
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
-            // Construir la URL correcta automáticamente
             const redirectURL = construirURL('/dashboard.html');
             console.log('URL de redirección Google:', redirectURL);
             
@@ -91,19 +89,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (error) {
-                showMessage('Error al iniciar sesión con Google: ' + error.message, 'error');
+                console.error('Error en Google OAuth:', error);
+                
+                // Manejo de errores específicos
+                if (error.message.includes('already registered') || error.message.includes('already exists')) {
+                    showMessage('Este correo ya está registrado con otro método. Por favor, inicia sesión con correo y contraseña.', 'error');
+                } else {
+                    showMessage('Error al iniciar sesión con Google: ' + error.message, 'error');
+                }
             }
         } catch (err) {
             showMessage('Error inesperado: ' + err.message, 'error');
         }
     };
 
-    // 6. Recuperar contraseña
+    // Recuperar contraseña
     window.mostrarRecuperarContrasena = function() {
         window.location.href = 'recuperar-contrasena.html';
     };
 
-    // 7. Verificar sesión activa al cargar la página
+    // Verificar sesión activa al cargar la página
     async function checkSession() {
         const { data: { session } } = await db.auth.getSession();
         if (session) {
