@@ -9,39 +9,60 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Montserrat', sans-serif; background: #000000; min-height: 100vh; color: #ffffff; padding: 20px; }
-        .header { text-align: center; margin-bottom: 40px; }
+        .header { text-align: center; margin-bottom: 40px; padding: 20px; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); border-radius: 12px; border: 1px solid #FFD700; }
         .header h1 { color: #FFD700; font-size: 2rem; margin-bottom: 10px; }
-        .user-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 25px; margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
-        .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .header p { color: #999; }
+        .user-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 25px; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
+        .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .user-name { font-size: 1.3rem; font-weight: 700; color: #FFD700; }
         .user-id { color: #999; font-size: 0.9rem; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .info-item label { display: block; color: #666; font-size: 0.8rem; margin-bottom: 5px; }
-        .info-item span { color: #fff; font-weight: 600; }
+        .info-item span { color: #fff; font-weight: 600; word-break: break-all; }
         .images-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .image-box { text-align: center; }
-        .image-box img { width: 100%; border-radius: 8px; border: 1px solid #333; margin-bottom: 8px; }
+        .image-box img { width: 100%; border-radius: 8px; border: 1px solid #333; margin-bottom: 8px; max-height: 200px; object-fit: cover; }
         .image-box p { font-size: 0.85rem; color: #999; }
-        .actions { display: flex; gap: 15px; justify-content: center; }
+        .actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
         .btn { padding: 12px 25px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s; }
         .btn-approve { background: #00ff00; color: #000; }
-        .btn-approve:hover { background: #00cc00; }
+        .btn-approve:hover { background: #00cc00; transform: translateY(-2px); }
         .btn-reject { background: #ff4444; color: #fff; }
-        .btn-reject:hover { background: #cc0000; }
-        .loading { text-align: center; color: #FFD700; margin-top: 50px; }
-        .empty { text-align: center; color: #666; margin-top: 50px; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: #FFD700; text-decoration: none; }
+        .btn-reject:hover { background: #cc0000; transform: translateY(-2px); }
+        .loading { text-align: center; color: #FFD700; margin-top: 50px; font-size: 1.2rem; }
+        .empty { text-align: center; color: #666; margin-top: 50px; padding: 40px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #FFD700; text-decoration: none; padding: 8px 16px; border: 1px solid #FFD700; border-radius: 6px; }
+        .back-link:hover { background: #FFD700; color: #000; }
+        .access-denied { text-align: center; padding: 60px 20px; }
+        .access-denied i { font-size: 5rem; color: #ff4444; margin-bottom: 20px; }
+        .access-denied h2 { color: #ff4444; margin-bottom: 15px; }
+        .stats-bar { display: flex; gap: 20px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+        .stat-box { background: #0a0a0a; border: 1px solid #222; padding: 20px; border-radius: 8px; text-align: center; min-width: 150px; }
+        .stat-box .number { font-size: 2rem; font-weight: 800; color: #FFD700; }
+        .stat-box .label { color: #999; font-size: 0.85rem; margin-top: 5px; }
     </style>
 </head>
 <body>
     <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
-    <div class="header">
-        <h1><i class="fas fa-user-shield"></i> Panel de Verificación KYC</h1>
-        <p>Revisa los documentos y aprueba o rechaza las solicitudes.</p>
+    
+    <div id="accessDenied" style="display: none;" class="access-denied">
+        <i class="fas fa-shield-alt"></i>
+        <h2>Acceso Denegado</h2>
+        <p>No tienes permisos de administrador para acceder a este panel.</p>
+        <p style="margin-top: 20px; color: #999;">Si crees que esto es un error, contacta al soporte.</p>
     </div>
 
-    <div id="loading" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando solicitudes...</div>
-    <div id="container"></div>
+    <div id="adminContent" style="display: none;">
+        <div class="header">
+            <h1><i class="fas fa-user-shield"></i> Panel de Verificación KYC</h1>
+            <p>Revisa los documentos y aprueba o rechaza las solicitudes de verificación.</p>
+        </div>
+
+        <div id="statsBar" class="stats-bar"></div>
+
+        <div id="loading" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando solicitudes...</div>
+        <div id="container"></div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
