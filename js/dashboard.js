@@ -229,6 +229,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         mostrarAvatarNavbar(nombre, avatarUrl);
         actualizarBannerKYC(estado);
     }
+    // Mostrar botón de admin solo si es el administrador
+const dropdownMenu = document.getElementById('dropdownMenu');
+if (dropdownMenu && email.toLowerCase() === 'gamalieljosuepirelalares@gmail.com') {
+    const adminItem = document.createElement('button');
+    adminItem.className = 'dropdown-item';
+    adminItem.onclick = function() { window.location.href = 'admin.html'; };
+    adminItem.innerHTML = '<i class="fas fa-user-shield"></i><span>Panel Admin</span>';
+    
+    // Insertar antes del divisor
+    const divider = dropdownMenu.querySelector('.dropdown-divider');
+    dropdownMenu.insertBefore(adminItem, divider);
+}
 
     // Función global para seleccionar rol
     window.seleccionarRol = function(rol) {
