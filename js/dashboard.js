@@ -87,6 +87,59 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    // 🔍 VERIFICAR SI ES ADMIN (consulta real a la tabla admin_roles)
+    async function verificarSiEsAdmin(userId, userEmail) {
+        try {
+            console.log('🔍 Verificando si es admin:', userEmail);
+            
+            const { data, error } = await db
+                .from('admin_roles')
+                .select('es_admin, activo')
+                .eq('id', userId)
+                .eq('es_admin', true)
+                .eq('activo', true)
+                .single();
+
+            if (error || !data) {
+                console.log('❌ No es admin o no está en admin_roles');
+                return false;
+            }
+
+            console.log('✅ Es administrador verificado');
+            return true;
+        } catch (err) {
+            console.error('Error verificando admin:', err);
+            return false;
+        }
+    }
+
+    //  AGREGAR BOTÓN DE ADMIN AL MENÚ (solo si es admin real)
+    function agregarBotonAdmin() {
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        if (!dropdownMenu) return;
+        
+        // Evitar duplicados
+        if (document.getElementById('adminMenuItem')) return;
+
+        const adminItem = document.createElement('button');
+        adminItem.id = 'adminMenuItem';
+        adminItem.className = 'dropdown-item';
+        adminItem.onclick = function() { 
+            window.location.href = 'admin.html'; 
+        };
+        adminItem.innerHTML = '<i class="fas fa-user-shield"></i><span>Panel Admin</span>';
+        
+        // Insertar antes del divisor (antes de "Cerrar sesión")
+        const divider = dropdownMenu.querySelector('.dropdown-divider');
+        if (divider) {
+            dropdownMenu.insertBefore(adminItem, divider);
+        } else {
+            dropdownMenu.appendChild(adminItem);
+        }
+        
+        console.log('🛡️ Botón de admin agregado al menú');
+    }
+
     window.toggleMenu = function() {
         dropdownMenu.classList.toggle('show');
         menuToggle.classList.toggle('active');
@@ -101,15 +154,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     window.irAPerfil = function() { window.location.href = 'perfil.html'; };
-    window.irABilletera = function() { alert(' La billetera estará disponible próximamente'); };
-    window.irAApuestas = function() { alert(' Mis apuestas estará disponible próximamente'); };
-    window.irASoporte = function() { alert(' Soporte estará disponible próximamente'); };
-    window.irAConfiguracion = function() { alert(' Configuración estará disponible próximamente'); };
-    window.irADepositar = function() { alert(' El sistema de depósitos estará disponible próximamente'); };
+    window.irABilletera = function() { alert('La billetera estará disponible próximamente'); };
+    window.irAApuestas = function() { alert('Mis apuestas estará disponible próximamente'); };
+    window.irASoporte = function() { alert('Soporte estará disponible próximamente'); };
+    window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
+    window.irADepositar = function() { alert('El sistema de depósitos estará disponible próximamente'); };
 
-    // ✅ FUNCIÓN CLAVE: Manejar los 4 estados correctamente
     function actualizarBannerKYC(estado) {
-        // CASO 1: VERIFICADO → Ocultar banner, desbloquear roles
         if (estado === 'verificado') {
             kycBanner.style.display = 'none';
             cardBochador.classList.remove('disabled');
@@ -117,10 +168,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        // Para los otros 3 casos, SIEMPRE mostrar el banner
         kycBanner.style.display = 'flex';
         
-        // CASO 2: Usuario NUEVO (NULL) → Invitar a completar KYC
         if (estado === null || estado === undefined || estado === '') {
             kycBanner.classList.remove('verified', 'rejected');
             kycBanner.style.borderColor = '#FFD700';
@@ -135,7 +184,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
             
-        // CASO 3: En Revisión (pendiente)
         } else if (estado === 'pendiente') {
             kycBanner.classList.remove('verified', 'rejected');
             kycBanner.style.borderColor = '#FFA500';
@@ -150,11 +198,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
             
-        // CASO 4: Rechazado
         } else if (estado === 'rechazado') {
             kycBanner.classList.add('rejected');
             kycBanner.classList.remove('verified');
-            kycTitle.textContent = ' Verificación KYC Rechazada';
+            kycTitle.textContent = '❌ Verificación KYC Rechazada';
             kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla para ser verificado.';
             kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar Verificación';
             kycBtn.style.pointerEvents = 'auto';
@@ -187,7 +234,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         userNameDisplay.textContent = nombre;
         userEmailDisplay.textContent = email;
         
-        // ✅ Si está VERIFICADO → mostrar check verde al lado del ID
         if (estado === 'verificado') {
             userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Verificado</span>`;
         } else {
@@ -211,6 +257,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         mostrarAvatarNavbar(nombre, avatarUrl);
         actualizarBannerKYC(estado);
+
+        // 🔐 VERIFICAR SI ES ADMIN Y AGREGAR BOTÓN
+        verificarSiEsAdmin(user.id, email).then(esAdmin => {
+            if (esAdmin) {
+                agregarBotonAdmin();
+            }
+        });
     }
 
     window.seleccionarRol = function(rol) {
