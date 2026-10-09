@@ -3,21 +3,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const messageDiv = document.getElementById('message');
     const emailForm = document.getElementById('emailForm');
-    const otpForm = document.getElementById('otpForm');
-    const passwordForm = document.getElementById('passwordForm');
-    const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
-    const step3 = document.getElementById('step3');
-    const emailDisplay = document.getElementById('emailDisplay');
-    const otpInput = document.getElementById('otpCode');
     const emailInput = document.getElementById('email');
     const emailError = document.getElementById('emailError');
     const emailErrorText = document.getElementById('emailErrorText');
     const btnEnviarCodigo = document.getElementById('btnEnviarCodigo');
-    const newPasswordInput = document.getElementById('newPassword');
     
     const db = window.supabaseClient;
-    let emailRecuperacion = '';
     let debounceTimer = null;
 
     if (!db) {
@@ -32,23 +23,116 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 1. Función global para el ojito
-    window.togglePassword = function(inputId, iconElement) {
-        const input = document.getElementById(inputId);
-        if (!input || !iconElement) return;
-        
-        if (input.type === 'password') {
-            input.type = 'text';
-            iconElement.classList.remove('fa-eye');
-            iconElement.classList.add('fa-eye-slash');
-        } else {
-            input.type = 'password';
-            iconElement.classList.remove('fa-eye-slash');
-            iconElement.classList.add('fa-eye');
-        }
-    };
+    // Validación visual del email
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            const email = this.value.trim();
+            
+            emailInput.classList.remove('input-error', 'input-valid');
+            if (emailError) emailError.style.display = 'none';
+            if (btnEnviarCodigo) btnEnviarCodigo.disabled = false;
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email) || email.length < 5) return;
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                verificarEmailExiste(email);
+            }, 800);
+        });
+    }
 
-    // 2. Validación en tiempo real de la nueva contraseña
+    async function verificarEmailExiste(email) {
+        try {
+            const { data, error } = await db.rpc('verificar_correo_existente', { p_email: email });
+            
+            if (error) {
+                console.warn('No se pudo verificar en tiempo real:', error.message);
+                return;
+            }
+            
+            if (data === true) {
+                emailInput.classList.add('input-valid');
+                emailInput.classList.remove('input-error');
+            } else {
+                emailInput.classList.add('input-error');
+                emailInput.classList.remove('input-valid');
+                if (emailError) {
+                    emailErrorText.textContent = 'Este correo no está registrado';
+                    emailError.style.display = 'flex';
+                }
+            }
+        } catch (err) {
+            console.error('Error en verificación:', err);
+        }
+    }
+
+    // Enviar enlace de recuperación
+    if (emailForm) {
+        emailForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!emailRegex.test(email)) {
+                showMessage('Por favor, ingresa un correo electrónico válido.', 'error');
+                return;
+            }
+            
+            showMessage('Enviando enlace de recuperación...', 'info');
+            
+            try {
+                // Método oficial de Supabase para recuperación de contraseña
+                const { data, error } = await db.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/html/recuperar-contrasena.html#nueva-contrasena'
+                });
+                
+                if (error) {
+                    console.error('Error al enviar enlace:', error);
+                    
+                    // Traducción de errores al español
+                    if (error.message.includes('User not found') || error.message.includes('no user found')) {
+                        showMessage('Este correo no está registrado en nuestro sistema.', 'error');
+                        emailInput.classList.add('input-error');
+                        if (emailError) {
+                            emailErrorText.textContent = 'Este correo no está registrado';
+                            emailError.style.display = 'flex';
+                        }
+                    } else if (error.message.includes('For security purposes, you can only request this after')) {
+                        showMessage('Por seguridad, debes esperar unos segundos antes de solicitar otro enlace.', 'error');
+                    } else if (error.message.includes('rate limit') || error.message.includes('Too many requests')) {
+                        showMessage('Demasiados intentos. Por favor, espera un momento antes de intentar de nuevo.', 'error');
+                    } else {
+                        showMessage('Error: ' + error.message, 'error');
+                    }
+                    return;
+                }
+                
+                // Éxito: mostrar mensaje y ocultar formulario
+                emailForm.style.display = 'none';
+                showMessage('✅ Enlace de recuperación enviado. Revisa tu correo (y la carpeta de Spam). Haz clic en el enlace para crear tu nueva contraseña.', 'success');
+                
+            } catch (err) {
+                console.error('Error inesperado:', err);
+                showMessage('Error inesperado: ' + err.message, 'error');
+            }
+        });
+    }
+
+    // Detectar si el usuario viene del enlace de recuperación
+    if (window.location.hash === '#nueva-contrasena') {
+        const step1 = document.getElementById('step1');
+        const step3 = document.getElementById('step3');
+        
+        if (step1 && step3) {
+            step1.style.display = 'none';
+            step3.style.display = 'block';
+        }
+    }
+
+    // Validación de nueva contraseña
+    const newPasswordInput = document.getElementById('newPassword');
     if (newPasswordInput) {
         newPasswordInput.addEventListener('input', function() {
             const val = this.value;
@@ -74,163 +158,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 3. Validación visual del email (solo para UX, no bloquea el envío)
-    if (emailInput) {
-        emailInput.addEventListener('input', function() {
-            const email = this.value.trim();
-            
-            // Limpiar estado visual
-            emailInput.classList.remove('input-error', 'input-valid');
-            if (emailError) emailError.style.display = 'none';
-            if (btnEnviarCodigo) btnEnviarCodigo.disabled = false;
-            
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email) || email.length < 5) return;
-            
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                verificarEmailExiste(email);
-            }, 800);
-        });
-    }
-
-    async function verificarEmailExiste(email) {
-        try {
-            const { data, error } = await db.rpc('verificar_correo_existente', { p_email: email });
-            
-            if (error) {
-                console.warn('No se pudo verificar en tiempo real (RPC):', error.message);
-                return; // No bloqueamos, dejamos que signInWithOtp lo valide
-            }
-            
-            if (data === true) {
-                emailInput.classList.add('input-valid');
-                emailInput.classList.remove('input-error');
-            } else {
-                emailInput.classList.add('input-error');
-                emailInput.classList.remove('input-valid');
-                if (emailError) {
-                    emailErrorText.textContent = 'Este correo no está registrado';
-                    emailError.style.display = 'flex';
-                }
-            }
-        } catch (err) {
-            console.error('Error en verificación:', err);
-        }
-    }
-
-    // 4. PASO 1: Enviar código OTP (La validación real la hace Supabase)
-    if (emailForm) {
-        emailForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = emailInput.value.trim();
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            
-            if (!emailRegex.test(email)) {
-                showMessage('Por favor, ingresa un correo electrónico válido.', 'error');
-                return;
-            }
-            
-            showMessage('Enviando código de verificación...', 'info');
-            
-            try {
-                // shouldCreateUser: false asegura que NO cree cuentas nuevas, solo envía OTP a existentes
-                const { data, error } = await db.auth.signInWithOtp({
-                    email: email,
-                    options: {
-                        shouldCreateUser: false
-                    }
-                });
-                
-                if (error) {
-                    console.error('Error al enviar código:', error);
-                    
-                    // 🌐 TRADUCCIÓN DE ERRORES DE SUPABASE AL ESPAÑOL
-                    if (error.message.includes('User not found') || error.message.includes('no user found')) {
-                        showMessage('Este correo no está registrado en nuestro sistema.', 'error');
-                        emailInput.classList.add('input-error');
-                        if (emailError) {
-                            emailErrorText.textContent = 'Este correo no está registrado';
-                            emailError.style.display = 'flex';
-                        }
-                    } else if (error.message.includes('For security purposes, you can only request this after')) {
-                        showMessage('Por seguridad, debes esperar unos segundos antes de solicitar otro código.', 'error');
-                    } else if (error.message.includes('rate limit') || error.message.includes('Too many requests')) {
-                        showMessage('Demasiados intentos. Por favor, espera un momento antes de intentar de nuevo.', 'error');
-                    } else {
-                        showMessage('Error: ' + error.message, 'error');
-                    }
-                    return;
-                }
-                
-                // Si llega aquí, el correo existe y el código se envió correctamente
-                emailRecuperacion = email;
-                emailDisplay.textContent = email;
-                
-                step1.style.display = 'none';
-                step2.style.display = 'block';
-                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y la carpeta de Spam).', 'success');
-                
-                setTimeout(() => otpInput.focus(), 100);
-                
-            } catch (err) {
-                console.error('Error inesperado:', err);
-                showMessage('Error inesperado: ' + err.message, 'error');
-            }
-        });
-    }
-
-    // 5. PASO 2: Verificar código OTP
-    if (otpForm) {
-        otpForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const code = otpInput.value.trim();
-            
-            if (code.length !== 6) {
-                showMessage('El código debe tener 6 dígitos', 'error');
-                return;
-            }
-            
-            showMessage('Verificando código...', 'info');
-            
-            try {
-                // ⚠️ IMPORTANTE: type: 'recovery' es el estándar para restablecer contraseñas
-                const { data, error } = await db.auth.verifyOtp({
-                    email: emailRecuperacion,
-                    token: code,
-                    type: 'recovery'
-                });
-                
-                if (error) {
-                    console.error('Error al verificar código:', error);
-                    
-                    if (error.message.includes('Token has expired') || error.message.includes('expired')) {
-                        showMessage('El código ha expirado. Solicita uno nuevo.', 'error');
-                    } else if (error.message.includes('Invalid token') || error.message.includes('invalid')) {
-                        showMessage('Código inválido. Verifica los dígitos e intenta de nuevo.', 'error');
-                    } else {
-                        showMessage('Error: ' + error.message, 'error');
-                    }
-                    return;
-                }
-                
-                console.log('✅ Código de recuperación verificado, sesión temporal abierta');
-                
-                // Si la verificación fue exitosa, pasar al paso 3
-                step2.style.display = 'none';
-                step3.style.display = 'block';
-                showMessage('Código verificado. Ahora crea tu nueva contraseña.', 'success');
-                
-            } catch (err) {
-                console.error('Error inesperado:', err);
-                showMessage('Error inesperado: ' + err.message, 'error');
-            }
-        });
-    }
-
-    // 6. PASO 3: Actualizar contraseña
+    // Actualizar contraseña
+    const passwordForm = document.getElementById('passwordForm');
     if (passwordForm) {
         passwordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -261,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Cerrar sesión para que el usuario inicie limpiamente con la nueva contraseña
                 await db.auth.signOut();
                 
                 showMessage('✅ Contraseña actualizada exitosamente. Redirigiendo al login...', 'success');
@@ -276,12 +204,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // Función para volver al paso 1
-    window.volverAlPaso1 = function() {
-        step2.style.display = 'none';
-        step1.style.display = 'block';
-        if (otpInput) otpInput.value = '';
-        showMessage('', 'info');
-    };
 });
