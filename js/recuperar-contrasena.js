@@ -29,39 +29,27 @@ document.addEventListener('DOMContentLoaded', function() {
         return window.location.origin + repoPath + base;
     }
 
-    async function verificarVueltaDelCorreo() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tipo = urlParams.get('type');
-        const token = urlParams.get('token');
-        const tokenHash = urlParams.get('token_hash');
+    // 🔑 SOLUCIÓN CLAVE: Usar onAuthStateChange para detectar recuperación
+    db.auth.onAuthStateChange((event, session) => {
+        console.log('Evento de autenticación:', event);
         
-        console.log('Parametros URL:', { tipo, token: token ? 'presente' : 'no', tokenHash: tokenHash ? 'presente' : 'no' });
-        
-        if (tipo === 'recovery' && (token || tokenHash)) {
-            console.log('Usuario viene del enlace de recuperación');
+        if (event === 'PASSWORD_RECOVERY') {
+            console.log('Usuario viene del enlace de recuperación de contraseña');
             
-            const { data: { session }, error } = await db.auth.getSession();
-            
-            if (error || !session) {
-                console.error('No hay sesión activa:', error);
-                showMessage('El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo.', 'error');
-                return false;
-            }
-            
-            console.log('Sesión activa verificada, mostrando formulario de nueva contraseña');
-            
+            // Ocultar paso 1 (email) y mostrar paso 3 (nueva contraseña)
             const step1 = document.getElementById('step1');
             const step3 = document.getElementById('step3');
+            
             if (step1 && step3) {
                 step1.style.display = 'none';
                 step3.style.display = 'block';
             }
-            return true;
+            
+            showMessage('Enlace verificado. Ahora crea tu nueva contraseña.', 'success');
         }
-        
-        return false;
-    }
+    });
 
+    // Validación visual del email
     if (emailInput) {
         emailInput.addEventListener('input', function() {
             const email = this.value.trim();
@@ -105,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Enviar enlace de recuperación
     if (emailForm) {
         emailForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -157,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Validación de nueva contraseña
     const newPasswordInput = document.getElementById('newPassword');
     if (newPasswordInput) {
         newPasswordInput.addEventListener('input', function() {
@@ -183,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Actualizar contraseña
     const passwordForm = document.getElementById('passwordForm');
     if (passwordForm) {
         passwordForm.addEventListener('submit', async (e) => {
@@ -228,6 +219,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    verificarVueltaDelCorreo();
 });
