@@ -85,34 +85,15 @@
         .page-btn.active { background: #FFD700; color: #000; border-color: #FFD700; }
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
-        /* Estilos para el formulario de Stream */
-        .stream-form-container {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 30px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .stream-form-container h3 {
-            color: #FFD700;
-            margin-bottom: 20px;
-            font-size: 1.3rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .stream-form-container { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 30px; max-width: 800px; margin: 0 auto; }
+        .stream-form-container h3 { color: #FFD700; margin-bottom: 20px; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; color: #ccc; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem;
-        }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #FFD700; }
         .form-group textarea { resize: vertical; min-height: 80px; }
         
-        .toggle-container {
-            display: flex; align-items: center; gap: 15px; background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333;
-        }
+        .toggle-container { display: flex; align-items: center; gap: 15px; background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333; }
         .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
@@ -161,7 +142,6 @@
             <p>Gestión completa de usuarios, verificaciones y transmisiones</p>
         </div>
 
-        <!-- Tabs -->
         <div class="admin-tabs">
             <button class="tab-btn active" onclick="cambiarTab('kyc', this)">
                 <i class="fas fa-id-card"></i> Verificaciones KYC
@@ -175,14 +155,12 @@
             </button>
         </div>
 
-        <!-- TAB 1: Verificaciones KYC -->
         <div id="tab-kyc" class="tab-content active">
             <div id="statsBar" class="stats-bar"></div>
             <div id="loadingKyc" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando solicitudes KYC...</div>
             <div id="containerKyc"></div>
         </div>
 
-        <!-- TAB 2: Gestión de Usuarios -->
         <div id="tab-usuarios" class="tab-content">
             <div class="search-container">
                 <select id="searchType" class="search-select">
@@ -195,13 +173,11 @@
                 <button class="btn btn-view" onclick="buscarUsuarios()"><i class="fas fa-search"></i> Buscar</button>
                 <button class="btn btn-view" onclick="limpiarBusqueda()"><i class="fas fa-times"></i> Limpiar</button>
             </div>
-            
             <div id="loadingUsers" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando usuarios...</div>
             <div id="containerUsers"></div>
             <div id="pagination" class="pagination"></div>
         </div>
 
-        <!-- TAB 3: Transmisión en Vivo -->
         <div id="tab-stream" class="tab-content">
             <div class="stream-form-container">
                 <h3><i class="fas fa-satellite-dish"></i> Configurar Transmisión en Vivo</h3>
@@ -240,11 +216,11 @@
                     <label>URL del Stream</label>
                     <input type="text" id="streamUrl" placeholder="https://...">
                     <p style="color: #666; font-size: 0.8rem; margin-top: 5px;">
-                        <i class="fas fa-info-circle"></i> Para YouTube usa el formato: <code>https://www.youtube.com/embed/VIDEO_ID?autoplay=1</code>
+                        <i class="fas fa-info-circle"></i> Para YouTube usa: <code>https://www.youtube.com/embed/VIDEO_ID?autoplay=1</code>
                     </p>
                 </div>
 
-                <button class="btn btn-save" onclick="guardarConfigStream()">
+                <button class="btn btn-save" id="btnGuardarStream">
                     <i class="fas fa-save"></i> Guardar y Actualizar Transmisión
                 </button>
 
@@ -253,7 +229,6 @@
         </div>
     </div>
 
-    <!-- Modal de perfil de usuario -->
     <div id="userModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -264,7 +239,6 @@
         </div>
     </div>
 
-    <!-- Modal para agregar monedas -->
     <div id="coinsModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
