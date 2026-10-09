@@ -1,13 +1,45 @@
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
-    if (!db) { console.error('No se pudo obtener el cliente de Supabase'); return; }
+    if (!db) { 
+        console.error('No se pudo obtener el cliente de Supabase'); 
+        return; 
+    }
+
+    // 🛡️ CONFIGURACIÓN: Cambia este email por el tuyo
+    const ADMIN_EMAIL = 'gamalieljosuepirelalares@gmail.com'; // ← TU CORREO AQUÍ
 
     const container = document.getElementById('container');
     const loading = document.getElementById('loading');
 
+    // Verificar sesión y permisos de admin
+    async function verificarAcceso() {
+        const { data: { session }, error } = await db.auth.getSession();
+        
+        if (error || !session) {
+            alert('Debes iniciar sesión para acceder al panel de administración.');
+            window.location.href = 'login.html';
+            return false;
+        }
+
+        const { data: { user } } = await db.auth.getUser();
+        
+        if (!user) {
+            window.location.href = 'login.html';
+            return false;
+        }
+
+        // Verificar que el email sea el del admin
+        if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+            alert('⛔ Acceso denegado. Este panel es solo para administradores.');
+            window.location.href = 'dashboard.html';
+            return false;
+        }
+
+        return true;
+    }
+
     async function cargarSolicitudes() {
         try {
-            // Obtenemos todos los perfiles que estén 'pendiente'
             const { data: perfiles, error } = await db
                 .from('perfiles')
                 .select('*')
@@ -45,6 +77,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <div class="info-item"><label>País de Residencia</label><span>${perfil.pais || '---'}</span></div>
                         <div class="info-item"><label>Ciudad</label><span>${perfil.ciudad || '---'}</span></div>
                         <div class="info-item"><label>Teléfono</label><span>${perfil.telefono || '---'}</span></div>
+                        <div class="info-item"><label>Fecha de registro</label><span>${new Date(perfil.fecha_registro).toLocaleDateString()}</span></div>
                     </div>
                     <div class="images-grid">
                         <div class="image-box">
@@ -80,7 +113,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     window.procesarKYC = async function(userId, nuevoEstado) {
-        if (!confirm(`¿Estás seguro de marcar este KYC como ${nuevoEstado.toUpperCase()}?`)) return;
+        const confirmMsg = nuevoEstado === 'verificado' 
+            ? '¿Aprobar este KYC? El usuario podrá participar en la plataforma.'
+            : '¿Rechazar este KYC? El usuario deberá reenviar sus documentos.';
+            
+        if (!confirm(confirmMsg)) return;
 
         const { error } = await db
             .from('perfiles')
@@ -93,18 +130,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (error) {
             alert('Error al actualizar: ' + error.message);
         } else {
-            alert(`KYC ${nuevoEstado} exitosamente.`);
+            alert(`KYC ${nuevoEstado === 'verificado' ? 'aprobado' : 'rechazado'} exitosamente.`);
             container.innerHTML = '';
             loading.style.display = 'block';
             cargarSolicitudes();
         }
     };
 
-    // Verificar sesión (simple)
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) {
-        window.location.href = 'login.html';
-    } else {
+    // Iniciar verificación
+    const accesoPermitido = await verificarAcceso();
+    if (accesoPermitido) {
         cargarSolicitudes();
     }
 });
