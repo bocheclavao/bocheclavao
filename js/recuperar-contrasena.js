@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const db = window.supabaseClient;
     let emailRecuperacion = '';
-    let emailExiste = false;
     let debounceTimer = null;
 
     if (!db) {
@@ -75,24 +74,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 3. Validación en tiempo real del email (verifica que exista)
+    // 3. Validación visual del email (solo para UX, no bloquea el envío)
     if (emailInput) {
         emailInput.addEventListener('input', function() {
             const email = this.value.trim();
             
-            // Limpiar estado
+            // Limpiar estado visual
             emailInput.classList.remove('input-error', 'input-valid');
             if (emailError) emailError.style.display = 'none';
-            emailExiste = false;
             if (btnEnviarCodigo) btnEnviarCodigo.disabled = false;
             
-            // Validar formato
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email) || email.length < 5) {
-                return;
-            }
+            if (!emailRegex.test(email) || email.length < 5) return;
             
-            // Debounce
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 verificarEmailExiste(email);
@@ -102,55 +96,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function verificarEmailExiste(email) {
         try {
-            console.log('🔍 Verificando correo:', email);
-            
-            const { data, error } = await db
-                .rpc('verificar_correo_existente', { p_email: email });
+            const { data, error } = await db.rpc('verificar_correo_existente', { p_email: email });
             
             if (error) {
-                console.error('Error al verificar email:', error);
-                return;
+                console.warn('No se pudo verificar en tiempo real (RPC):', error.message);
+                return; // No bloqueamos, dejamos que signInWithOtp lo valide
             }
             
-            console.log('📩 Respuesta (existe):', data);
-            
             if (data === true) {
-                emailExiste = true;
                 emailInput.classList.add('input-valid');
                 emailInput.classList.remove('input-error');
-                if (emailError) emailError.style.display = 'none';
-                if (btnEnviarCodigo) btnEnviarCodigo.disabled = false;
             } else {
-                emailExiste = false;
                 emailInput.classList.add('input-error');
                 emailInput.classList.remove('input-valid');
                 if (emailError) {
                     emailErrorText.textContent = 'Este correo no está registrado';
                     emailError.style.display = 'flex';
                 }
-                if (btnEnviarCodigo) btnEnviarCodigo.disabled = true;
             }
         } catch (err) {
-            console.error('Error inesperado:', err);
+            console.error('Error en verificación:', err);
         }
     }
 
-    // 4. PASO 1: Enviar código OTP al correo
+    // 4. PASO 1: Enviar código OTP (La validación real la hace Supabase)
     if (emailForm) {
         emailForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const email = emailInput.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             
-            if (!emailExiste) {
-                showMessage('Este correo no está registrado en nuestro sistema.', 'error');
+            if (!emailRegex.test(email)) {
+                showMessage('Por favor, ingresa un correo electrónico válido.', 'error');
                 return;
             }
             
             showMessage('Enviando código de verificación...', 'info');
             
             try {
-                // Enviar código OTP de recuperación
+                // shouldCreateUser: false asegura que NO cree cuentas nuevas, solo envía OTP a existentes
                 const { data, error } = await db.auth.signInWithOtp({
                     email: email,
                     options: {
@@ -160,16 +145,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (error) {
                     console.error('Error al enviar código:', error);
-                    showMessage('Error al enviar el código: ' + error.message, 'error');
+                    
+                    // 🌐 TRADUCCIÓN DE ERRORES DE SUPABASE AL ESPAÑOL
+                    if (error.message.includes('User not found') || error.message.includes('no user found')) {
+                        showMessage('Este correo no está registrado en nuestro sistema.', 'error');
+                        emailInput.classList.add('input-error');
+                        if (emailError) {
+                            emailErrorText.textContent = 'Este correo no está registrado';
+                            emailError.style.display = 'flex';
+                        }
+                    } else if (error.message.includes('For security purposes, you can only request this after')) {
+                        showMessage('Por seguridad, debes esperar unos segundos antes de solicitar otro código.', 'error');
+                    } else if (error.message.includes('rate limit') || error.message.includes('Too many requests')) {
+                        showMessage('Demasiados intentos. Por favor, espera un momento antes de intentar de nuevo.', 'error');
+                    } else {
+                        showMessage('Error: ' + error.message, 'error');
+                    }
                     return;
                 }
                 
+                // Si llega aquí, el correo existe y el código se envió correctamente
                 emailRecuperacion = email;
                 emailDisplay.textContent = email;
                 
                 step1.style.display = 'none';
                 step2.style.display = 'block';
-                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y Spam).', 'success');
+                showMessage('Código de 6 dígitos enviado. Revisa tu correo (y la carpeta de Spam).', 'success');
                 
                 setTimeout(() => otpInput.focus(), 100);
                 
@@ -195,19 +196,27 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Verificando código...', 'info');
             
             try {
+                // ⚠️ IMPORTANTE: type: 'recovery' es el estándar para restablecer contraseñas
                 const { data, error } = await db.auth.verifyOtp({
                     email: emailRecuperacion,
                     token: code,
-                    type: 'email'
+                    type: 'recovery'
                 });
                 
                 if (error) {
                     console.error('Error al verificar código:', error);
-                    showMessage('Código inválido o expirado: ' + error.message, 'error');
+                    
+                    if (error.message.includes('Token has expired') || error.message.includes('expired')) {
+                        showMessage('El código ha expirado. Solicita uno nuevo.', 'error');
+                    } else if (error.message.includes('Invalid token') || error.message.includes('invalid')) {
+                        showMessage('Código inválido. Verifica los dígitos e intenta de nuevo.', 'error');
+                    } else {
+                        showMessage('Error: ' + error.message, 'error');
+                    }
                     return;
                 }
                 
-                console.log('✅ Código verificado, sesión abierta:', data);
+                console.log('✅ Código de recuperación verificado, sesión temporal abierta');
                 
                 // Si la verificación fue exitosa, pasar al paso 3
                 step2.style.display = 'none';
@@ -234,27 +243,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            if (newPassword.length < 8) {
-                showMessage('La contraseña debe tener al menos 8 caracteres', 'error');
-                return;
-            }
-            if (!/[a-zA-Z]/.test(newPassword)) {
-                showMessage('La contraseña debe tener al menos una letra', 'error');
-                return;
-            }
-            if (!/[0-9]/.test(newPassword)) {
-                showMessage('La contraseña debe tener al menos un número', 'error');
-                return;
-            }
-            if (!/[^a-zA-Z0-9]/.test(newPassword)) {
-                showMessage('La contraseña debe tener al menos un carácter especial', 'error');
+            if (newPassword.length < 8 || !/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
+                showMessage('La contraseña no cumple con los requisitos de seguridad.', 'error');
                 return;
             }
             
             showMessage('Actualizando contraseña...', 'info');
             
             try {
-                // Actualizar la contraseña del usuario autenticado
                 const { data, error } = await db.auth.updateUser({
                     password: newPassword
                 });
@@ -265,9 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                console.log('✅ Contraseña actualizada:', data);
-                
-                // Cerrar sesión para que el usuario inicie con la nueva contraseña
+                // Cerrar sesión para que el usuario inicie limpiamente con la nueva contraseña
                 await db.auth.signOut();
                 
                 showMessage('✅ Contraseña actualizada exitosamente. Redirigiendo al login...', 'success');
