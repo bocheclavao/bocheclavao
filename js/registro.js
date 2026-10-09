@@ -50,11 +50,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (passwordInput) {
         passwordInput.addEventListener('input', function() {
             const val = this.value;
-            
             updateRequirement('req-length', val.length >= 8);
             updateRequirement('req-letter', /[a-zA-Z]/.test(val));
             updateRequirement('req-number', /[0-9]/.test(val));
-            // Regex simplificado: cualquier carácter que NO sea letra ni número
             updateRequirement('req-special', /[^a-zA-Z0-9]/.test(val));
         });
     }
@@ -74,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 3. Validación en tiempo real del email
+    // 3. Validación en tiempo real del email (revisa Authentication + tabla)
     if (emailInput) {
         emailInput.addEventListener('input', function() {
             const email = this.value.trim();
@@ -99,20 +97,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // 🔍 Función que consulta la función SQL de Supabase
     async function verificarEmailExiste(email) {
         try {
+            console.log('🔍 Verificando correo:', email);
+            
+            // Llamar a la función SQL que creamos
             const { data, error } = await db
-                .from('usuarios')
-                .select('id, email')
-                .eq('email', email)
-                .limit(1);
+                .rpc('verificar_correo_existente', { p_email: email });
             
             if (error) {
-                console.error('Error al verificar email:', error);
+                console.error(' Error al verificar email:', error);
                 return;
             }
             
-            if (data && data.length > 0) {
+            console.log('📩 Respuesta de Supabase (existe):', data);
+            
+            if (data === true) {
+                // El correo YA existe (en Authentication o en la tabla)
                 emailYaExiste = true;
                 emailInput.classList.add('input-error');
                 emailInput.classList.remove('input-valid');
@@ -125,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.log('⚠️ Correo ya registrado:', email);
             } else {
+                // El correo NO existe, está disponible
                 emailYaExiste = false;
                 emailInput.classList.add('input-valid');
                 emailInput.classList.remove('input-error');
@@ -154,6 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
+            // Doble verificación por seguridad
             if (emailYaExiste) {
                 showMessage('Este correo ya está registrado. Usa "Recuperar contraseña" en el login.', 'error');
                 return;
@@ -193,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 if (error) {
+                    // Si Supabase detecta que ya existe (doble seguridad)
                     if (error.message.includes('already registered')) {
                         emailInput.classList.add('input-error');
                         if (emailError) emailError.style.display = 'flex';
