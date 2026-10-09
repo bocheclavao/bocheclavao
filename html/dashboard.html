@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boche Clava'o - Panel Principal</title>
+    <title>Boche Clava'o - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -18,7 +18,7 @@
             flex-direction: column;
         }
 
-        /* Barra Superior (Navbar) */
+        /* Navbar */
         .navbar {
             background: #0a0a0a;
             border-bottom: 1px solid #222;
@@ -37,13 +37,10 @@
             gap: 12px;
         }
 
-      .navbar-logo {
-    max-width: 40px;
-    height: auto;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-}
+        .navbar-logo {
+            max-width: 40px;
+            height: auto;
+        }
 
         .navbar-title {
             font-size: 1.2rem;
@@ -59,10 +56,12 @@
             gap: 15px;
         }
 
-        .user-email {
-            color: #999;
-            font-size: 0.85rem;
-            display: none; /* Oculto en móviles muy pequeños */
+        .user-avatar-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #FFD700;
         }
 
         .btn-logout {
@@ -77,7 +76,6 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             font-family: 'Montserrat', sans-serif;
-            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-logout:hover {
@@ -85,15 +83,11 @@
             color: #000;
         }
 
-        .btn-logout:active {
-            transform: scale(0.95);
-        }
-
-        /* Contenido Principal */
+        /* Contenido principal */
         .main-content {
             flex: 1;
             padding: 30px 20px;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             width: 100%;
         }
@@ -105,34 +99,261 @@
             font-size: 1.2rem;
         }
 
+        /* Tarjeta de bienvenida */
         .welcome-card {
-            background: #0a0a0a;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
             border: 1px solid #222;
             border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 25px;
         }
 
-        .welcome-title {
-            font-size: 2rem;
+        .avatar-container {
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .avatar-placeholder {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #000;
+            border: 3px solid #FFD700;
+        }
+
+        .user-info h1 {
+            font-size: 1.8rem;
             font-weight: 800;
             color: #ffffff;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
-        .welcome-title span {
+        .user-info .user-id {
+            display: inline-block;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid #FFD700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
             color: #FFD700;
+            font-weight: 600;
+            margin-bottom: 8px;
         }
 
-        .welcome-text {
+        .user-info .user-email {
+            color: #999;
+            font-size: 0.95rem;
+        }
+
+        /* Título de sección */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-align: center;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-subtitle {
+            text-align: center;
             color: #999;
             font-size: 1rem;
-            line-height: 1.6;
+            margin-bottom: 40px;
         }
 
-        /* Tarjetas de prueba (para ir editando poco a poco) */
-        .grid-cards {
+        /* Grid de roles */
+        .roles-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .role-card {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            border: 2px solid #222;
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .role-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 215, 0, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .role-card:hover::before {
+            opacity: 1;
+        }
+
+        .role-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.2);
+        }
+
+        .role-card.bochador {
+            border-color: #00ff00;
+        }
+
+        .role-card.bochador:hover {
+            border-color: #00ff00;
+            box-shadow: 0 20px 40px rgba(0, 255, 0, 0.2);
+        }
+
+        .role-card.patrocinador {
+            border-color: #00aaff;
+        }
+
+        .role-card.patrocinador:hover {
+            border-color: #00aaff;
+            box-shadow: 0 20px 40px rgba(0, 170, 255, 0.2);
+        }
+
+        .role-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-card.bochador .role-icon {
+            color: #00ff00;
+        }
+
+        .role-card.patrocinador .role-icon {
+            color: #00aaff;
+        }
+
+        .role-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-card.bochador .role-title {
+            color: #00ff00;
+        }
+
+        .role-card.patrocinador .role-title {
+            color: #00aaff;
+        }
+
+        .role-subtitle {
+            font-size: 0.9rem;
+            color: #999;
+            margin-bottom: 25px;
+            font-style: italic;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-description {
+            font-size: 0.85rem;
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-features li {
+            font-size: 0.85rem;
+            color: #cccccc;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .role-features li i {
+            font-size: 0.9rem;
+        }
+
+        .role-card.bochador .role-features li i {
+            color: #00ff00;
+        }
+
+        .role-card.patrocinador .role-features li i {
+            color: #00aaff;
+        }
+
+        .role-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-card.bochador .role-btn {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .role-card.bochador .role-btn:hover {
+            background: #00cc00;
+            transform: scale(1.05);
+        }
+
+        .role-card.patrocinador .role-btn {
+            background: #00aaff;
+            color: #000;
+        }
+
+        .role-card.patrocinador .role-btn:hover {
+            background: #0088cc;
+            transform: scale(1.05);
+        }
+
+        /* Tarjetas adicionales */
+        .info-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
@@ -158,7 +379,7 @@
         }
 
         .info-card h3 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             margin-bottom: 10px;
             color: #ffffff;
@@ -166,185 +387,166 @@
 
         .info-card p {
             color: #999;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             line-height: 1.5;
         }
 
-      /* 📱 OPTIMIZACIÓN PARA CELULARES */
-@media (max-width: 768px) {
-    .navbar {
-        flex-direction: row;
-        gap: 10px;
-        padding: 12px 15px;
-        flex-wrap: wrap;
-    }
+        /* Estado de error */
+        .error-state {
+            text-align: center;
+            color: #ff4444;
+            margin-top: 50px;
+        }
 
-    .navbar-brand {
-        width: auto;
-        justify-content: flex-start;
-        flex: 1;
-    }
+        .error-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
 
-    .navbar-logo {
-        max-width: 35px;
-    }
+        /* 📱 Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+            }
 
-    .navbar-title {
-        font-size: 1rem;
-        letter-spacing: 1px;
-    }
+            .welcome-card {
+                flex-direction: column;
+                text-align: center;
+            }
 
-    .navbar-user {
-        width: auto;
-        justify-content: flex-end;
-        gap: 10px;
-    }
+            .user-info h1 {
+                font-size: 1.5rem;
+            }
 
-    .user-email {
-        display: none; /* Ocultamos el email en móviles para no saturar */
-    }
+            .roles-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
 
-    .btn-logout {
-        padding: 6px 12px;
-        font-size: 0.75rem;
-    }
+            .role-card {
+                padding: 30px 20px;
+            }
 
-    .main-content {
-        padding: 20px 15px;
-    }
+            .role-icon {
+                font-size: 3rem;
+            }
 
-    .welcome-card {
-        padding: 20px;
-    }
+            .role-title {
+                font-size: 1.5rem;
+            }
 
-    .welcome-title {
-        font-size: 1.5rem;
-    }
-
-    .welcome-text {
-        font-size: 0.9rem;
-    }
-
-    .grid-cards {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .info-card {
-        padding: 20px;
-    }
-
-    .info-card i {
-        font-size: 1.8rem;
-    }
-
-    .info-card h3 {
-        font-size: 1.1rem;
-    }
-
-    .info-card p {
-        font-size: 0.85rem;
-    }
-}
-
-/* 📱 Celulares muy pequeños */
-@media (max-width: 480px) {
-    .navbar {
-        padding: 10px 12px;
-    }
-
-    .navbar-logo {
-        max-width: 30px;
-    }
-
-    .navbar-title {
-        font-size: 0.9rem;
-    }
-
-    .btn-logout {
-        padding: 6px 10px;
-        font-size: 0.7rem;
-    }
-
-    .welcome-title {
-        font-size: 1.3rem;
-    }
-
-    .welcome-card {
-        padding: 18px;
-    }
-
-    .main-content {
-        padding: 15px 12px;
-    }
-}
+            .info-cards {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-
-    <!-- Barra Superior -->
     <nav class="navbar">
         <div class="navbar-brand">
             <img src="../img/logo.png" alt="Logo" class="navbar-logo">
             <span class="navbar-title">Boche Clava'o</span>
         </div>
         <div class="navbar-user">
-            <span id="userEmailDisplay" class="user-email">Cargando...</span>
+            <img id="navAvatar" src="" alt="Avatar" class="user-avatar-small" style="display: none;">
             <button class="btn-logout" onclick="cerrarSesion()">
                 <i class="fas fa-sign-out-alt"></i> Salir
             </button>
         </div>
     </nav>
 
-    <!-- Contenido Principal -->
     <div class="main-content">
-        
-        <!-- Estado de carga -->
         <div id="loadingState" class="loading-container">
-            <i class="fas fa-circle-notch fa-spin"></i> Verificando acceso...
+            <i class="fas fa-circle-notch fa-spin"></i> Cargando tu perfil...
         </div>
 
-        <!-- Contenido real (oculto hasta que cargue) -->
         <div id="contentState" style="display: none;">
-            
+            <!-- Tarjeta de bienvenida -->
             <div class="welcome-card">
-                <h1 class="welcome-title">¡Bienvenido, <span id="userNameDisplay">Usuario</span>! 👋</h1>
-                <p class="welcome-text">
-                    Has iniciado sesión correctamente. Este es tu panel de control. 
-                    Aquí iremos agregando las funcionalidades de tu plataforma poco a poco.
-                </p>
+                <div class="avatar-container">
+                    <div id="avatarDisplay" class="avatar-placeholder">?</div>
+                    <img id="avatarImage" src="" alt="Avatar" class="user-avatar" style="display: none;">
+                </div>
+                <div class="user-info">
+                    <h1 id="userNameDisplay">Usuario</h1>
+                    <div class="user-id" id="userIdDisplay">ID: Cargando...</div>
+                    <p class="user-email" id="userEmailDisplay">email@ejemplo.com</p>
+                </div>
             </div>
 
-            <!-- Tarjetas de prueba -->
-            <div class="grid-cards">
+            <!-- Selector de rol -->
+            <h2 class="section-title">Selecciona tu Rol</h2>
+            <p class="section-subtitle">Dos roles diferentes. Un objetivo común: ganar juntos.</p>
+
+            <div class="roles-grid">
+                <!-- Bochador -->
+                <div class="role-card bochador" onclick="window.location.href='dashboard-bochador.html'">
+                    <div class="role-icon">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <h3 class="role-title">Bochador</h3>
+                    <p class="role-subtitle">El talento que inspira</p>
+                    <p class="role-description">
+                        Compete en eventos, mejora tu ranking y recibe apoyo de patrocinadores.
+                    </p>
+                    <ul class="role-features">
+                        <li><i class="fas fa-check-circle"></i> Valida tu talento</li>
+                        <li><i class="fas fa-check-circle"></i> Compite en eventos</li>
+                        <li><i class="fas fa-check-circle"></i> Mejora tu ranking</li>
+                        <li><i class="fas fa-check-circle"></i> Gana premios</li>
+                    </ul>
+                    <div class="role-btn">Entrar como Bochador</div>
+                </div>
+
+                <!-- Patrocinador -->
+                <div class="role-card patrocinador" onclick="window.location.href='dashboard-patrocinador.html'">
+                    <div class="role-icon">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                    <h3 class="role-title">Patrocinador</h3>
+                    <p class="role-subtitle">La inversión que hace posible</p>
+                    <p class="role-description">
+                        Deposita fondos, elige a quién apoyar y gana según el resultado.
+                    </p>
+                    <ul class="role-features">
+                        <li><i class="fas fa-check-circle"></i> Deposita fondos</li>
+                        <li><i class="fas fa-check-circle"></i> Elige bochadores</li>
+                        <li><i class="fas fa-check-circle"></i> Realiza apuestas</li>
+                        <li><i class="fas fa-check-circle"></i> Gana retornos</li>
+                    </ul>
+                    <div class="role-btn">Entrar como Patrocinador</div>
+                </div>
+            </div>
+
+            <!-- Tarjetas adicionales -->
+            <div class="info-cards">
+                <div class="info-card" onclick="window.location.href='perfil.html'">
+                    <i class="fas fa-user-circle"></i>
+                    <h3>Mi Perfil</h3>
+                    <p>Completa tu información personal y documentos KYC</p>
+                </div>
+
                 <div class="info-card">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-shield-alt"></i>
                     <h3>Cuenta Segura</h3>
-                    <p>Tu sesión está protegida y es única en este dispositivo.</p>
+                    <p>Tu sesión está protegida y es única en este dispositivo</p>
                 </div>
+
                 <div class="info-card">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>Próximamente</h3>
-                    <p>Aquí agregaremos tus estadísticas y actividad reciente.</p>
-                </div>
-                <div class="info-card">
-                    <i class="fas fa-cog"></i>
-                    <h3>Configuración</h3>
-                    <p>Muy pronto podrás editar tu perfil y preferencias desde aquí.</p>
+                    <i class="fas fa-headset"></i>
+                    <h3>Soporte 24/7</h3>
+                    <p>Estamos aquí para ayudarte en cualquier momento</p>
                 </div>
             </div>
-
         </div>
 
-        <!-- Estado de error -->
-        <div id="errorState" style="display: none; text-align: center; color: #ff4444; margin-top: 50px;">
-            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px;"></i>
-            <p>No se pudo cargar la información.</p>
+        <div id="errorState" class="error-state" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>No se pudo cargar tu perfil. Intenta de nuevo.</p>
         </div>
-
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
     <script src="../js/dashboard.js"></script>
