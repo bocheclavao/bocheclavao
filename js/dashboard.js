@@ -227,9 +227,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         mostrarAvatarNavbar(nombre, avatarUrl);
-        actualizarBannerKYC(estado);
-    }
-    // Mostrar botón de admin solo si es el administrador
+            // Mostrar botón de admin solo si es el administrador
 const dropdownMenu = document.getElementById('dropdownMenu');
 if (dropdownMenu && email.toLowerCase() === 'gamalieljosuepirelalares@gmail.com') {
     const adminItem = document.createElement('button');
@@ -241,6 +239,9 @@ if (dropdownMenu && email.toLowerCase() === 'gamalieljosuepirelalares@gmail.com'
     const divider = dropdownMenu.querySelector('.dropdown-divider');
     dropdownMenu.insertBefore(adminItem, divider);
 }
+
+        actualizarBannerKYC(estado);
+    }
 
     // Función global para seleccionar rol
     window.seleccionarRol = function(rol) {
