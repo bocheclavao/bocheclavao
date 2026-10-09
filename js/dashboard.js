@@ -146,8 +146,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         alert('🚧 El sistema de depósitos estará disponible próximamente');
     };
 
-    function actualizarBannerKYC(estado) {
+   function actualizarBannerKYC(estado) {
     estadoKyc = estado;
+    
+    // Si estado es NULL o vacío → Usuario nuevo, NO mostrar banner
+    if (!estado || estado === '') {
+        kycBanner.style.display = 'none';
+        cardBochador.classList.remove('disabled');
+        cardPatrocinador.classList.remove('disabled');
+        return;
+    }
+    
+    // Si tiene estado (pendiente, verificado, rechazado) → mostrar banner
+    kycBanner.style.display = 'flex';
     
     if (estado === 'verificado') {
         kycBanner.classList.add('verified');
@@ -175,8 +186,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         cardBochador.classList.add('disabled');
         cardPatrocinador.classList.add('disabled');
         
-    } else {
-        // Pendiente - EN REVISIÓN
+    } else if (estado === 'pendiente') {
+        // EN REVISIÓN (solo si ya envió documentos)
         kycBanner.classList.remove('verified', 'rejected');
         kycBanner.style.borderColor = '#FFA500';
         kycTitle.textContent = '⏳ Verificación KYC en Revisión';
@@ -191,7 +202,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         cardPatrocinador.classList.add('disabled');
     }
 }
-
     // Mostrar avatar en navbar
     function mostrarAvatarNavbar(nombre, avatarUrl) {
         if (avatarUrl) {
@@ -202,51 +212,43 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Mostrar datos en la pantalla
-    function mostrarDatos(user, perfil) {
-        const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
-        const email = user.email;
-        const userId = perfil?.user_id || generarIdUnico();
-        const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
-        const estado = perfil?.estado_kyc || 'pendiente';
-        saldoBC = perfil?.saldo_bc || 0;
+  function mostrarDatos(user, perfil) {
+    const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
+    const email = user.email;
+    const userId = perfil?.user_id || generarIdUnico();
+    const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
+    const estado = perfil?.estado_kyc || null; // NULL si no ha enviado KYC
+    saldoBC = perfil?.saldo_bc || 0;
 
-        userNameDisplay.textContent = nombre;
-        userEmailDisplay.textContent = email;
-        userIdDisplay.textContent = `ID: ${userId}`;
-        
-        dropdownUserName.textContent = nombre;
-        dropdownUserEmail.textContent = email;
-        
-        balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
-
-        if (avatarUrl) {
-            avatarImage.src = avatarUrl;
-            avatarImage.style.display = 'block';
-            avatarPlaceholder.style.display = 'none';
-        } else {
-            const inicial = nombre.charAt(0).toUpperCase();
-            avatarPlaceholder.textContent = inicial;
-            avatarPlaceholder.style.display = 'flex';
-            avatarImage.style.display = 'none';
-        }
-
-        mostrarAvatarNavbar(nombre, avatarUrl);
-            // Mostrar botón de admin solo si es el administrador
-const dropdownMenu = document.getElementById('dropdownMenu');
-if (dropdownMenu && email.toLowerCase() === 'gamalieljosuepirelalares@gmail.com') {
-    const adminItem = document.createElement('button');
-    adminItem.className = 'dropdown-item';
-    adminItem.onclick = function() { window.location.href = 'admin.html'; };
-    adminItem.innerHTML = '<i class="fas fa-user-shield"></i><span>Panel Admin</span>';
+    userNameDisplay.textContent = nombre;
+    userEmailDisplay.textContent = email;
     
-    // Insertar antes del divisor
-    const divider = dropdownMenu.querySelector('.dropdown-divider');
-    dropdownMenu.insertBefore(adminItem, divider);
-}
-
-        actualizarBannerKYC(estado);
+    // Mostrar ID con check verde si está verificado
+    if (estado === 'verificado') {
+        userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700;">Verificado</span>`;
+    } else {
+        userIdDisplay.textContent = `ID: ${userId}`;
     }
+    
+    dropdownUserName.textContent = nombre;
+    dropdownUserEmail.textContent = email;
+    
+    balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
+
+    if (avatarUrl) {
+        avatarImage.src = avatarUrl;
+        avatarImage.style.display = 'block';
+        avatarPlaceholder.style.display = 'none';
+    } else {
+        const inicial = nombre.charAt(0).toUpperCase();
+        avatarPlaceholder.textContent = inicial;
+        avatarPlaceholder.style.display = 'flex';
+        avatarImage.style.display = 'none';
+    }
+
+    mostrarAvatarNavbar(nombre, avatarUrl);
+    actualizarBannerKYC(estado);
+}
 
     // Función global para seleccionar rol
     window.seleccionarRol = function(rol) {
