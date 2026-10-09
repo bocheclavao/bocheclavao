@@ -16,11 +16,58 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // 🔧 FUNCIÓN CLAVE: Construir la URL correcta según la ubicación del archivo
+    function construirURL(base) {
+        // Si estamos en GitHub Pages, la ruta incluye el nombre del repo
+        // window.location.pathname devuelve algo como "/boche-clavo/html/recuperar-contrasena.html"
+        const path = window.location.pathname;
+        const repoPath = path.substring(0, path.lastIndexOf('/')); // "/boche-clavo/html"
+        return window.location.origin + repoPath + base;
+    }
+
     function showMessage(text, type) {
         if (messageDiv) {
             messageDiv.textContent = text;
             messageDiv.className = 'message ' + type;
         }
+    }
+
+    // 🔍 Detectar si el usuario viene del enlace del correo
+    // Supabase añade automáticamente ?type=recovery&token=... a la URL
+    async function verificarVueltaDelCorreo() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tipo = urlParams.get('type');
+        const token = urlParams.get('token');
+        const tokenHash = urlParams.get('token_hash');
+        
+        console.log(' Parámetros URL:', { tipo, token: token ? 'presente' : 'no', tokenHash: tokenHash ? 'presente' : 'no' });
+        
+        // Si viene del correo con tipo recovery
+        if (tipo === 'recovery' && (token || tokenHash)) {
+            console.log('✅ Usuario viene del enlace de recuperación');
+            
+            // Verificar que la sesión esté activa (Supabase la crea automáticamente al hacer clic en el enlace)
+            const { data: { session }, error } = await db.auth.getSession();
+            
+            if (error || !session) {
+                console.error('❌ No hay sesión activa:', error);
+                showMessage('El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo.', 'error');
+                return false;
+            }
+            
+            console.log('✅ Sesión activa verificada, mostrando formulario de nueva contraseña');
+            
+            // Ocultar paso 1 y mostrar paso 3 directamente
+            const step1 = document.getElementById('step1');
+            const step3 = document.getElementById('step3');
+            if (step1 && step3) {
+                step1.style.display = 'none';
+                step3.style.display = 'block';
+            }
+            return true;
+        }
+        
+        return false;
     }
 
     // Validación visual del email
@@ -83,15 +130,17 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Enviando enlace de recuperación...', 'info');
             
             try {
-                // Método oficial de Supabase para recuperación de contraseña
+                // Construir la URL de redirección correcta
+                const redirectURL = construirURL('/recuperar-contrasena.html');
+                console.log('🔗 URL de redirección:', redirectURL);
+                
                 const { data, error } = await db.auth.resetPasswordForEmail(email, {
-                    redirectTo: window.location.origin + '/html/recuperar-contrasena.html#nueva-contrasena'
+                    redirectTo: redirectURL
                 });
                 
                 if (error) {
                     console.error('Error al enviar enlace:', error);
                     
-                    // Traducción de errores al español
                     if (error.message.includes('User not found') || error.message.includes('no user found')) {
                         showMessage('Este correo no está registrado en nuestro sistema.', 'error');
                         emailInput.classList.add('input-error');
@@ -109,26 +158,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Éxito: mostrar mensaje y ocultar formulario
+                // Éxito
                 emailForm.style.display = 'none';
-                showMessage('✅ Enlace de recuperación enviado. Revisa tu correo (y la carpeta de Spam). Haz clic en el enlace para crear tu nueva contraseña.', 'success');
+                showMessage('✅ Enlace de recuperación enviado. Revisa tu correo (y la carpeta de Spam). Haz clic en el botón para crear tu nueva contraseña.', 'success');
                 
             } catch (err) {
                 console.error('Error inesperado:', err);
                 showMessage('Error inesperado: ' + err.message, 'error');
             }
         });
-    }
-
-    // Detectar si el usuario viene del enlace de recuperación
-    if (window.location.hash === '#nueva-contrasena') {
-        const step1 = document.getElementById('step1');
-        const step3 = document.getElementById('step3');
-        
-        if (step1 && step3) {
-            step1.style.display = 'none';
-            step3.style.display = 'block';
-        }
     }
 
     // Validación de nueva contraseña
@@ -204,4 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    //  EJECUTAR AL CARGAR: verificar si viene del correo
+    verificarVueltaDelCorreo();
 });
