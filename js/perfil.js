@@ -13,27 +13,26 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     const countries = [
         { code: 'CO', name: 'Colombia', phone: '+57', flag: '🇨🇴' },
-        { code: 'MX', name: 'México', phone: '+52', flag: '🇲🇽' },
+        { code: 'MX', name: 'México', phone: '+52', flag: '🇽' },
         { code: 'AR', name: 'Argentina', phone: '+54', flag: '🇦🇷' },
-        { code: 'ES', name: 'España', phone: '+34', flag: '🇪🇸' },
+        { code: 'ES', name: 'España', phone: '+34', flag: '🇸' },
         { code: 'US', name: 'Estados Unidos', phone: '+1', flag: '🇺🇸' },
         { code: 'PE', name: 'Perú', phone: '+51', flag: '🇵🇪' },
-        { code: 'CL', name: 'Chile', phone: '+56', flag: '🇨🇱' },
+        { code: 'CL', name: 'Chile', phone: '+56', flag: '🇨' },
         { code: 'VE', name: 'Venezuela', phone: '+58', flag: '🇻🇪' },
-        { code: 'EC', name: 'Ecuador', phone: '+593', flag: '🇪🇨' },
-        { code: 'GT', name: 'Guatemala', phone: '+502', flag: '🇬🇹' },
+        { code: 'EC', name: 'Ecuador', phone: '+593', flag: '🇨' },
+        { code: 'GT', name: 'Guatemala', phone: '+502', flag: '🇬' },
         { code: 'CU', name: 'Cuba', phone: '+53', flag: '🇨🇺' },
-        { code: 'BO', name: 'Bolivia', phone: '+591', flag: '🇧🇴' },
+        { code: 'BO', name: 'Bolivia', phone: '+591', flag: '🇴' },
         { code: 'DO', name: 'República Dominicana', phone: '+1-809', flag: '🇩🇴' },
         { code: 'HN', name: 'Honduras', phone: '+504', flag: '🇭🇳' },
         { code: 'PY', name: 'Paraguay', phone: '+595', flag: '🇵🇾' },
         { code: 'SV', name: 'El Salvador', phone: '+503', flag: '🇸🇻' },
         { code: 'NI', name: 'Nicaragua', phone: '+505', flag: '🇳🇮' },
         { code: 'CR', name: 'Costa Rica', phone: '+506', flag: '🇨🇷' },
-        { code: 'PA', name: 'Panamá', phone: '+507', flag: '🇵🇦' },
-        { code: 'UY', name: 'Uruguay', phone: '+598', flag: '🇺🇾' },
+        { code: 'PA', name: 'Panamá', phone: '+507', flag: '🇦' },
+        { code: 'UY', name: 'Uruguay', phone: '+598', flag: '🇺' },
         { code: 'BR', name: 'Brasil', phone: '+55', flag: '🇧🇷' }
-        // Se pueden agregar más países aquí
     ];
 
     function showMessage(text, type) {
@@ -67,119 +66,118 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-  async function cargarPerfil() {
-    try {
-        const { data: { user } } = await db.auth.getUser();
-        if (!user) { window.location.href = 'login.html'; return; }
+    async function cargarPerfil() {
+        try {
+            const { data: { user } } = await db.auth.getUser();
+            if (!user) { window.location.href = 'login.html'; return; }
 
-        const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
-        if (error) { console.error('Error al cargar perfil:', error); return; }
+            const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
+            if (error) { console.error('Error al cargar perfil:', error); return; }
 
-        document.getElementById('profileName').textContent = perfil.nombre || 'Usuario';
-        document.getElementById('profileId').textContent = `ID: ${perfil.user_id}`;
-        document.getElementById('profileEmail').textContent = perfil.email;
-        
-        const avatarInitial = document.getElementById('avatarInitial');
-        const avatarImage = document.getElementById('avatarImage');
-        if (perfil.avatar_url) {
-            avatarImage.src = perfil.avatar_url;
-            avatarImage.style.display = 'block';
-            avatarInitial.style.display = 'none';
-        } else {
-            avatarInitial.textContent = (perfil.nombre || 'U').charAt(0).toUpperCase();
-            avatarInitial.style.display = 'flex';
-            avatarImage.style.display = 'none';
+            document.getElementById('profileName').textContent = perfil.nombre || 'Usuario';
+            document.getElementById('profileId').textContent = `ID: ${perfil.user_id}`;
+            document.getElementById('profileEmail').textContent = perfil.email;
+            
+            const avatarInitial = document.getElementById('avatarInitial');
+            const avatarImage = document.getElementById('avatarImage');
+            if (perfil.avatar_url) {
+                avatarImage.src = perfil.avatar_url;
+                avatarImage.style.display = 'block';
+                avatarInitial.style.display = 'none';
+            } else {
+                avatarInitial.textContent = (perfil.nombre || 'U').charAt(0).toUpperCase();
+                avatarInitial.style.display = 'flex';
+                avatarImage.style.display = 'none';
+            }
+
+            const kycStatus = document.getElementById('kycStatus');
+            const kycSection = document.querySelectorAll('.form-section')[2];
+            
+            const estado = perfil.estado_kyc;
+
+            if (!estado || estado === '') {
+                // 🆕 USUARIO NUEVO - Nunca ha enviado KYC
+                kycStatus.className = 'kyc-status pending';
+                kycStatus.innerHTML = '<i class="fas fa-id-card"></i> Verificación KYC Pendiente - Completa tus datos';
+                
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Guardar Perfil y Enviar KYC';
+                    submitBtn.style.background = '';
+                }
+                if (kycSection) {
+                    kycSection.style.opacity = '1';
+                    kycSection.style.pointerEvents = 'auto';
+                }
+                
+            } else if (estado === 'verificado') {
+                // ✅ VERIFICADO
+                kycStatus.className = 'kyc-status verified';
+                kycStatus.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
+                
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Ya Verificado';
+                    submitBtn.style.background = '#00ff00';
+                }
+                if (kycSection) {
+                    kycSection.style.opacity = '0.5';
+                    kycSection.style.pointerEvents = 'none';
+                }
+                
+            } else if (estado === 'rechazado') {
+                // ❌ RECHAZADO - Puede reenviar
+                kycStatus.className = 'kyc-status rejected';
+                kycStatus.innerHTML = '<i class="fas fa-times-circle"></i> KYC Rechazado - Puede Reenviar';
+                
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Reenviar Documentos para Verificación';
+                    submitBtn.style.background = '';
+                }
+                if (kycSection) {
+                    kycSection.style.opacity = '1';
+                    kycSection.style.pointerEvents = 'auto';
+                }
+                showMessage('⚠️ Tu KYC fue rechazado. Por favor, corrige la información y reenvía los documentos.', 'error');
+                
+            } else if (estado === 'pendiente') {
+                // ⏳ PENDIENTE - En revisión
+                kycStatus.className = 'kyc-status pending';
+                kycStatus.innerHTML = '<i class="fas fa-hourglass-half"></i> KYC en Revisión';
+                
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - No puede reenviar';
+                    submitBtn.style.background = '#666';
+                }
+                if (kycSection) {
+                    kycSection.style.opacity = '0.5';
+                    kycSection.style.pointerEvents = 'none';
+                }
+                showMessage('⏳ Tus documentos están siendo revisados. Por favor, espera la aprobación del administrador.', 'info');
+            }
+
+            // Llenar formulario con datos existentes
+            document.getElementById('nombre').value = perfil.nombre || '';
+            document.getElementById('telefono').value = perfil.telefono ? perfil.telefono.split(' ').slice(1).join(' ') : '';
+            document.getElementById('phoneCountry').value = perfil.telefono ? perfil.telefono.split(' ')[0] : '';
+            document.getElementById('fechaNacimiento').value = perfil.fecha_nacimiento || '';
+            document.getElementById('nacionalidad').value = perfil.nacionalidad || '';
+            document.getElementById('direccion').value = perfil.direccion || '';
+            document.getElementById('ciudad').value = perfil.ciudad || '';
+            document.getElementById('pais').value = perfil.pais || '';
+            document.getElementById('codigoPostal').value = perfil.codigo_postal || '';
+            document.getElementById('tipoDocumento').value = perfil.tipo_documento || '';
+            document.getElementById('numeroDocumento').value = perfil.numero_documento || '';
+
+            loadingState.style.display = 'none';
+            contentState.style.display = 'block';
+
+        } catch (err) {
+            console.error('Error:', err);
         }
-
-        const kycStatus = document.getElementById('kycStatus');
-        const submitBtn = document.getElementById('submitBtn');
-        const kycSection = document.querySelectorAll('.form-section')[2]; // Sección KYC (tercera)
-        
-        const estado = perfil.estado_kyc; // Puede ser NULL, 'pendiente', 'verificado', 'rechazado'
-
-        if (!estado || estado === '') {
-            // USUARIO NUEVO - Nunca ha enviado KYC
-            kycStatus.className = 'kyc-status pending';
-            kycStatus.innerHTML = '<i class="fas fa-id-card"></i> Verificación KYC Pendiente - Completa tus datos';
-            
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Guardar Perfil y Enviar KYC';
-                submitBtn.style.background = '';
-            }
-            if (kycSection) {
-                kycSection.style.opacity = '1';
-                kycSection.style.pointerEvents = 'auto';
-            }
-            
-        } else if (estado === 'verificado') {
-            // VERIFICADO
-            kycStatus.className = 'kyc-status verified';
-            kycStatus.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
-            
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Ya Verificado';
-                submitBtn.style.background = '#00ff00';
-            }
-            if (kycSection) {
-                kycSection.style.opacity = '0.5';
-                kycSection.style.pointerEvents = 'none';
-            }
-            
-        } else if (estado === 'rechazado') {
-            // RECHAZADO - Puede reenviar
-            kycStatus.className = 'kyc-status rejected';
-            kycStatus.innerHTML = '<i class="fas fa-times-circle"></i> KYC Rechazado - Puede Reenviar';
-            
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Reenviar Documentos para Verificación';
-                submitBtn.style.background = '';
-            }
-            if (kycSection) {
-                kycSection.style.opacity = '1';
-                kycSection.style.pointerEvents = 'auto';
-            }
-            showMessage('⚠️ Tu KYC fue rechazado. Por favor, corrige la información y reenvía los documentos.', 'error');
-            
-        } else if (estado === 'pendiente') {
-            // PENDIENTE - En revisión (ya envió documentos)
-            kycStatus.className = 'kyc-status pending';
-            kycStatus.innerHTML = '<i class="fas fa-hourglass-half"></i> KYC en Revisión';
-            
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - No puede reenviar';
-                submitBtn.style.background = '#666';
-            }
-            if (kycSection) {
-                kycSection.style.opacity = '0.5';
-                kycSection.style.pointerEvents = 'none';
-            }
-            showMessage('⏳ Tus documentos están siendo revisados. Por favor, espera la aprobación del administrador.', 'info');
-        }
-
-        // Llenar formulario con datos existentes
-        document.getElementById('nombre').value = perfil.nombre || '';
-        document.getElementById('telefono').value = perfil.telefono ? perfil.telefono.split(' ').slice(1).join(' ') : '';
-        document.getElementById('phoneCountry').value = perfil.telefono ? perfil.telefono.split(' ')[0] : '';
-        document.getElementById('fechaNacimiento').value = perfil.fecha_nacimiento || '';
-        document.getElementById('nacionalidad').value = perfil.nacionalidad || '';
-        document.getElementById('direccion').value = perfil.direccion || '';
-        document.getElementById('ciudad').value = perfil.ciudad || '';
-        document.getElementById('pais').value = perfil.pais || '';
-        document.getElementById('codigoPostal').value = perfil.codigo_postal || '';
-        document.getElementById('tipoDocumento').value = perfil.tipo_documento || '';
-        document.getElementById('numeroDocumento').value = perfil.numero_documento || '';
-
-        loadingState.style.display = 'none';
-        contentState.style.display = 'block';
-
-    } catch (err) {
-        console.error('Error:', err);
     }
-}
 
     window.openCamera = async function(type) {
         currentCameraType = type;
@@ -193,7 +191,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         errorMsg.style.display = 'none';
 
         try {
-            // Restricciones relajadas para funcionar en PC y móvil
             currentStream = await navigator.mediaDevices.getUserMedia({
                 video: { 
                     facingMode: type === 'selfie' ? 'user' : 'environment',
@@ -249,7 +246,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.7); // Comprimido para ahorrar espacio
+        const imageData = canvas.toDataURL('image/jpeg', 0.7);
 
         const fieldMap = {
             'docFront': { url: 'docFrontalUrl', preview: 'docFrontPreview', btn: 'btnDocFront' },
@@ -269,10 +266,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function initFaceDetection() {
         const statusDiv = document.getElementById('faceDetectionStatus');
         statusDiv.className = 'face-detection-status detecting';
-        statusDiv.textContent = '⏳ Cargando modelos de IA para detección facial...';
+        statusDiv.textContent = ' Cargando modelos de IA para detección facial...';
 
         try {
-            // Usamos un CDN más estable para los pesos de face-api
             const modelUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
             await faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
             faceDetectionReady = true;
@@ -286,9 +282,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    window.takePhoto = window.captureFromModal; // Alias para los botones
+    window.takePhoto = window.captureFromModal;
 
-    // UNICO BOTÓN DE GUARDADO
     const fullProfileForm = document.getElementById('fullProfileForm');
     if (fullProfileForm) {
         fullProfileForm.addEventListener('submit', async (e) => {
