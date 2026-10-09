@@ -35,27 +35,61 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Cargar datos del perfil
-    async function cargarPerfil(user) {
+    // Generar ID único de 8 dígitos
+    function generarIdUnico() {
+        return 'BC-' + Math.floor(10000000 + Math.random() * 90000000).toString();
+    }
+
+    // Cargar o crear perfil
+    async function cargarOCrearPerfil(user) {
         try {
-            console.log('Cargando perfil de:', user.email);
+            console.log('Buscando perfil de:', user.email);
             
+            // Intentar obtener el perfil existente
             const { data: perfil, error } = await db
                 .from('perfiles')
                 .select('*')
                 .eq('id', user.id)
                 .single();
             
-            if (error) {
-                console.error('Error al cargar perfil:', error);
-                return null;
+            // Si existe, retornarlo
+            if (perfil) {
+                console.log('Perfil encontrado:', perfil.user_id);
+                return perfil;
             }
             
-            console.log('Perfil cargado:', perfil);
-            return perfil;
+            // Si no existe (error PGRST116 = no rows), crear uno nuevo
+            if (error && error.code === 'PGRST116') {
+                console.log('Perfil no existe, creando uno nuevo...');
+                
+                const nuevoPerfil = {
+                    id: user.id,
+                    user_id: generarIdUnico(),
+                    nombre: user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario',
+                    email: user.email,
+                    avatar_url: user.user_metadata?.avatar_url || null
+                };
+                
+                const { data: creado, error: insertError } = await db
+                    .from('perfiles')
+                    .insert(nuevoPerfil)
+                    .select()
+                    .single();
+                
+                if (insertError) {
+                    console.error('Error al crear perfil:', insertError);
+                    return null;
+                }
+                
+                console.log('Perfil creado con ID:', creado.user_id);
+                return creado;
+            }
+            
+            console.error('Error inesperado:', error);
+            return null;
             
         } catch (err) {
-            console.error('Error inesperado:', err);
+            console.error('Error en cargarOCrearPerfil:', err);
             return null;
         }
     }
@@ -64,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     function mostrarDatos(user, perfil) {
         const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
         const email = user.email;
-        const userId = perfil?.user_id || 'Generando...';
+        const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
 
         // Actualizar textos
@@ -81,7 +115,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             navAvatar.src = avatarUrl;
             navAvatar.style.display = 'block';
         } else {
-            // Mostrar inicial del nombre
             const inicial = nombre.charAt(0).toUpperCase();
             avatarPlaceholder.textContent = inicial;
             avatarPlaceholder.style.display = 'flex';
@@ -108,8 +141,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 throw new Error('No se pudo obtener la información del usuario');
             }
 
-            // Cargar perfil desde la base de datos
-            const perfil = await cargarPerfil(user);
+            // Cargar o crear perfil
+            const perfil = await cargarOCrearPerfil(user);
 
             // Mostrar datos
             mostrarDatos(user, perfil);
