@@ -16,10 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // 🔧 FUNCIÓN CLAVE: Construir la URL correcta según la ubicación del archivo
+    /
     function construirURL(base) {
         // Si estamos en GitHub Pages, la ruta incluye el nombre del repo
-        // window.location.pathname devuelve algo como "/boche-clavo/html/recuperar-contrasena.html"
         const path = window.location.pathname;
         const repoPath = path.substring(0, path.lastIndexOf('/')); // "/boche-clavo/html"
         return window.location.origin + repoPath + base;
