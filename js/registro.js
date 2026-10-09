@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Script de registro cargado');
+    
     const messageDiv = document.getElementById('message');
     const registroForm = document.getElementById('registroForm');
     const otpForm = document.getElementById('otpForm');
@@ -9,8 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const emailInput = document.getElementById('email');
     const emailError = document.getElementById('emailError');
-    const emailErrorText = document.getElementById('emailErrorText');
-    const submitBtn = registroForm ? registroForm.querySelector('button[type="submit"]') : null;
+    const submitBtn = document.getElementById('submitBtn');
     
     const db = window.supabaseClient;
     let emailRegistrado = '';
@@ -49,10 +50,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (passwordInput) {
         passwordInput.addEventListener('input', function() {
             const val = this.value;
+            
             updateRequirement('req-length', val.length >= 8);
             updateRequirement('req-letter', /[a-zA-Z]/.test(val));
             updateRequirement('req-number', /[0-9]/.test(val));
-            updateRequirement('req-special', /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val));
+            // Regex simplificado: cualquier carácter que NO sea letra ni número
+            updateRequirement('req-special', /[^a-zA-Z0-9]/.test(val));
         });
     }
 
@@ -71,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 3. 🎯 VALIDACIÓN EN TIEMPO REAL DEL EMAIL
+    // 3. Validación en tiempo real del email
     if (emailInput) {
         emailInput.addEventListener('input', function() {
             const email = this.value.trim();
@@ -85,10 +88,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validar formato básico de email
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email) || email.length < 5) {
-                return; // No consultar si no es un email válido
+                return;
             }
             
-            // Debounce: esperar 800ms después de que el usuario deje de escribir
+            // Debounce: esperar 800ms
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 verificarEmailExiste(email);
@@ -98,7 +101,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function verificarEmailExiste(email) {
         try {
-            // Consultar la tabla 'usuarios' (la que creamos con el trigger)
             const { data, error } = await db
                 .from('usuarios')
                 .select('id, email')
@@ -111,13 +113,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (data && data.length > 0) {
-                // El correo YA existe
                 emailYaExiste = true;
                 emailInput.classList.add('input-error');
                 emailInput.classList.remove('input-valid');
                 
                 if (emailError) {
-                    emailErrorText.textContent = 'Este correo ya está registrado';
                     emailError.style.display = 'flex';
                 }
                 
@@ -125,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.log('⚠️ Correo ya registrado:', email);
             } else {
-                // El correo NO existe, está disponible
                 emailYaExiste = false;
                 emailInput.classList.add('input-valid');
                 emailInput.classList.remove('input-error');
@@ -138,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Solo permitir números en el input del código OTP
+    // Solo permitir números en OTP
     if (otpInput) {
         otpInput.addEventListener('input', function() {
             this.value = this.value.replace(/[^0-9]/g, '');
@@ -155,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
-            // Validación de email existente (doble check por seguridad)
             if (emailYaExiste) {
                 showMessage('Este correo ya está registrado. Usa "Recuperar contraseña" en el login.', 'error');
                 return;
@@ -178,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('La contraseña debe tener al menos un número', 'error');
                 return;
             }
-            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+            if (!/[^a-zA-Z0-9]/.test(password)) {
                 showMessage('La contraseña debe tener al menos un carácter especial', 'error');
                 return;
             }
@@ -197,10 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (error) {
                     if (error.message.includes('already registered')) {
                         emailInput.classList.add('input-error');
-                        if (emailError) {
-                            emailErrorText.textContent = 'Este correo ya está registrado';
-                            emailError.style.display = 'flex';
-                        }
+                        if (emailError) emailError.style.display = 'flex';
                         showMessage('Este correo ya está registrado', 'error');
                     } else {
                         showMessage('Error: ' + error.message, 'error');
