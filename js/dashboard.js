@@ -141,8 +141,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
     window.irADepositar = function() { alert('El sistema de depósitos estará disponible próximamente'); };
 
-    // 🎥 CARGAR TRANSMISIÓN EN VIVO
-    async function cargarStreamEnVivo() {
+      async function cargarStreamEnVivo() {
+        console.log('🔄 Cargando stream en vivo...');
         try {
             const { data: streamConfig, error } = await db
                 .from('config_stream_vivo')
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const liveDescription = document.getElementById('liveDescription');
 
             if (error || !streamConfig || !streamConfig.activo) {
-                // No hay stream activo
+                console.log('️ No hay stream activo');
                 liveSection.classList.remove('active');
                 videoPlaceholder.style.display = 'flex';
                 liveVideo.style.display = 'none';
@@ -170,14 +170,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            // Hay stream activo
+            console.log('✅ Stream activo encontrado:', streamConfig);
+
             liveSection.classList.add('active');
             videoPlaceholder.style.display = 'none';
             liveInfo.style.display = 'block';
             liveTitle.textContent = streamConfig.titulo || 'Transmisión en Vivo';
             liveDescription.textContent = streamConfig.descripcion || 'Evento en vivo';
 
-            // Mostrar badge EN VIVO
             liveBadgeContainer.innerHTML = `
                 <div class="live-badge">
                     <div class="live-dot"></div>
@@ -186,39 +186,42 @@ document.addEventListener('DOMContentLoaded', async function() {
                 ${streamConfig.espectadores ? `<div class="live-viewers"><i class="fas fa-eye"></i> ${streamConfig.espectadores} espectadores</div>` : ''}
             `;
 
-            // Cargar video según tipo
-            if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
+            // Ocultar ambos primero
+            liveVideo.style.display = 'none';
+            liveIframe.style.display = 'none';
+
+            // Cargar según tipo
+            if (streamConfig.tipo_stream === 'youtube' && streamConfig.url_stream) {
+                console.log('📺 Cargando YouTube:', streamConfig.url_stream);
+                liveIframe.style.display = 'block';
+                liveIframe.src = streamConfig.url_stream;
+            } else if (streamConfig.tipo_stream === 'twitch' && streamConfig.url_stream) {
+                console.log(' Cargando Twitch:', streamConfig.url_stream);
+                liveIframe.style.display = 'block';
+                liveIframe.src = streamConfig.url_stream;
+            } else if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
+                console.log('📡 Cargando HLS:', streamConfig.url_stream);
                 liveVideo.style.display = 'block';
-                liveIframe.style.display = 'none';
                 
-                if (Hls.isSupported()) {
+                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
                     const hls = new Hls();
                     hls.loadSource(streamConfig.url_stream);
                     hls.attachMedia(liveVideo);
                     hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                        liveVideo.play();
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e));
                     });
                 } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
                     liveVideo.src = streamConfig.url_stream;
                     liveVideo.addEventListener('loadedmetadata', function() {
-                        liveVideo.play();
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e));
                     });
                 }
-            } else if (streamConfig.tipo_stream === 'youtube' && streamConfig.url_stream) {
-                liveIframe.style.display = 'block';
-                liveVideo.style.display = 'none';
-                liveIframe.src = streamConfig.url_stream;
-            } else if (streamConfig.tipo_stream === 'twitch' && streamConfig.url_stream) {
-                liveIframe.style.display = 'block';
-                liveVideo.style.display = 'none';
-                liveIframe.src = streamConfig.url_stream;
             }
 
         } catch (err) {
-            console.error('Error cargando stream en vivo:', err);
+            console.error('❌ Error cargando stream en vivo:', err);
         }
     }
-
     function actualizarBannerKYC(estado) {
         if (estado === 'verificado') {
             kycBanner.style.display = 'none';
