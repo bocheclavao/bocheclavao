@@ -1,15 +1,10 @@
-// Esperar a que el DOM esté completamente cargado
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // 1. Obtener elementos del DOM PRIMERO
     const messageDiv = document.getElementById('message');
     const loginForm = document.getElementById('loginForm');
-    
-    // 2. Obtener el cliente de Supabase
     const db = window.supabaseClient;
     
     if (!db) {
-        console.error('❌ No se pudo obtener el cliente de Supabase');
+        console.error('No se pudo obtener el cliente de Supabase');
         if (messageDiv) {
             messageDiv.textContent = 'Error: No se pudo conectar con el servidor';
             messageDiv.className = 'message error';
@@ -17,7 +12,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // 3. Función para mostrar mensajes (definida antes de usarse)
+    // 🔧 Función para construir URLs correctas en GitHub Pages
+    function construirURL(base) {
+        const path = window.location.pathname;
+        const repoPath = path.substring(0, path.lastIndexOf('/'));
+        return window.location.origin + repoPath + base;
+    }
+
     function showMessage(text, type) {
         if (messageDiv) {
             messageDiv.textContent = text;
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+                showMessage('Inicio de sesión exitoso! Redirigiendo...', 'success');
                 
                 setTimeout(() => {
                     window.location.href = APP_CONFIG.REDIRECT_AFTER_LOGIN;
@@ -70,14 +71,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 5. Login con Google (función global para el onclick del HTML)
+    // 5. Login con Google - URL CORREGIDA
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
+            // Construir la URL correcta automáticamente
+            const redirectURL = construirURL('/dashboard.html');
+            console.log('URL de redirección Google:', redirectURL);
+            
             const { data, error } = await db.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin + '/html/dashboard.html'
+                    redirectTo: redirectURL,
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'consent'
+                    }
                 }
             });
             
@@ -89,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 6. Recuperar contraseña (Redirige a la página de recuperación)
+    // 6. Recuperar contraseña
     window.mostrarRecuperarContrasena = function() {
         window.location.href = 'recuperar-contrasena.html';
     };
