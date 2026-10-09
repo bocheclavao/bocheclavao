@@ -15,15 +15,43 @@ document.addEventListener('DOMContentLoaded', async function() {
     const dropdownMenu = document.getElementById('dropdownMenu');
     const menuToggle = document.getElementById('menuToggle');
     const profileName = document.getElementById('profileName');
+    const profileFlag = document.getElementById('profileFlag');
     const rankingNumber = document.getElementById('rankingNumber');
     const statPrecision = document.getElementById('statPrecision');
     const statLanzamientos = document.getElementById('statLanzamientos');
     const statBoches = document.getElementById('statBoches');
     const statEventos = document.getElementById('statEventos');
+    const statVictorias = document.getElementById('statVictorias');
+    const statDerrotas = document.getElementById('statDerrotas');
     const profileAvatarContainer = document.getElementById('profileAvatarContainer');
-    const eventsContainer = document.getElementById('eventsContainer');
 
     let saldoBC = 0;
+    let estadisticas = null;
+
+    // Mapeo de países a banderas
+    const countryFlags = {
+        'Colombia': '🇨🇴',
+        'México': '🇲🇽',
+        'Argentina': '🇦🇷',
+        'España': '🇪🇸',
+        'Estados Unidos': '🇺',
+        'Perú': '🇪',
+        'Chile': '🇨🇱',
+        'Venezuela': '🇻🇪',
+        'Ecuador': '🇪🇨',
+        'Guatemala': '🇬',
+        'Cuba': '🇺',
+        'Bolivia': '🇧🇴',
+        'República Dominicana': '🇩🇴',
+        'Honduras': '🇭🇳',
+        'Paraguay': '🇵🇾',
+        'El Salvador': '🇸',
+        'Nicaragua': '🇮',
+        'Costa Rica': '🇨🇷',
+        'Panamá': '🇵',
+        'Uruguay': '🇺🇾',
+        'Brasil': '🇷'
+    };
 
     db.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
@@ -58,6 +86,62 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    async function cargarOCrearEstadisticas(user) {
+        try {
+            console.log('🔍 Buscando estadísticas para:', user.id);
+            
+            const { data: stats, error } = await db
+                .from('estadisticas_bochador')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+            
+            if (stats) {
+                console.log('✅ Estadísticas encontradas:', stats);
+                return stats;
+            }
+            
+            if (error && error.code === 'PGRST116') {
+                console.log('⚠️ Estadísticas no existen, creando nuevas con valores en 0...');
+                
+                const nuevasStats = {
+                    id: user.id,
+                    user_id: null,
+                    precision_promedio: 0,
+                    lanzamientos_oficiales: 0,
+                    boches_clavao: 0,
+                    eventos_disputados: 0,
+                    victorias: 0,
+                    derrotas: 0,
+                    empates: 0,
+                    puntos_totales: 0,
+                    ranking_nacional: 0,
+                    nivel: 'principiante'
+                };
+                
+                const { data: creada, error: insertError } = await db
+                    .from('estadisticas_bochador')
+                    .insert(nuevasStats)
+                    .select()
+                    .single();
+                
+                if (insertError) {
+                    console.error('❌ Error al crear estadísticas:', insertError);
+                    return null;
+                }
+                
+                console.log('✅ Estadísticas creadas:', creada);
+                return creada;
+            }
+            
+            console.error('❌ Error inesperado:', error);
+            return null;
+        } catch (err) {
+            console.error('❌ Error en cargarOCrearEstadisticas:', err);
+            return null;
+        }
+    }
+
     function mostrarAvatarNavbar(nombre, avatarUrl) {
         if (avatarUrl) {
             navAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-small" onclick="toggleMenu()">`;
@@ -76,6 +160,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    function obtenerBandera(pais) {
+        return countryFlags[pais] || '🏳️';
+    }
+
     window.toggleMenu = function() {
         dropdownMenu.classList.toggle('show');
         menuToggle.classList.toggle('active');
@@ -89,93 +177,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    async function cargarEventos() {
-        try {
-            // Eventos de ejemplo (luego los conectaremos a la base de datos)
-            const eventos = [
-                {
-                    id: 1,
-                    titulo: 'Torneo Nacional de Bochas 2024',
-                    fecha: '15 de Diciembre, 2024',
-                    descripcion: 'El torneo más importante del año. Compite contra los mejores bochadores del país.',
-                    costo: 50
-                },
-                {
-                    id: 2,
-                    titulo: 'Desafío Regional - Zona Norte',
-                    fecha: '22 de Diciembre, 2024',
-                    descripcion: 'Torneo regional para clasificar al nacional. ¡Demuestra tu talento!',
-                    costo: 25
-                },
-                {
-                    id: 3,
-                    titulo: 'Copa Amistad - Edición Especial',
-                    fecha: '28 de Diciembre, 2024',
-                    descripcion: 'Evento amistoso con premios especiales. Ideal para practicar.',
-                    costo: 15
-                }
-            ];
-
-            eventsContainer.innerHTML = '';
-
-            eventos.forEach(evento => {
-                const card = document.createElement('div');
-                card.className = 'event-card';
-                card.innerHTML = `
-                    <div class="event-header">
-                        <div class="event-title">${evento.titulo}</div>
-                        <div class="event-date"><i class="fas fa-calendar"></i> ${evento.fecha}</div>
-                    </div>
-                    <div class="event-description">${evento.descripcion}</div>
-                    <div class="event-footer">
-                        <div class="event-cost"><i class="fas fa-coins"></i> ${evento.costo} BC</div>
-                        <button class="btn-inscribir" onclick="inscribirseEvento(${evento.id}, ${evento.costo})">
-                            <i class="fas fa-check"></i> Inscribirse
-                        </button>
-                    </div>
-                `;
-                eventsContainer.appendChild(card);
-            });
-
-        } catch (err) {
-            console.error('Error cargando eventos:', err);
-            eventsContainer.innerHTML = '<p style="color: #ff4444; text-align: center;">Error al cargar eventos</p>';
-        }
-    }
-
-    window.inscribirseEvento = async function(eventoId, costo) {
-        if (saldoBC < costo) {
-            alert(`No tienes suficientes monedas BC. Necesitas ${costo} BC y tienes ${saldoBC.toFixed(2)} BC.`);
-            return;
-        }
-
-        if (!confirm(`¿Inscribirte en este evento por ${costo} BC?`)) {
-            return;
-        }
-
-        try {
-            const { data: { user } } = await db.auth.getUser();
-            const nuevoSaldo = saldoBC - costo;
-
-            const { error } = await db
-                .from('perfiles')
-                .update({ 
-                    saldo_bc: nuevoSaldo,
-                    ultima_actualizacion: new Date().toISOString()
-                })
-                .eq('id', user.id);
-
-            if (error) {
-                alert('Error al inscribirse: ' + error.message);
-            } else {
-                saldoBC = nuevoSaldo;
-                balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
-                alert(`✅ ¡Inscripción exitosa! Se descontaron ${costo} BC de tu saldo.`);
-            }
-        } catch (err) {
-            console.error('Error:', err);
-            alert('Error inesperado al inscribirse.');
-        }
+    window.verRanking = function() {
+        alert('🚧 El ranking nacional estará disponible próximamente. ¡Mantente atento!');
     };
 
     async function protegerRuta() {
@@ -195,7 +198,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 throw new Error('No se pudo obtener la información del usuario');
             }
 
-            // Verificar que el usuario tenga KYC verificado
             const perfil = await cargarPerfil(user);
             
             if (!perfil || perfil.estado_kyc !== 'verificado') {
@@ -204,30 +206,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            // Mostrar datos del usuario
             const nombre = perfil.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
             const email = user.email;
             saldoBC = perfil.saldo_bc || 0;
+            const nacionalidad = perfil.nacionalidad || '';
 
             profileName.textContent = nombre;
             dropdownUserName.textContent = nombre;
             dropdownUserEmail.textContent = email;
             balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
 
-            // Mostrar avatar
             const avatarUrl = perfil.avatar_url || user.user_metadata?.avatar_url;
             mostrarAvatarNavbar(nombre, avatarUrl);
             mostrarAvatarPerfil(nombre, avatarUrl);
 
-            // Estadísticas (por ahora con valores de ejemplo, luego los conectaremos a la BD)
-            rankingNumber.textContent = '#5';
-            statPrecision.textContent = '1.13%';
-            statLanzamientos.textContent = '1,248';
-            statBoches.textContent = '14';
-            statEventos.textContent = '32';
+            profileFlag.textContent = obtenerBandera(nacionalidad);
 
-            // Cargar eventos
-            await cargarEventos();
+            const stats = await cargarOCrearEstadisticas(user);
+            estadisticas = stats;
+
+            if (stats) {
+                rankingNumber.textContent = stats.ranking_nacional > 0 ? `#${stats.ranking_nacional}` : '#--';
+                statPrecision.textContent = `${stats.precision_promedio.toFixed(2)}%`;
+                statLanzamientos.textContent = stats.lanzamientos_oficiales.toLocaleString();
+                statBoches.textContent = stats.boches_clavao.toLocaleString();
+                statEventos.textContent = stats.eventos_disputados.toLocaleString();
+                statVictorias.textContent = stats.victorias.toLocaleString();
+                statDerrotas.textContent = stats.derrotas.toLocaleString();
+            }
 
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
