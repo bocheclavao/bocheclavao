@@ -55,9 +55,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('id', user.id)
                 .single();
             
-            if (perfil) {
-                return perfil;
-            }
+            if (perfil) return perfil;
             
             if (error && error.code === 'PGRST116') {
                 const nuevoPerfil = {
@@ -80,10 +78,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     console.error('Error al crear perfil:', insertError);
                     return null;
                 }
-                
                 return creado;
             }
-            
             return null;
         } catch (err) {
             console.error('Error en cargarOCrearPerfil:', err);
@@ -105,54 +101,41 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     window.irAPerfil = function() { window.location.href = 'perfil.html'; };
-    window.irABilletera = function() { alert('🚧 La billetera estará disponible próximamente'); };
-    window.irAApuestas = function() { alert('🚧 Mis apuestas estará disponible próximamente'); };
-    window.irASoporte = function() { alert('🚧 Soporte estará disponible próximamente'); };
-    window.irAConfiguracion = function() { alert('🚧 Configuración estará disponible próximamente'); };
-    window.irADepositar = function() { alert('🚧 El sistema de depósitos estará disponible próximamente'); };
+    window.irABilletera = function() { alert(' La billetera estará disponible próximamente'); };
+    window.irAApuestas = function() { alert(' Mis apuestas estará disponible próximamente'); };
+    window.irASoporte = function() { alert(' Soporte estará disponible próximamente'); };
+    window.irAConfiguracion = function() { alert(' Configuración estará disponible próximamente'); };
+    window.irADepositar = function() { alert(' El sistema de depósitos estará disponible próximamente'); };
 
-    //  FUNCIÓN CLAVE: Manejar los 3 estados correctamente
+    // ✅ FUNCIÓN CLAVE: Manejar los 4 estados correctamente
     function actualizarBannerKYC(estado) {
-        // CASO 1: Usuario nuevo (estado NULL) → NO mostrar banner, desbloquear roles
-        if (estado === null || estado === undefined || estado === '') {
+        // CASO 1: VERIFICADO → Ocultar banner, desbloquear roles
+        if (estado === 'verificado') {
             kycBanner.style.display = 'none';
             cardBochador.classList.remove('disabled');
             cardPatrocinador.classList.remove('disabled');
             return;
         }
         
-        // Mostrar banner solo si tiene un estado definido
+        // Para los otros 3 casos, SIEMPRE mostrar el banner
         kycBanner.style.display = 'flex';
         
-        // CASO 2: Verificado
-        if (estado === 'verificado') {
-            kycBanner.classList.add('verified');
-            kycBanner.classList.remove('rejected');
-            kycTitle.textContent = '✅ Verificación KYC Completada';
-            kycMessage.textContent = 'Tu identidad ha sido verificada exitosamente. Ya puedes participar como Bochador o Patrocinador.';
-            kycBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
-            kycBtn.style.pointerEvents = 'none';
-            kycBtn.style.opacity = '0.7';
-            kycBtn.onclick = null;
-            
-            cardBochador.classList.remove('disabled');
-            cardPatrocinador.classList.remove('disabled');
-            
-        // CASO 3: Rechazado
-        } else if (estado === 'rechazado') {
-            kycBanner.classList.add('rejected');
-            kycBanner.classList.remove('verified');
-            kycTitle.textContent = ' Verificación KYC Rechazada';
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla para ser verificado.';
-            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar Verificación';
+        // CASO 2: Usuario NUEVO (NULL) → Invitar a completar KYC
+        if (estado === null || estado === undefined || estado === '') {
+            kycBanner.classList.remove('verified', 'rejected');
+            kycBanner.style.borderColor = '#FFD700';
+            kycTitle.textContent = '⚠️ Verificación KYC Pendiente';
+            kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC). Es rápido y seguro.';
+            kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
+            kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
             
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
             
-        // CASO 4: Pendiente (en revisión)
+        // CASO 3: En Revisión (pendiente)
         } else if (estado === 'pendiente') {
             kycBanner.classList.remove('verified', 'rejected');
             kycBanner.style.borderColor = '#FFA500';
@@ -163,6 +146,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.opacity = '0.6';
             kycBtn.style.background = '#666';
             kycBtn.onclick = null;
+            
+            cardBochador.classList.add('disabled');
+            cardPatrocinador.classList.add('disabled');
+            
+        // CASO 4: Rechazado
+        } else if (estado === 'rechazado') {
+            kycBanner.classList.add('rejected');
+            kycBanner.classList.remove('verified');
+            kycTitle.textContent = ' Verificación KYC Rechazada';
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla para ser verificado.';
+            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar Verificación';
+            kycBtn.style.pointerEvents = 'auto';
+            kycBtn.style.opacity = '1';
+            kycBtn.style.background = '';
+            kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
             
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
@@ -189,9 +187,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         userNameDisplay.textContent = nombre;
         userEmailDisplay.textContent = email;
         
-        // Mostrar check verde al lado del ID si está verificado
+        // ✅ Si está VERIFICADO → mostrar check verde al lado del ID
         if (estado === 'verificado') {
-            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700;">Verificado</span>`;
+            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Verificado</span>`;
         } else {
             userIdDisplay.textContent = `ID: ${userId}`;
         }
@@ -216,8 +214,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     window.seleccionarRol = function(rol) {
-        if (estadoKyc !== 'verificado' && estadoKyc !== null) {
-            alert('Debes completar la verificación KYC antes de poder participar.');
+        if (estadoKyc !== 'verificado') {
+            alert('Debes completar y ser aprobado en la verificación KYC antes de poder participar.');
             window.location.href = 'perfil.html';
             return;
         }
