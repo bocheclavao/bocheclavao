@@ -16,7 +16,6 @@
         .header { text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); border-radius: 12px; border: 1px solid #FFD700; }
         .header h1 { color: #FFD700; font-size: 1.8rem; margin-bottom: 10px; }
         
-        /* Tabs de navegación */
         .admin-tabs { display: flex; gap: 15px; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
         .tab-btn { padding: 15px 30px; background: #0a0a0a; border: 2px solid #333; border-radius: 10px; color: #999; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Montserrat', sans-serif; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
         .tab-btn:hover { border-color: #FFD700; color: #FFD700; }
@@ -26,21 +25,17 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        /* Stats */
         .stats-bar { display: flex; gap: 20px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
         .stat-box { background: #0a0a0a; border: 1px solid #222; padding: 20px; border-radius: 8px; text-align: center; min-width: 150px; flex: 1; max-width: 200px; }
         .stat-box .number { font-size: 2rem; font-weight: 800; color: #FFD700; }
         .stat-box .label { color: #999; font-size: 0.85rem; margin-top: 5px; }
         
-        /* Búsqueda */
         .search-container { max-width: 900px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; }
         .search-input { flex: 1; min-width: 250px; padding: 12px 16px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; font-family: 'Montserrat', sans-serif; }
         .search-input:focus { outline: none; border-color: #FFD700; }
         .search-select { padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; }
         
-        /* Cards de usuarios */
-        .user-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 25px; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; transition: all 0.3s; }
-        .user-card:hover { border-color: #444; }
+        .user-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 25px; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
         .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .user-name { font-size: 1.3rem; font-weight: 700; color: #FFD700; }
         .user-id { color: #999; font-size: 0.9rem; }
@@ -75,22 +70,60 @@
         .btn-coins:hover { background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); }
         .btn-view { background: #333; color: #fff; }
         .btn-view:hover { background: #444; }
+        .btn-save { background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%); color: #000; width: 100%; justify-content: center; font-size: 1.1rem; padding: 15px; }
+        .btn-save:hover { background: linear-gradient(135deg, #00cc00 0%, #009900 100%); }
         
-        /* Tabla de usuarios */
         .users-table { width: 100%; max-width: 900px; margin: 0 auto; border-collapse: collapse; }
         .users-table th { background: #0a0a0a; color: #FFD700; padding: 12px; text-align: left; border-bottom: 2px solid #333; font-size: 0.9rem; }
         .users-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.9rem; }
         .users-table tr:hover { background: rgba(255, 215, 0, 0.05); }
         .users-table tr { cursor: pointer; }
         
-        /* Paginación */
         .pagination { display: flex; gap: 10px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
         .page-btn { padding: 10px 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 6px; color: #fff; cursor: pointer; font-family: 'Montserrat', sans-serif; }
         .page-btn:hover { border-color: #FFD700; color: #FFD700; }
         .page-btn.active { background: #FFD700; color: #000; border-color: #FFD700; }
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
-        /* Modal */
+        /* Estilos para el formulario de Stream */
+        .stream-form-container {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .stream-form-container h3 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; color: #ccc; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #FFD700; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        
+        .toggle-container {
+            display: flex; align-items: center; gap: 15px; background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333;
+        }
+        .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #00ff00; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        .stream-status-msg { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-weight: 600; }
+        .stream-status-msg.success { display: block; background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
+        .stream-status-msg.error { display: block; background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; }
+
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
         .modal.show { display: flex; }
         .modal-content { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 30px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; }
@@ -98,11 +131,6 @@
         .modal-title { color: #FFD700; font-size: 1.5rem; font-weight: 800; }
         .modal-close { background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
         .modal-close:hover { color: #FFD700; }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; color: #999; font-size: 0.85rem; margin-bottom: 5px; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; background: #111; border: 1px solid #333; border-radius: 6px; color: #fff; font-family: 'Montserrat', sans-serif; }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #FFD700; }
         
         .loading { text-align: center; color: #FFD700; margin-top: 50px; font-size: 1.2rem; }
         .empty { text-align: center; color: #666; margin-top: 50px; padding: 40px; }
@@ -130,17 +158,20 @@
     <div id="adminContent" style="display: none;">
         <div class="header">
             <h1><i class="fas fa-user-shield"></i> Panel de Administración</h1>
-            <p>Gestión completa de usuarios y verificaciones</p>
+            <p>Gestión completa de usuarios, verificaciones y transmisiones</p>
         </div>
 
         <!-- Tabs -->
         <div class="admin-tabs">
-            <button class="tab-btn active" onclick="cambiarTab('kyc')">
+            <button class="tab-btn active" onclick="cambiarTab('kyc', this)">
                 <i class="fas fa-id-card"></i> Verificaciones KYC
                 <span class="badge" id="kycBadge">0</span>
             </button>
-            <button class="tab-btn" onclick="cambiarTab('usuarios')">
+            <button class="tab-btn" onclick="cambiarTab('usuarios', this)">
                 <i class="fas fa-users"></i> Gestión de Usuarios
+            </button>
+            <button class="tab-btn" onclick="cambiarTab('stream', this)">
+                <i class="fas fa-broadcast-tower"></i> Transmisión en Vivo
             </button>
         </div>
 
@@ -168,6 +199,57 @@
             <div id="loadingUsers" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando usuarios...</div>
             <div id="containerUsers"></div>
             <div id="pagination" class="pagination"></div>
+        </div>
+
+        <!-- TAB 3: Transmisión en Vivo -->
+        <div id="tab-stream" class="tab-content">
+            <div class="stream-form-container">
+                <h3><i class="fas fa-satellite-dish"></i> Configurar Transmisión en Vivo</h3>
+                
+                <div class="form-group">
+                    <label>Estado de la Transmisión</label>
+                    <div class="toggle-container">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="streamActivo">
+                            <span class="slider"></span>
+                        </label>
+                        <span id="streamStatusText" style="color: #999; font-weight: 600;">Desactivada</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Título del Evento</label>
+                    <input type="text" id="streamTitulo" placeholder="Ej: Final Nacional de Bochas 2024">
+                </div>
+
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="streamDescripcion" placeholder="Breve descripción del evento en vivo..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Stream</label>
+                    <select id="streamTipo">
+                        <option value="hls">HLS (Cámara IP / OBS / Servidor propio)</option>
+                        <option value="youtube">YouTube Live (Embed)</option>
+                        <option value="twitch">Twitch (Embed)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>URL del Stream</label>
+                    <input type="text" id="streamUrl" placeholder="https://...">
+                    <p style="color: #666; font-size: 0.8rem; margin-top: 5px;">
+                        <i class="fas fa-info-circle"></i> Para YouTube usa el formato: <code>https://www.youtube.com/embed/VIDEO_ID?autoplay=1</code>
+                    </p>
+                </div>
+
+                <button class="btn btn-save" onclick="guardarConfigStream()">
+                    <i class="fas fa-save"></i> Guardar y Actualizar Transmisión
+                </button>
+
+                <div id="streamStatusMsg" class="stream-status-msg"></div>
+            </div>
         </div>
     </div>
 
