@@ -2,68 +2,118 @@ document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     
     if (!db) {
-        console.error('❌ No se pudo obtener el cliente de Supabase');
+        console.error('No se pudo obtener el cliente de Supabase');
         return;
     }
 
-    // Elementos del DOM
     const loadingState = document.getElementById('loadingState');
     const contentState = document.getElementById('contentState');
     const errorState = document.getElementById('errorState');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
     const userNameDisplay = document.getElementById('userNameDisplay');
+    const userIdDisplay = document.getElementById('userIdDisplay');
+    const avatarImage = document.getElementById('avatarImage');
+    const avatarPlaceholder = document.getElementById('avatarDisplay');
+    const navAvatar = document.getElementById('navAvatar');
 
-    // 1. 🔒 Escuchar cambios de autenticación en tiempo real
+    // Escuchar cambios de autenticación
     db.auth.onAuthStateChange((event, session) => {
         console.log('Evento de auth:', event);
         
-        // Si la sesión se cierra o es invalidada, expulsar al login
         if (event === 'SIGNED_OUT' || !session) {
-            console.log('⚠️ Sesión invalidada, redirigiendo al login...');
+            console.log('Sesión invalidada, redirigiendo...');
             window.location.href = 'login.html';
         }
     });
 
-    // 2. 🔒 Asegurar sesión única (Expulsa otros dispositivos)
+    // Asegurar sesión única
     async function asegurarSesionUnica() {
         const { data: { session } } = await db.auth.getSession();
         if (session) {
-            console.log('🔒 Verificando sesiones en otros dispositivos...');
+            console.log('Verificando sesiones en otros dispositivos...');
             await db.auth.signOut({ scope: 'others' });
-            console.log('✅ Sesión única asegurada');
         }
     }
 
-    // 3. Proteger la ruta y cargar datos
+    // Cargar datos del perfil
+    async function cargarPerfil(user) {
+        try {
+            console.log('Cargando perfil de:', user.email);
+            
+            const { data: perfil, error } = await db
+                .from('perfiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+            
+            if (error) {
+                console.error('Error al cargar perfil:', error);
+                return null;
+            }
+            
+            console.log('Perfil cargado:', perfil);
+            return perfil;
+            
+        } catch (err) {
+            console.error('Error inesperado:', err);
+            return null;
+        }
+    }
+
+    // Mostrar datos en la pantalla
+    function mostrarDatos(user, perfil) {
+        const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
+        const email = user.email;
+        const userId = perfil?.user_id || 'Generando...';
+        const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
+
+        // Actualizar textos
+        userNameDisplay.textContent = nombre;
+        userEmailDisplay.textContent = email;
+        userIdDisplay.textContent = `ID: ${userId}`;
+
+        // Mostrar avatar
+        if (avatarUrl) {
+            avatarImage.src = avatarUrl;
+            avatarImage.style.display = 'block';
+            avatarPlaceholder.style.display = 'none';
+            
+            navAvatar.src = avatarUrl;
+            navAvatar.style.display = 'block';
+        } else {
+            // Mostrar inicial del nombre
+            const inicial = nombre.charAt(0).toUpperCase();
+            avatarPlaceholder.textContent = inicial;
+            avatarPlaceholder.style.display = 'flex';
+            avatarImage.style.display = 'none';
+            navAvatar.style.display = 'none';
+        }
+    }
+
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
         
-        // Si NO hay sesión, mandar al login
         if (!session || error) {
-            console.log('⚠️ Sin sesión válida, redirigiendo al login...');
+            console.log('Sin sesión válida, redirigiendo...');
             window.location.href = 'login.html';
             return;
         }
 
         try {
-            // Ejecutar seguridad de sesión única
             await asegurarSesionUnica();
 
-            // Obtener datos del usuario
             const { data: { user }, error: userError } = await db.auth.getUser();
             
             if (userError || !user) {
                 throw new Error('No se pudo obtener la información del usuario');
             }
 
-            // Mostrar datos en la pantalla
-            const nombre = user.user_metadata?.nombre || 'Usuario';
-            const email = user.email;
+            // Cargar perfil desde la base de datos
+            const perfil = await cargarPerfil(user);
 
-            userEmailDisplay.textContent = email;
-            userNameDisplay.textContent = nombre;
+            // Mostrar datos
+            mostrarDatos(user, perfil);
             
-            // Ocultar carga y mostrar contenido
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
 
@@ -78,23 +128,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Iniciar
     protegerRuta();
 });
 
-// Función global para cerrar sesión manualmente
+// Cerrar sesión
 async function cerrarSesion() {
     const db = window.supabaseClient;
     if (!db) return;
 
     try {
-        // 'global' cierra la sesión en TODOS los dispositivos por seguridad
         const { error } = await db.auth.signOut({ scope: 'global' });
         if (error) throw error;
         
         window.location.href = 'login.html';
     } catch (err) {
         console.error('Error al cerrar sesión:', err);
-        alert('Hubo un error al cerrar sesión. Inténtalo de nuevo.');
+        alert('Hubo un error al cerrar sesión.');
     }
 }
