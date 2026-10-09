@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     
     if (!db) {
-        console.error('No se pudo obtener el cliente de Supabase');
+        console.error('❌ No se pudo obtener el cliente de Supabase');
         return;
     }
 
@@ -49,15 +49,20 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function cargarOCrearPerfil(user) {
         try {
+            console.log('🔍 Buscando perfil en BD para:', user.id);
             const { data: perfil, error } = await db
                 .from('perfiles')
                 .select('*')
                 .eq('id', user.id)
                 .single();
             
-            if (perfil) return perfil;
+            if (perfil) {
+                console.log('✅ Perfil encontrado:', perfil);
+                return perfil;
+            }
             
             if (error && error.code === 'PGRST116') {
+                console.log('⚠️ Perfil no existe, creando uno nuevo...');
                 const nuevoPerfil = {
                     id: user.id,
                     user_id: generarIdUnico(),
@@ -75,23 +80,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .single();
                 
                 if (insertError) {
-                    console.error('Error al crear perfil:', insertError);
+                    console.error('❌ Error al crear perfil:', insertError);
                     return null;
                 }
                 return creado;
             }
             return null;
         } catch (err) {
-            console.error('Error en cargarOCrearPerfil:', err);
+            console.error('❌ Error en cargarOCrearPerfil:', err);
             return null;
         }
     }
 
-    // 🔍 VERIFICAR SI ES ADMIN (consulta real a la tabla admin_roles)
     async function verificarSiEsAdmin(userId, userEmail) {
         try {
-            console.log('🔍 Verificando si es admin:', userEmail);
-            
             const { data, error } = await db
                 .from('admin_roles')
                 .select('es_admin, activo')
@@ -100,44 +102,28 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('activo', true)
                 .single();
 
-            if (error || !data) {
-                console.log('❌ No es admin o no está en admin_roles');
-                return false;
-            }
-
-            console.log('✅ Es administrador verificado');
+            if (error || !data) return false;
             return true;
         } catch (err) {
-            console.error('Error verificando admin:', err);
             return false;
         }
     }
 
-    //  AGREGAR BOTÓN DE ADMIN AL MENÚ (solo si es admin real)
     function agregarBotonAdmin() {
-        const dropdownMenu = document.getElementById('dropdownMenu');
-        if (!dropdownMenu) return;
-        
-        // Evitar duplicados
-        if (document.getElementById('adminMenuItem')) return;
+        if (!dropdownMenu || document.getElementById('adminMenuItem')) return;
 
         const adminItem = document.createElement('button');
         adminItem.id = 'adminMenuItem';
         adminItem.className = 'dropdown-item';
-        adminItem.onclick = function() { 
-            window.location.href = 'admin.html'; 
-        };
+        adminItem.onclick = function() { window.location.href = 'admin.html'; };
         adminItem.innerHTML = '<i class="fas fa-user-shield"></i><span>Panel Admin</span>';
         
-        // Insertar antes del divisor (antes de "Cerrar sesión")
         const divider = dropdownMenu.querySelector('.dropdown-divider');
         if (divider) {
             dropdownMenu.insertBefore(adminItem, divider);
         } else {
             dropdownMenu.appendChild(adminItem);
         }
-        
-        console.log('🛡️ Botón de admin agregado al menú');
     }
 
     window.toggleMenu = function() {
@@ -180,35 +166,30 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.opacity = '1';
             kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
-            
         } else if (estado === 'pendiente') {
             kycBanner.classList.remove('verified', 'rejected');
             kycBanner.style.borderColor = '#FFA500';
             kycTitle.textContent = '⏳ Verificación KYC en Revisión';
-            kycMessage.textContent = 'Tus documentos han sido enviados y están siendo revisados por nuestro equipo. Recibirás una notificación cuando sean aprobados. Este proceso puede tomar hasta 24 horas.';
+            kycMessage.textContent = 'Tus documentos han sido enviados y están siendo revisados por nuestro equipo.';
             kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - Espere Aprobación';
             kycBtn.style.pointerEvents = 'none';
             kycBtn.style.opacity = '0.6';
             kycBtn.style.background = '#666';
             kycBtn.onclick = null;
-            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
-            
         } else if (estado === 'rechazado') {
             kycBanner.classList.add('rejected');
             kycBanner.classList.remove('verified');
             kycTitle.textContent = '❌ Verificación KYC Rechazada';
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla para ser verificado.';
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla.';
             kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar Verificación';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
             kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
         }
@@ -224,12 +205,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function mostrarDatos(user, perfil) {
+        // 🕵️ RASTREADOR: Ver qué datos llegan exactamente
+        console.log('📊 Datos del perfil recibidos:', perfil);
+        
         const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
         const email = user.email;
         const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
         const estado = perfil?.estado_kyc || null;
-        saldoBC = perfil?.saldo_bc || 0;
+        
+        // 🕵️ RASTREADOR: Forzar que sea número y mostrarlo en consola
+        saldoBC = typeof perfil?.saldo_bc === 'number' ? perfil.saldo_bc : 0;
+        console.log('💰 Saldo BC detectado en dashboard:', saldoBC);
 
         userNameDisplay.textContent = nombre;
         userEmailDisplay.textContent = email;
@@ -242,7 +229,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         dropdownUserName.textContent = nombre;
         dropdownUserEmail.textContent = email;
-        balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
+        
+        // 🕵️ RASTREADOR: Ver qué se está pintando en pantalla
+        const textoSaldo = `${saldoBC.toFixed(2)} BC`;
+        console.log('🖥️ Texto de saldo a mostrar:', textoSaldo);
+        balanceAmount.textContent = textoSaldo;
 
         if (avatarUrl) {
             avatarImage.src = avatarUrl;
@@ -258,11 +249,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         mostrarAvatarNavbar(nombre, avatarUrl);
         actualizarBannerKYC(estado);
 
-        // 🔐 VERIFICAR SI ES ADMIN Y AGREGAR BOTÓN
         verificarSiEsAdmin(user.id, email).then(esAdmin => {
-            if (esAdmin) {
-                agregarBotonAdmin();
-            }
+            if (esAdmin) agregarBotonAdmin();
         });
     }
 
@@ -272,17 +260,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.location.href = 'perfil.html';
             return;
         }
-        
-        if (rol === 'bochador') {
-            window.location.href = 'dashboard-bochador.html';
-        } else if (rol === 'patrocinador') {
-            window.location.href = 'dashboard-patrocinador.html';
-        }
+        if (rol === 'bochador') window.location.href = 'dashboard-bochador.html';
+        else if (rol === 'patrocinador') window.location.href = 'dashboard-patrocinador.html';
     };
 
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
-        
         if (!session || error) {
             window.location.href = 'login.html';
             return;
@@ -290,12 +273,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         try {
             await asegurarSesionUnica();
-
             const { data: { user }, error: userError } = await db.auth.getUser();
             
-            if (userError || !user) {
-                throw new Error('No se pudo obtener la información del usuario');
-            }
+            if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
 
             const perfil = await cargarOCrearPerfil(user);
             estadoKyc = perfil?.estado_kyc || null;
@@ -305,13 +285,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             contentState.style.display = 'block';
 
         } catch (err) {
-            console.error('Error al obtener usuario:', err);
+            console.error('❌ Error al obtener usuario:', err);
             loadingState.style.display = 'none';
             errorState.style.display = 'block';
-            
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 3000);
+            setTimeout(() => { window.location.href = 'login.html'; }, 3000);
         }
     }
 
@@ -321,7 +298,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function cerrarSesion() {
     const db = window.supabaseClient;
     if (!db) return;
-
     try {
         const { error } = await db.auth.signOut({ scope: 'global' });
         if (error) throw error;
