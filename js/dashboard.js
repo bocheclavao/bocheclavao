@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
     window.irADepositar = function() { alert('El sistema de depósitos estará disponible próximamente'); };
 
-      async function cargarStreamEnVivo() {
+         async function cargarStreamEnVivo() {
         console.log('🔄 Cargando stream en vivo...');
         try {
             const { data: streamConfig, error } = await db
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const liveDescription = document.getElementById('liveDescription');
 
             if (error || !streamConfig || !streamConfig.activo) {
-                console.log('️ No hay stream activo');
+                console.log('⚠️ No hay stream activo');
                 liveSection.classList.remove('active');
                 videoPlaceholder.style.display = 'flex';
                 liveVideo.style.display = 'none';
@@ -190,15 +190,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             liveVideo.style.display = 'none';
             liveIframe.style.display = 'none';
 
-            // Cargar según tipo
-            if (streamConfig.tipo_stream === 'youtube' && streamConfig.url_stream) {
-                console.log('📺 Cargando YouTube:', streamConfig.url_stream);
+            // 🛡️ MEJORA: Detectar automáticamente si es YouTube aunque hayan seleccionado HLS por error
+            if (streamConfig.url_stream.includes('youtube.com') || streamConfig.url_stream.includes('youtu.be')) {
+                console.log('📺 Detectado enlace de YouTube, forzando modo Embed automáticamente');
+                liveIframe.style.display = 'block';
+                
+                let embedUrl = streamConfig.url_stream;
+                // Convertir URL de watch/live a embed si es necesario
+                if (embedUrl.includes('/live/') || embedUrl.includes('/watch?v=')) {
+                    const videoId = embedUrl.split('/live/')[1]?.split('?')[0] || embedUrl.split('v=')[1]?.split('&')[0];
+                    if (videoId) {
+                        embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                    }
+                }
+                liveIframe.src = embedUrl;
+                
+            } else if (streamConfig.tipo_stream === 'youtube' && streamConfig.url_stream) {
+                console.log('📺 Cargando YouTube (configurado):', streamConfig.url_stream);
                 liveIframe.style.display = 'block';
                 liveIframe.src = streamConfig.url_stream;
+                
             } else if (streamConfig.tipo_stream === 'twitch' && streamConfig.url_stream) {
-                console.log(' Cargando Twitch:', streamConfig.url_stream);
+                console.log('🎮 Cargando Twitch:', streamConfig.url_stream);
                 liveIframe.style.display = 'block';
                 liveIframe.src = streamConfig.url_stream;
+                
             } else if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
                 console.log('📡 Cargando HLS:', streamConfig.url_stream);
                 liveVideo.style.display = 'block';
@@ -208,12 +224,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     hls.loadSource(streamConfig.url_stream);
                     hls.attachMedia(liveVideo);
                     hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e));
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado por el navegador:', e));
                     });
                 } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
                     liveVideo.src = streamConfig.url_stream;
                     liveVideo.addEventListener('loadedmetadata', function() {
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e));
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado por el navegador:', e));
                     });
                 }
             }
