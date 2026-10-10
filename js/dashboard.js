@@ -87,23 +87,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    async function verificarSiEsAdmin(userId, userEmail) {
+      async function verificarSiEsAdmin(userId, userEmail) {
         try {
+            console.log('🔍 Verificando si es admin:', userEmail);
+            
+            // Usamos .maybeSingle() en lugar de .single() para evitar errores 406
             const { data, error } = await db
                 .from('admin_roles')
                 .select('es_admin, activo')
                 .eq('id', userId)
                 .eq('es_admin', true)
                 .eq('activo', true)
-                .single();
+                .maybeSingle(); 
 
-            if (error || !data) return false;
+            if (error || !data) {
+                console.log('❌ No es admin o no está en admin_roles (o la tabla no existe aún)');
+                return false;
+            }
+
+            console.log('✅ Es administrador verificado');
             return true;
         } catch (err) {
+            console.error('Error verificando admin:', err);
             return false;
         }
     }
-
     function agregarBotonAdmin() {
         if (!dropdownMenu || document.getElementById('adminMenuItem')) return;
 
