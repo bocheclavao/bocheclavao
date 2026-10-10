@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boche Clava'o - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- HLS.js para streaming en vivo -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: #0a0a0a;
+            border-bottom: 1px solid #222;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .navbar-logo {
+            max-width: 40px;
+            height: auto;
+        }
+
+        .navbar-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #FFD700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .balance-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .balance-display {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 1px solid #FFD700;
+            border-radius: 8px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .balance-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #000;
+            font-size: 0.9rem;
+        }
+
+        .balance-amount {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #FFD700;
+        }
+
+        .balance-label {
+            font-size: 0.7rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .user-menu-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #FFD700;
+            cursor: pointer;
+        }
+
+        .avatar-placeholder-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #000;
+            border: 2px solid #FFD700;
+            cursor: pointer;
+        }
+
+        .menu-toggle {
+            background: transparent;
+            border: 1px solid #333;
+            color: #FFD700;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #FFD700;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            min-width: 220px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            display: none;
+            z-index: 200;
+            overflow: hidden;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-header {
+            padding: 15px;
+            border-bottom: 1px solid #222;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+        }
+
+        .dropdown-header .user-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-header .user-email {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: #cccccc;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 215, 0, 0.1);
+            color: #FFD700;
+        }
+
+        .dropdown-item i {
+            width: 20px;
+            text-align: center;
+            color: #FFD700;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #222;
+            margin: 5px 0;
+        }
+
+        .dropdown-item.logout {
+            color: #ff4444;
+        }
+
+        .dropdown-item.logout i {
+            color: #ff4444;
+        }
+
+        /* Contenido principal */
+        .main-content {
+            flex: 1;
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .loading-container {
+            text-align: center;
+            margin-top: 50px;
+            color: #FFD700;
+            font-size: 1.2rem;
+        }
+
+        .welcome-card {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .avatar-container {
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .avatar-placeholder {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #000;
+            border: 3px solid #FFD700;
+        }
+
+        .user-info h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .user-info .user-id {
+            display: inline-block;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid #FFD700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #FFD700;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .user-info .user-email {
+            color: #999;
+            font-size: 0.95rem;
+        }
+
+        /* Banner KYC */
+        .kyc-banner {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 2px solid #FFA500;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            animation: slideDown 0.5s ease;
+        }
+
+        .kyc-banner.verified {
+            border-color: #00ff00;
+            background: linear-gradient(135deg, #0a1a0a 0%, #1a2a1a 100%);
+        }
+
+        .kyc-banner.rejected {
+            border-color: #ff4444;
+            background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 100%);
+        }
+
+        .kyc-icon {
+            font-size: 3rem;
+            color: #FFA500;
+        }
+
+        .kyc-banner.verified .kyc-icon {
+            color: #00ff00;
+        }
+
+        .kyc-banner.rejected .kyc-icon {
+            color: #ff4444;
+        }
+
+        .kyc-content h3 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: #FFD700;
+        }
+
+        .kyc-banner.verified .kyc-content h3 {
+            color: #00ff00;
+        }
+
+        .kyc-banner.rejected .kyc-content h3 {
+            color: #ff4444;
+        }
+
+        .kyc-content p {
+            color: #cccccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .btn-kyc {
+            display: inline-block;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .btn-kyc:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Roles */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-align: center;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: #999;
+            font-size: 1rem;
+            margin-bottom: 40px;
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .role-card {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            border: 2px solid #222;
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .role-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 215, 0, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .role-card:hover::before {
+            opacity: 1;
+        }
+
+        .role-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.2);
+        }
+
+        .role-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .role-card.disabled::after {
+            content: '\f023';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            color: #ff4444;
+            opacity: 0.7;
+        }
+
+        .role-card.bochador {
+            border-color: #00ff00;
+        }
+
+        .role-card.bochador:hover {
+            border-color: #00ff00;
+            box-shadow: 0 20px 40px rgba(0, 255, 0, 0.2);
+        }
+
+        .role-card.patrocinador {
+            border-color: #00aaff;
+        }
+
+        .role-card.patrocinador:hover {
+            border-color: #00aaff;
+            box-shadow: 0 20px 40px rgba(0, 170, 255, 0.2);
+        }
+
+        .role-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-card.bochador .role-icon {
+            color: #00ff00;
+        }
+
+        .role-card.patrocinador .role-icon {
+            color: #00aaff;
+        }
+
+        .role-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-card.bochador .role-title {
+            color: #00ff00;
+        }
+
+        .role-card.patrocinador .role-title {
+            color: #00aaff;
+        }
+
+        .role-subtitle {
+            font-size: 0.9rem;
+            color: #999;
+            margin-bottom: 25px;
+            font-style: italic;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-description {
+            font-size: 0.85rem;
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-features li {
+            font-size: 0.85rem;
+            color: #cccccc;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .role-features li i {
+            font-size: 0.9rem;
+        }
+
+        .role-card.bochador .role-features li i {
+            color: #00ff00;
+        }
+
+        .role-card.patrocinador .role-features li i {
+            color: #00aaff;
+        }
+
+        .role-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .role-card.bochador .role-btn {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .role-card.patrocinador .role-btn {
+            background: #00aaff;
+            color: #000;
+        }
+
+        /* 🎥 TRANSMISIÓN EN VIVO */
+        .live-stream-section {
+            background: #0a0a0a;
+            border: 2px solid #222;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .live-stream-section.active {
+            border-color: #ff0000;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+        }
+
+        .live-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .live-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ff0000;
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: pulse-live 2s infinite;
+        }
+
+        @keyframes pulse-live {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+            }
+            50% {
+                opacity: 0.9;
+                box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+            }
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .live-viewers {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .live-viewers i {
+            color: #ff0000;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .video-container video,
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            color: #666;
+        }
+
+        .video-placeholder i {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .video-placeholder p {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .video-placeholder span {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        .live-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+
+        .live-info h4 {
+            color: #FFD700;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .live-info p {
+            color: #cccccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Tarjetas adicionales */
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-card {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .info-card:hover {
+            border-color: #FFD700;
+            transform: translateY(-5px);
+        }
+
+        .info-card i {
+            font-size: 2rem;
+            color: #FFD700;
+            margin-bottom: 15px;
+        }
+
+        .info-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .info-card p {
+            color: #999;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .error-state {
+            text-align: center;
+            color: #ff4444;
+            margin-top: 50px;
+        }
+
+        .error-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .navbar-brand {
+                justify-content: center;
+            }
+
+            .balance-container {
+                justify-content: center;
+            }
+
+            .user-menu-container {
+                justify-content: center;
+            }
+
+            .welcome-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .user-info h1 {
+                font-size: 1.5rem;
+            }
+
+            .roles-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .role-card {
+                padding: 30px 20px;
+            }
+
+            .role-icon {
+                font-size: 3rem;
+            }
+
+            .role-title {
+                font-size: 1.5rem;
+            }
+
+            .kyc-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .info-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .live-title {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
+            <span class="navbar-title">Boche Clava'o</span>
+        </div>
+
+        <div class="balance-container">
+            <div class="balance-display">
+                <div class="balance-icon">BC</div>
+                <div>
+                    <div class="balance-label">Saldo disponible</div>
+                    <div class="balance-amount" id="balanceAmount">0.00 BC</div>
+                </div>
+            </div>
+            <button class="btn-depositar" onclick="irADepositar()">
+                <i class="fas fa-plus-circle"></i> Depositar
+            </button>
+        </div>
+
+        <div class="user-menu-container">
+            <div id="navAvatarContainer"></div>
+            <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            
+            <div class="dropdown-menu" id="dropdownMenu">
+                <div class="dropdown-header">
+                    <div class="user-name" id="dropdownUserName">Usuario</div>
+                    <div class="user-email" id="dropdownUserEmail">email@ejemplo.com</div>
+                </div>
+                <button class="dropdown-item" onclick="irAPerfil()">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Ver perfil</span>
+                </button>
+                <button class="dropdown-item" onclick="irABilletera()">
+                    <i class="fas fa-wallet"></i>
+                    <span>Billetera</span>
+                </button>
+                <button class="dropdown-item" onclick="irAApuestas()">
+                    <i class="fas fa-trophy"></i>
+                    <span>Mis apuestas</span>
+                </button>
+                <button class="dropdown-item" onclick="irASoporte()">
+                    <i class="fas fa-headset"></i>
+                    <span>Soporte</span>
+                </button>
+                <button class="dropdown-item" onclick="irAConfiguracion()">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </button>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item logout" onclick="cerrarSesion()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Cerrar sesión</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div id="loadingState" class="loading-container">
+            <i class="fas fa-circle-notch fa-spin"></i> Cargando tu perfil...
+        </div>
+
+        <div id="contentState" style="display: none;">
+            <!-- Tarjeta de bienvenida -->
+            <div class="welcome-card">
+                <div class="avatar-container">
+                    <div id="avatarDisplay" class="avatar-placeholder">?</div>
+                    <img id="avatarImage" src="" alt="Avatar" class="user-avatar" style="display: none;">
+                </div>
+                <div class="user-info">
+                    <h1 id="userNameDisplay">Usuario</h1>
+                    <div class="user-id" id="userIdDisplay">ID: Cargando...</div>
+                    <p class="user-email" id="userEmailDisplay">email@ejemplo.com</p>
+                </div>
+            </div>
+
+            <!-- Banner KYC -->
+            <div id="kycBanner" class="kyc-banner">
+                <i class="fas fa-shield-alt kyc-icon"></i>
+                <div class="kyc-content">
+                    <h3 id="kycTitle">Verificación KYC Pendiente</h3>
+                    <p id="kycMessage">Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC). Es rápido y seguro.</p>
+                    <a href="perfil.html" class="btn-kyc" id="kycBtn">
+                        <i class="fas fa-user-check"></i> Completar KYC ahora
+                    </a>
+                </div>
+            </div>
+
+            <!-- Selector de rol -->
+            <h2 class="section-title">Selecciona tu Rol</h2>
+            <p class="section-subtitle">Dos roles diferentes. Un objetivo común: ganar juntos.</p>
+
+            <div class="roles-grid">
+                <div class="role-card bochador" id="cardBochador" onclick="seleccionarRol('bochador')">
+                    <div class="role-icon">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <h3 class="role-title">Bochador</h3>
+                    <p class="role-subtitle">El talento que inspira</p>
+                    <p class="role-description">
+                        Compete en eventos, mejora tu ranking y recibe apoyo de patrocinadores.
+                    </p>
+                    <ul class="role-features">
+                        <li><i class="fas fa-check-circle"></i> Valida tu talento</li>
+                        <li><i class="fas fa-check-circle"></i> Compite en eventos</li>
+                        <li><i class="fas fa-check-circle"></i> Mejora tu ranking</li>
+                        <li><i class="fas fa-check-circle"></i> Gana premios</li>
+                    </ul>
+                    <div class="role-btn">Entrar como Bochador</div>
+                </div>
+
+                <div class="role-card patrocinador" id="cardPatrocinador" onclick="seleccionarRol('patrocinador')">
+                    <div class="role-icon">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                    <h3 class="role-title">Patrocinador</h3>
+                    <p class="role-subtitle">La inversión que hace posible</p>
+                    <p class="role-description">
+                        Deposita fondos, elige a quién apoyar y gana según el resultado.
+                    </p>
+                    <ul class="role-features">
+                        <li><i class="fas fa-check-circle"></i> Deposita fondos</li>
+                        <li><i class="fas fa-check-circle"></i> Elige bochadores</li>
+                        <li><i class="fas fa-check-circle"></i> Realiza apuestas</li>
+                        <li><i class="fas fa-check-circle"></i> Gana retornos</li>
+                    </ul>
+                    <div class="role-btn">Entrar como Patrocinador</div>
+                </div>
+            </div>
+
+            <!-- 🎥 TRANSMISIÓN EN VIVO -->
+            <div class="live-stream-section" id="liveStreamSection">
+                <div class="live-header">
+                    <div class="live-title">
+                        <i class="fas fa-broadcast-tower"></i>
+                        Transmisión en Vivo
+                    </div>
+                    <div id="liveBadgeContainer"></div>
+                </div>
+
+                <div class="video-container" id="videoContainer">
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <i class="fas fa-video-slash"></i>
+                        <p>No hay transmisión activa</p>
+                        <span>Pronto habrá eventos en vivo</span>
+                    </div>
+                    <video id="liveVideo" style="display: none;" controls autoplay muted></video>
+                    <iframe id="liveIframe" style="display: none;" allowfullscreen></iframe>
+                </div>
+
+                <div class="live-info" id="liveInfo" style="display: none;">
+                    <h4 id="liveTitle">Título del evento</h4>
+                    <p id="liveDescription">Descripción del evento en vivo</p>
+                </div>
+            </div>
+
+            <!-- Tarjetas adicionales -->
+            <div class="info-cards">
+                <div class="info-card" onclick="window.location.href='perfil.html'">
+                    <i class="fas fa-user-circle"></i>
+                    <h3>Mi Perfil</h3>
+                    <p>Completa tu información personal y documentos KYC</p>
+                </div>
+
+                <div class="info-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Cuenta Segura</h3>
+                    <p>Tu sesión está protegida y es única en este dispositivo</p>
+                </div>
+
+                <div class="info-card">
+                    <i class="fas fa-headset"></i>
+                    <h3>Soporte 24/7</h3>
+                    <p>Estamos aquí para ayudarte en cualquier momento</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorState" class="error-state" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>No se pudo cargar tu perfil. Intenta de nuevo.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/dashboard.js"></script>
+</body>
+</html>
