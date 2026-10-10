@@ -226,7 +226,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const nationalitySelect = document.getElementById('nacionalidad');
         const countrySelect = document.getElementById('pais');
 
-        // Opción por defecto
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = 'Selecciona un país...';
@@ -252,7 +251,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // 🧠 1. PRECARGAR MODELOS DE IA AL INICIAR LA PÁGINA
     async function preloadFaceModels() {
         const statusDiv = document.getElementById('faceDetectionStatus');
         try {
@@ -326,7 +324,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showMessage('⏳ Tus documentos están siendo revisados. Espera la aprobación.', 'info');
             }
 
-            // Llenar formulario con datos existentes
             document.getElementById('nombre').value = perfil.nombre || '';
             document.getElementById('telefono').value = perfil.telefono ? perfil.telefono.split(' ').slice(1).join(' ') : '';
             document.getElementById('phoneCountry').value = perfil.telefono ? perfil.telefono.split(' ')[0] : '';
@@ -340,7 +337,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('tipoDocumento').value = perfil.tipo_documento || '';
             document.getElementById('numeroDocumento').value = perfil.numero_documento || '';
 
-            // Mostrar vistas previas si ya existen URLs
             if (perfil.documento_frontal_url) {
                 document.getElementById('docFrontalUrl').value = perfil.documento_frontal_url;
                 document.getElementById('docFrontPreview').innerHTML = `<img src="${perfil.documento_frontal_url}" alt="Doc Frente">`;
@@ -378,7 +374,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         title.textContent = titles[type] || 'Cámara';
         errorMsg.style.display = 'none';
         captureBtn.disabled = true;
-        captureBtn.innerHTML = '<i class="fas fa-camera"></i> Esperando rostro...';
+        captureBtn.innerHTML = '<i class="fas fa-camera"></i> Iniciando cámara...';
 
         try {
             currentStream = await navigator.mediaDevices.getUserMedia({
@@ -391,7 +387,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             video.srcObject = currentStream;
             modal.classList.add('show');
 
-            video.onloadedmetadata = () => {
+            // Esperar a que el video tenga datos reales antes de iniciar la IA
+            video.onloadeddata = () => {
+                console.log('📹 Video listo. Dimensiones:', video.videoWidth, 'x', video.videoHeight);
                 if (type === 'selfie' && faceApiLoaded) {
                     startFaceTracking(video);
                 } else if (type === 'selfie' && !faceApiLoaded) {
@@ -412,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    // 🎯 2. BUCLE DE RASTREO EN TIEMPO REAL
+    // 🎯 BUCLE DE RASTREO EN TIEMPO REAL (OPTIMIZADO)
     function startFaceTracking(video) {
         const canvas = document.getElementById('faceCanvas');
         const statusDiv = document.getElementById('faceDetectionStatus');
@@ -423,30 +421,51 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            const displaySize = { width: video.videoWidth || 640, height: video.videoHeight || 480 };
-            faceapi.matchDimensions(canvas, displaySize);
+            // Esperar a que el video tenga datos suficientes
+            if (video.readyState < 2) {
+                trackingAnimationId = requestAnimationFrame(detect);
+                return;
+            }
 
-            const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions());
-            const resizedDetections = faceapi.resizeResults(detection, displaySize);
+            try {
+                // Usar dimensiones visuales del video para dibujar el canvas correctamente
+                const displaySize = { 
+                    width: video.clientWidth || video.videoWidth, 
+                    height: video.clientHeight || video.videoHeight 
+                };
+                faceapi.matchDimensions(canvas, displaySize);
 
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Opciones más permisivas para detección rápida y en cámaras de menor resolución
+                const options = new faceapi.TinyFaceDetectorOptions({ 
+                    inputSize: 160, 
+                    scoreThreshold: 0.3 
+                });
+                
+                const detection = await faceapi.detectSingleFace(video, options);
+                
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (resizedDetections) {
-                faceapi.draw.drawDetections(canvas, resizedDetections);
-                statusDiv.className = 'face-detection-status success';
-                statusDiv.textContent = '✅ Rostro humano detectado. ¡Listo para capturar!';
-                captureBtn.disabled = false;
-                captureBtn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Capturar Selfie!';
-                captureBtn.style.background = '#00ff00';
-                captureBtn.style.color = '#000';
-            } else {
-                statusDiv.className = 'face-detection-status detecting';
-                statusDiv.textContent = '🔍 Buscando rostro... Centra tu cara en el cuadro.';
-                captureBtn.disabled = true;
-                captureBtn.innerHTML = '<i class="fas fa-camera"></i> Esperando rostro...';
-                captureBtn.style.background = '';
-                captureBtn.style.color = '';
+                if (detection) {
+                    const resizedDetections = faceapi.resizeResults(detection, displaySize);
+                    faceapi.draw.drawDetections(canvas, resizedDetections);
+                    
+                    statusDiv.className = 'face-detection-status success';
+                    statusDiv.textContent = '✅ Rostro humano detectado. ¡Listo para capturar!';
+                    captureBtn.disabled = false;
+                    captureBtn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Capturar Selfie!';
+                    captureBtn.style.background = '#00ff00';
+                    captureBtn.style.color = '#000';
+                } else {
+                    statusDiv.className = 'face-detection-status detecting';
+                    statusDiv.textContent = '🔍 Buscando rostro... Centra tu cara en el cuadro.';
+                    captureBtn.disabled = true;
+                    captureBtn.innerHTML = '<i class="fas fa-camera"></i> Esperando rostro...';
+                    captureBtn.style.background = '';
+                    captureBtn.style.color = '';
+                }
+            } catch (err) {
+                console.error('⚠️ Error en detección facial:', err);
             }
 
             trackingAnimationId = requestAnimationFrame(detect);
