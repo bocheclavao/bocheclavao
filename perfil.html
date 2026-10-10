@@ -93,6 +93,35 @@
             .select-with-flag { flex-direction: column; }
             .select-with-flag select { flex: 1; }
         }
+        /* 🎂 Mensajes de validación de edad */
+.validation-message {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: none;
+    animation: slideDown 0.3s ease;
+}
+
+.validation-message.error {
+    display: block;
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid #ff4444;
+    color: #ff4444;
+}
+
+.validation-message.success {
+    display: block;
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid #00ff00;
+    color: #00ff00;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
     </style>
 </head>
 <body>
@@ -138,10 +167,11 @@
                             <input type="tel" id="telefono" placeholder="300 123 4567" required>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Fecha de nacimiento <span class="required-asterisk">*</span></label>
-                        <input type="date" id="fechaNacimiento" required>
-                    </div>
+                   <div class="form-group">
+    <label>Fecha de nacimiento <span class="required-asterisk">*</span></label>
+    <input type="date" id="fechaNacimiento" required>
+    <div id="edadValidationMsg" class="validation-message"></div>
+</div>
                     <div class="form-group">
                         <label>Nacionalidad <span class="required-asterisk">*</span></label>
                         <select id="nacionalidad" required></select>
