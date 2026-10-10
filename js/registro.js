@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 showMessage('✅ ¡Cuenta verificada exitosamente! Redirigiendo...', 'success');
-                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
                 
             } catch (err) {
                 showMessage('Error inesperado: ' + err.message, 'error');
