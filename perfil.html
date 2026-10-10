@@ -6,7 +6,7 @@
     <title>Boche Clava'o - Mi Perfil y KYC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Montserrat', sans-serif; background: #000000; min-height: 100vh; color: #ffffff; display: flex; flex-direction: column; }
@@ -29,11 +29,14 @@
         .kyc-status.pending { background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; }
         .kyc-status.verified { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
         .kyc-status.rejected { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff4444; color: #ff4444; }
+        .kyc-status.reviewing { background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
         .form-section { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 30px; margin-bottom: 20px; }
         .form-section h2 { font-size: 1.3rem; font-weight: 800; color: #FFD700; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .form-group { margin-bottom: 18px; }
         .form-group label { display: block; margin-bottom: 8px; color: #cccccc; font-size: 0.9rem; font-weight: 600; }
+        .required-asterisk { color: #ff4444; margin-left: 4px; }
         .form-group input, .form-group select { width: 100%; padding: 12px 16px; background: #111; border: 1px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem; font-family: 'Montserrat', sans-serif; transition: all 0.3s ease; }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; background: #1a1a1a; }
         
@@ -42,17 +45,16 @@
         .select-with-flag input { flex: 1; }
 
         .camera-container { position: relative; width: 100%; max-width: 400px; margin: 0 auto; }
-        .camera-preview { width: 100%; border-radius: 8px; border: 2px solid #333; background: #000; }
         .camera-controls { display: flex; gap: 10px; margin-top: 15px; justify-content: center; flex-wrap: wrap; }
         .btn-camera { padding: 12px 20px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 8px; }
         .btn-camera.primary { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
         .btn-camera.secondary { background: #333; color: #fff; }
         .btn-camera:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
-        .btn-camera:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-camera:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: grayscale(100%); }
         .image-preview { margin-top: 15px; text-align: center; }
         .image-preview img { max-width: 100%; border-radius: 8px; border: 2px solid #FFD700; }
         
-        .face-detection-status { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 0.85rem; display: none; text-align: center; }
+        .face-detection-status { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 0.85rem; display: none; text-align: center; font-weight: 600; }
         .face-detection-status.detecting { display: block; background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; }
         .face-detection-status.success { display: block; background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
         .face-detection-status.error { display: block; background: rgba(255, 0, 0, 0.1); border: 1px solid #ff4444; color: #ff4444; }
@@ -70,38 +72,20 @@
         .modal.show { display: flex; }
         .modal-content { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 20px; max-width: 500px; width: 100%; text-align: center; }
         .modal-title { font-size: 1.2rem; font-weight: 800; color: #FFD700; margin-bottom: 15px; }
+        
+        .video-wrapper { position: relative; display: inline-block; width: 100%; max-width: 400px; }
+        .video-wrapper video { width: 100%; border-radius: 8px; border: 2px solid #333; }
+        .video-wrapper canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px; pointer-events: none; }
+
         .camera-error { color: #ff4444; font-size: 0.9rem; margin-top: 10px; display: none; }
-.kyc-status.reviewing {
-    background: rgba(255, 165, 0, 0.1);
-    border: 1px solid #FFA500;
-    color: #FFA500;
-    animation: pulse 2s infinite;
-}
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-.form-section[style*="opacity: 0.5"] {
-    position: relative;
-}
-
-.form-section[style*="opacity: 0.5"]::after {
-    content: '🔒 Bloqueado - En Revisión';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: #FFD700;
-    padding: 15px 30px;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 1.1rem;
-    border: 2px solid #FFD700;
-    z-index: 10;
-}
+        .form-section[style*="opacity: 0.5"] { position: relative; }
+        .form-section[style*="opacity: 0.5"]::after {
+            content: '🔒 Bloqueado - En Revisión';
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9); color: #FFD700; padding: 15px 30px;
+            border-radius: 8px; font-weight: 700; font-size: 1.1rem; border: 2px solid #FFD700; z-index: 10;
+        }
         @media (max-width: 768px) {
             .navbar { flex-direction: column; gap: 15px; }
             .profile-name { font-size: 1.5rem; }
@@ -122,7 +106,7 @@
 
     <div class="main-content">
         <div id="loadingState" class="loading-container">
-            <i class="fas fa-circle-notch fa-spin"></i> Cargando perfil...
+            <i class="fas fa-circle-notch fa-spin"></i> Cargando perfil e IA...
         </div>
 
         <div id="contentState" style="display: none;">
@@ -144,22 +128,22 @@
                 <div class="form-section">
                     <h2><i class="fas fa-user"></i> Información Personal</h2>
                     <div class="form-group">
-                        <label>Nombre completo *</label>
+                        <label>Nombre completo <span class="required-asterisk">*</span></label>
                         <input type="text" id="nombre" required>
                     </div>
                     <div class="form-group">
-                        <label>Teléfono *</label>
+                        <label>Teléfono <span class="required-asterisk">*</span></label>
                         <div class="select-with-flag">
                             <select id="phoneCountry" required></select>
                             <input type="tel" id="telefono" placeholder="300 123 4567" required>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Fecha de nacimiento *</label>
+                        <label>Fecha de nacimiento <span class="required-asterisk">*</span></label>
                         <input type="date" id="fechaNacimiento" required>
                     </div>
                     <div class="form-group">
-                        <label>Nacionalidad *</label>
+                        <label>Nacionalidad <span class="required-asterisk">*</span></label>
                         <select id="nacionalidad" required></select>
                     </div>
                 </div>
@@ -168,15 +152,19 @@
                 <div class="form-section">
                     <h2><i class="fas fa-map-marker-alt"></i> Dirección</h2>
                     <div class="form-group">
-                        <label>Dirección completa *</label>
+                        <label>Dirección completa <span class="required-asterisk">*</span></label>
                         <input type="text" id="direccion" required>
                     </div>
                     <div class="form-group">
-                        <label>Ciudad *</label>
+                        <label>Ciudad <span class="required-asterisk">*</span></label>
                         <input type="text" id="ciudad" required>
                     </div>
                     <div class="form-group">
-                        <label>País *</label>
+                        <label>Estado o Provincia <span class="required-asterisk">*</span></label>
+                        <input type="text" id="estadoProvincia" required>
+                    </div>
+                    <div class="form-group">
+                        <label>País <span class="required-asterisk">*</span></label>
                         <select id="pais" required></select>
                     </div>
                     <div class="form-group">
@@ -189,7 +177,7 @@
                 <div class="form-section">
                     <h2><i class="fas fa-shield-alt"></i> Verificación KYC con IA</h2>
                     <div class="form-group">
-                        <label>Tipo de documento *</label>
+                        <label>Tipo de documento <span class="required-asterisk">*</span></label>
                         <select id="tipoDocumento" required>
                             <option value="">Selecciona...</option>
                             <option value="cedula">Cédula de identidad</option>
@@ -198,49 +186,40 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Número de documento *</label>
+                        <label>Número de documento <span class="required-asterisk">*</span></label>
                         <input type="text" id="numeroDocumento" required>
                     </div>
 
-                    <!-- Documento Frontal -->
                     <div class="form-group">
-                        <label>📸 Foto del documento (Frente) *</label>
+                        <label>📸 Foto del documento (Frente) <span class="required-asterisk">*</span></label>
                         <div class="camera-container">
-                            <video id="docFrontVideo" class="camera-preview" autoplay playsinline style="display: none;"></video>
                             <div id="docFrontPreview" class="image-preview"></div>
                         </div>
                         <div class="camera-controls">
                             <button type="button" class="btn-camera secondary" onclick="openCamera('docFront')"><i class="fas fa-camera"></i> Abrir cámara</button>
-                            <button type="button" class="btn-camera primary" onclick="takePhoto('docFront')" id="btnDocFront" disabled><i class="fas fa-check"></i> Usar esta foto</button>
                         </div>
                         <input type="hidden" id="docFrontalUrl">
                     </div>
 
-                    <!-- Documento Trasero -->
                     <div class="form-group">
                         <label>📸 Foto del documento (Reverso)</label>
                         <div class="camera-container">
-                            <video id="docBackVideo" class="camera-preview" autoplay playsinline style="display: none;"></video>
                             <div id="docBackPreview" class="image-preview"></div>
                         </div>
                         <div class="camera-controls">
                             <button type="button" class="btn-camera secondary" onclick="openCamera('docBack')"><i class="fas fa-camera"></i> Abrir cámara</button>
-                            <button type="button" class="btn-camera primary" onclick="takePhoto('docBack')" id="btnDocBack" disabled><i class="fas fa-check"></i> Usar esta foto</button>
                         </div>
                         <input type="hidden" id="docTraseroUrl">
                     </div>
 
-                    <!-- Selfie con IA -->
                     <div class="form-group">
-                        <label>🤳 Selfie con detección facial (IA) *</label>
-                        <div id="faceDetectionStatus" class="face-detection-status"></div>
+                        <label>🤳 Selfie con rastreo facial en tiempo real (IA) <span class="required-asterisk">*</span></label>
+                        <div id="faceDetectionStatus" class="face-detection-status">Esperando apertura de cámara...</div>
                         <div class="camera-container">
-                            <video id="selfieVideo" class="camera-preview" autoplay playsinline style="display: none;"></video>
                             <div id="selfiePreview" class="image-preview"></div>
                         </div>
                         <div class="camera-controls">
                             <button type="button" class="btn-camera secondary" onclick="openCamera('selfie')"><i class="fas fa-camera"></i> Abrir cámara</button>
-                            <button type="button" class="btn-camera primary" onclick="takePhoto('selfie')" id="btnSelfie" disabled><i class="fas fa-check"></i> Usar esta selfie</button>
                         </div>
                         <input type="hidden" id="selfieUrl">
                     </div>
@@ -255,16 +234,20 @@
         </div>
     </div>
 
-    <!-- Modal para cámara -->
+    <!-- Modal para cámara con Canvas superpuesto para rastreo -->
     <div class="modal" id="cameraModal">
         <div class="modal-content">
             <h3 class="modal-title" id="modalTitle">Cámara</h3>
-            <video id="modalVideo" class="camera-preview" autoplay playsinline></video>
-            <canvas id="modalCanvas" style="display: none;"></canvas>
-            <p class="camera-error" id="cameraError">⚠️ No se detectó una cámara. Verifica los permisos en tu navegador o usa un dispositivo con cámara.</p>
+            <div class="video-wrapper">
+                <video id="modalVideo" autoplay playsinline muted></video>
+                <canvas id="faceCanvas"></canvas>
+            </div>
+            <p class="camera-error" id="cameraError">⚠️ No se detectó una cámara. Verifica los permisos.</p>
             <div class="camera-controls">
                 <button type="button" class="btn-camera secondary" onclick="closeCamera()"><i class="fas fa-times"></i> Cancelar</button>
-                <button type="button" class="btn-camera primary" onclick="captureFromModal()"><i class="fas fa-camera"></i> Capturar</button>
+                <button type="button" class="btn-camera primary" id="modalCaptureBtn" onclick="captureFromModal()" disabled>
+                    <i class="fas fa-camera"></i> Esperando rostro...
+                </button>
             </div>
         </div>
     </div>
