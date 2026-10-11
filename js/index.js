@@ -55,14 +55,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-       // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (CORREGIDO)
+    // ============================================
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (LÓGICA CORREGIDA)
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Forzamos minúsculas para evitar errores de coincidencia
+            // Normalizar email a minúsculas SIEMPRE
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
@@ -76,20 +76,31 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // 1️⃣ VERIFICAR SI EL CORREO EXISTE EN LA BASE DE DATOS
-                const { data: perfilExiste, error: perfilError } = await db
-                    .from('perfiles')
-                    .select('id')
-                    .eq('email', email)
-                    .maybeSingle();
-
-                if (!perfilExiste) {
-                    showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
-                    resetButton();
-                    return; // Detenemos la ejecución aquí
+                // ==========================================
+                // PASO 1: ¿EL CORREO EXISTE EN EL SISTEMA?
+                // ==========================================
+                let correoExiste = false;
+                try {
+                    const { data: existe, error: existeError } = await db.rpc('check_email_exists', { 
+                        p_email: email 
+                    });
+                    if (!existeError) {
+                        correoExiste = existe === true;
+                    }
+                } catch (err) {
+                    console.warn('No se pudo verificar existencia del correo:', err.message);
                 }
 
-                // 2️⃣ VERIFICAR SI YA ESTÁ BLOQUEADO ANTES DE INTENTAR
+                // Si el correo NO existe → mensaje específico SIN contar intento
+                if (!correoExiste) {
+                    showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
+                    resetButton();
+                    return;
+                }
+
+                // ==========================================
+                // PASO 2: ¿ESTÁ SUSPENDIDO? (ANTES de intentar login)
+                // ==========================================
                 const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
                     p_email: email, 
                     p_success: false 
@@ -97,42 +108,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (!preError && preCheck && preCheck.allowed === false) {
                     const hasta = preCheck.blocked_until 
-                        ? new Date(preCheck.blocked_until).toLocaleString('es-ES') 
+                        ? new Date(preCheck.blocked_until).toLocaleString('es-ES', {
+                            day: '2-digit', month: '2-digit', year: 'numeric', 
+                            hour: '2-digit', minute: '2-digit'
+                          }) 
                         : 'varias horas';
                     showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     resetButton();
                     return;
                 }
 
-                // 3️⃣ INTENTAR LOGIN CON SUPABASE
+                // ==========================================
+                // PASO 3: INTENTAR LOGIN CON SUPABASE
+                // ==========================================
                 const { data, error: authError } = await db.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
                 if (authError) {
-                    // 4️⃣ REGISTRAR EL INTENTO FALLIDO Y OBTENER EL CONTEO ACTUALIZADO
+                    // ==========================================
+                    // PASO 4: CONTRASEÑA INCORRECTA → REGISTRAR INTENTO
+                    // ==========================================
                     const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
                         p_email: email, 
                         p_success: false 
                     });
                     
                     if (rpcError) {
-                        console.error('Error al registrar intento en RPC:', rpcError);
+                        console.error('Error al registrar intento:', rpcError);
                     }
 
-                    // 5️⃣ MOSTRAR MENSAJE PRECISO SEGÚN EL ESTADO
+                    // Verificar si quedó suspendido DESPUÉS de este intento
                     if (attemptData && attemptData.allowed === false) {
                         const hasta = attemptData.blocked_until 
-                            ? new Date(attemptData.blocked_until).toLocaleString('es-ES') 
+                            ? new Date(attemptData.blocked_until).toLocaleString('es-ES', {
+                                day: '2-digit', month: '2-digit', year: 'numeric', 
+                                hour: '2-digit', minute: '2-digit'
+                              }) 
                             : 'varias horas';
                         showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     } else {
-                        // Usamos el valor real de la BD. Si es null, asumimos 1.
                         const intentos = (attemptData && attemptData.attempts) ? attemptData.attempts : 1;
                         const restantes = Math.max(0, 5 - intentos);
-                        
-                        // Como ya sabemos que el correo SÍ existe (paso 1), el error es solo la contraseña
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
                     
@@ -140,14 +158,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // 6️⃣ LOGIN EXITOSO: RESETEAR CONTADOR DE INTENTOS
+                // ==========================================
+                // PASO 5: LOGIN EXITOSO → RESETEAR CONTADOR
+                // ==========================================
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_success: true });
                 } catch (rpcErr) {
                     console.warn('No se pudo resetear contador:', rpcErr.message);
                 }
 
-                // 7️⃣ VERIFICAR EMAIL CONFIRMADO
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
                     showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
@@ -155,7 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // 8️⃣ REGISTRAR SESIÓN ACTIVA
                 if (data.user) {
                     try {
                         const sessionToken = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -171,7 +189,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
 
-                // 9️⃣ CERRAR OTRAS SESIONES
                 try { await db.auth.signOut({ scope: 'others' }); } catch (e) {}
                 
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
@@ -328,7 +345,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (checkData && checkData.allowed === false) {
                     await db.auth.signOut();
                     const hasta = checkData.blocked_until 
-                        ? new Date(checkData.blocked_until).toLocaleString('es-ES') 
+                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', {
+                            day: '2-digit', month: '2-digit', year: 'numeric', 
+                            hour: '2-digit', minute: '2-digit'
+                          }) 
                         : 'varias horas';
                     
                     sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida hasta: ${hasta}.`);
@@ -358,4 +378,4 @@ document.addEventListener('DOMContentLoaded', function() {
         sessionStorage.removeItem('auth_message');
         sessionStorage.removeItem('auth_type');
     }
-}); // <--- ¡ESTA LÍNEA ES OBLIGATORIA! CIERRA EL DOMContentLoaded
+});
