@@ -87,11 +87,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-      async function verificarSiEsAdmin(userId, userEmail) {
+    async function verificarSiEsAdmin(userId, userEmail) {
         try {
             console.log('🔍 Verificando si es admin:', userEmail);
-            
-            // Usamos .maybeSingle() en lugar de .single() para evitar errores 406
             const { data, error } = await db
                 .from('admin_roles')
                 .select('es_admin, activo')
@@ -101,10 +99,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .maybeSingle(); 
 
             if (error || !data) {
-                console.log('❌ No es admin o no está en admin_roles (o la tabla no existe aún)');
+                console.log('❌ No es admin o no está en admin_roles');
                 return false;
             }
-
             console.log('✅ Es administrador verificado');
             return true;
         } catch (err) {
@@ -112,9 +109,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             return false;
         }
     }
+
     function agregarBotonAdmin() {
         if (!dropdownMenu || document.getElementById('adminMenuItem')) return;
-
         const adminItem = document.createElement('button');
         adminItem.id = 'adminMenuItem';
         adminItem.className = 'dropdown-item';
@@ -143,13 +140,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     window.irAPerfil = function() { window.location.href = 'perfil.html'; };
-    window.irABilletera = function() { alert('La billetera estará disponible próximamente'); };
+    window.irABilletera = function() { window.location.href = 'billetera.html'; };
     window.irAApuestas = function() { alert('Mis apuestas estará disponible próximamente'); };
     window.irASoporte = function() { alert('Soporte estará disponible próximamente'); };
     window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
-    window.irADepositar = function() { alert('El sistema de depósitos estará disponible próximamente'); };
 
-         async function cargarStreamEnVivo() {
+    async function cargarStreamEnVivo() {
         console.log('🔄 Cargando stream en vivo...');
         try {
             const { data: streamConfig, error } = await db
@@ -168,7 +164,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             const liveDescription = document.getElementById('liveDescription');
 
             if (error || !streamConfig || !streamConfig.activo) {
-                console.log('⚠️ No hay stream activo');
                 liveSection.classList.remove('active');
                 videoPlaceholder.style.display = 'flex';
                 liveVideo.style.display = 'none';
@@ -178,8 +173,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            console.log('✅ Stream activo encontrado:', streamConfig);
-
             liveSection.classList.add('active');
             videoPlaceholder.style.display = 'none';
             liveInfo.style.display = 'block';
@@ -188,64 +181,49 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             liveBadgeContainer.innerHTML = `
                 <div class="live-badge">
-                    <div class="live-dot"></div>
-                    EN VIVO
+                    <div class="live-dot"></div> EN VIVO
                 </div>
                 ${streamConfig.espectadores ? `<div class="live-viewers"><i class="fas fa-eye"></i> ${streamConfig.espectadores} espectadores</div>` : ''}
             `;
 
-            // Ocultar ambos primero
             liveVideo.style.display = 'none';
             liveIframe.style.display = 'none';
 
-            // 🛡️ MEJORA: Detectar automáticamente si es YouTube aunque hayan seleccionado HLS por error
             if (streamConfig.url_stream.includes('youtube.com') || streamConfig.url_stream.includes('youtu.be')) {
-                console.log('📺 Detectado enlace de YouTube, forzando modo Embed automáticamente');
                 liveIframe.style.display = 'block';
-                
                 let embedUrl = streamConfig.url_stream;
-                // Convertir URL de watch/live a embed si es necesario
                 if (embedUrl.includes('/live/') || embedUrl.includes('/watch?v=')) {
                     const videoId = embedUrl.split('/live/')[1]?.split('?')[0] || embedUrl.split('v=')[1]?.split('&')[0];
-                    if (videoId) {
-                        embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-                    }
+                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
                 }
                 liveIframe.src = embedUrl;
-                
             } else if (streamConfig.tipo_stream === 'youtube' && streamConfig.url_stream) {
-                console.log('📺 Cargando YouTube (configurado):', streamConfig.url_stream);
                 liveIframe.style.display = 'block';
                 liveIframe.src = streamConfig.url_stream;
-                
             } else if (streamConfig.tipo_stream === 'twitch' && streamConfig.url_stream) {
-                console.log('🎮 Cargando Twitch:', streamConfig.url_stream);
                 liveIframe.style.display = 'block';
                 liveIframe.src = streamConfig.url_stream;
-                
             } else if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
-                console.log('📡 Cargando HLS:', streamConfig.url_stream);
                 liveVideo.style.display = 'block';
-                
                 if (typeof Hls !== 'undefined' && Hls.isSupported()) {
                     const hls = new Hls();
                     hls.loadSource(streamConfig.url_stream);
                     hls.attachMedia(liveVideo);
                     hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado por el navegador:', e));
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e));
                     });
                 } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
                     liveVideo.src = streamConfig.url_stream;
                     liveVideo.addEventListener('loadedmetadata', function() {
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado por el navegador:', e));
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e));
                     });
                 }
             }
-
         } catch (err) {
             console.error('❌ Error cargando stream en vivo:', err);
         }
     }
+
     function actualizarBannerKYC(estado) {
         if (estado === 'verificado') {
             kycBanner.style.display = 'none';
@@ -266,35 +244,30 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.opacity = '1';
             kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
-            
-        } else if (estado === 'pendiente') {
+        } else if (estado === 'pendiente' || estado === 'revision') {
             kycBanner.classList.remove('verified', 'rejected');
             kycBanner.style.borderColor = '#FFA500';
             kycTitle.textContent = '⏳ Verificación KYC en Revisión';
-            kycMessage.textContent = 'Tus documentos han sido enviados y están siendo revisados por nuestro equipo. Recibirás una notificación cuando sean aprobados. Este proceso puede tomar hasta 24 horas.';
-            kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión - Espere Aprobación';
+            kycMessage.textContent = 'Tus documentos han sido enviados y están siendo revisados. Recibirás una notificación cuando sean aprobados.';
+            kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión';
             kycBtn.style.pointerEvents = 'none';
             kycBtn.style.opacity = '0.6';
             kycBtn.style.background = '#666';
             kycBtn.onclick = null;
-            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
-            
         } else if (estado === 'rechazado') {
             kycBanner.classList.add('rejected');
             kycBanner.classList.remove('verified');
             kycTitle.textContent = '❌ Verificación KYC Rechazada';
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla para ser verificado.';
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, revisa la información y vuelve a enviarla.';
             kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar Verificación';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
             kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            
             cardBochador.classList.add('disabled');
             cardPatrocinador.classList.add('disabled');
         }
@@ -355,7 +328,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.location.href = 'perfil.html';
             return;
         }
-        
         if (rol === 'bochador') {
             window.location.href = 'dashboard-bochador.html';
         } else if (rol === 'patrocinador') {
@@ -365,7 +337,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
-        
         if (!session || error) {
             window.location.href = 'login.html';
             return;
@@ -373,31 +344,21 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         try {
             await asegurarSesionUnica();
-
             const { data: { user }, error: userError } = await db.auth.getUser();
-            
-            if (userError || !user) {
-                throw new Error('No se pudo obtener la información del usuario');
-            }
+            if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
 
             const perfil = await cargarOCrearPerfil(user);
             estadoKyc = perfil?.estado_kyc || null;
             mostrarDatos(user, perfil);
-            
-            // 🎥 Cargar stream en vivo
             await cargarStreamEnVivo();
             
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
-
         } catch (err) {
             console.error('Error al obtener usuario:', err);
             loadingState.style.display = 'none';
             errorState.style.display = 'block';
-            
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 3000);
+            setTimeout(() => { window.location.href = 'login.html'; }, 3000);
         }
     }
 
@@ -407,7 +368,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function cerrarSesion() {
     const db = window.supabaseClient;
     if (!db) return;
-
     try {
         const { error } = await db.auth.signOut({ scope: 'global' });
         if (error) throw error;
