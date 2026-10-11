@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         showMessage('Enviando enlace de recuperación...', 'info');
         const { error } = await db.auth.resetPasswordForEmail(email, {
-            redirectTo: construirURL('/dashboard.html')
+            redirectTo: construirURL('/recuperar-contrasena.html') 
         });
 
         if (error) {
