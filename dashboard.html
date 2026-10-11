@@ -492,10 +492,84 @@
             transform: translateY(-3px); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
         }
 
-        /* Responsive */
+         /* 📱 RESPONSIVE PARA MÓVILES */
         @media (max-width: 768px) {
-            .navbar { flex-direction: column; align-items: stretch; }
-            .navbar-brand, .balance-container, .user-actions { justify-content: center; }
+            .navbar { 
+                flex-direction: column; 
+                align-items: stretch; 
+                padding: 12px 15px;
+                gap: 12px;
+            }
+            .navbar-brand { justify-content: center; }
+            
+            .balance-container { 
+                justify-content: center; 
+                flex-wrap: wrap;
+            }
+            
+            /* 🔔 ALINEACIÓN DE ACCIONES EN MÓVIL */
+            .user-actions { 
+                justify-content: center; 
+                align-items: center;
+                gap: 10px;
+                position: relative;
+                width: 100%;
+            }
+            
+            /* Campana más grande y fácil de tocar en móvil */
+            .notification-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.2rem;
+            }
+            
+            /* Badge más visible */
+            .notification-badge {
+                top: -4px;
+                right: -4px;
+                font-size: 0.65rem;
+                min-width: 18px;
+                height: 18px;
+            }
+            
+            /*  DROPDOWN DE NOTIFICACIONES ADAPTADO A MÓVIL */
+            .notification-dropdown {
+                position: fixed; /* Fijo para que no se salga */
+                top: auto;
+                bottom: 0; /* Aparece desde abajo como un panel */
+                left: 0;
+                right: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                max-height: 70vh; /* 70% de la altura de la pantalla */
+                border-radius: 20px 20px 0 0; /* Bordes redondeados arriba */
+                z-index: 1000;
+                animation: slideUpMobile 0.3s ease;
+            }
+            
+            @keyframes slideUpMobile {
+                from { transform: translateY(100%); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            
+            .notification-dropdown.show { 
+                display: block; 
+            }
+            
+            /* Menú de usuario también adaptado */
+            .dropdown-menu {
+                position: fixed;
+                top: auto;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100% !important;
+                min-width: 100% !important;
+                border-radius: 20px 20px 0 0;
+                z-index: 1000;
+                animation: slideUpMobile 0.3s ease;
+            }
+            
             .welcome-card { flex-direction: column; text-align: center; }
             .user-info h1 { font-size: 1.5rem; }
             .roles-grid { grid-template-columns: 1fr; gap: 20px; }
@@ -505,7 +579,33 @@
             .kyc-banner { flex-direction: column; text-align: center; }
             .info-cards { grid-template-columns: 1fr; }
             .live-title { font-size: 1.2rem; }
-            .notification-dropdown { width: 300px; right: -50px; }
+            
+            /* Ajustar el botón de depositar */
+            .btn-depositar {
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+            
+            /* Ajustar el logo en móvil */
+            .navbar-logo { max-width: 60px; }
+        }
+        
+        /* 📱 Pantallas muy pequeñas */
+        @media (max-width: 480px) {
+            .balance-display {
+                padding: 6px 10px;
+                gap: 8px;
+            }
+            .balance-icon-img {
+                width: 28px;
+                height: 28px;
+            }
+            .balance-amount {
+                font-size: 0.95rem;
+            }
+            .balance-label {
+                font-size: 0.65rem;
+            }
         }
     </style>
 </head>
@@ -741,7 +841,8 @@
             </div>
         </div>
     </footer>
-
+    <!-- Overlay oscuro para móvil cuando se abren dropdowns -->
+    <div id="mobileOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 999;" onclick="cerrarDropdownsMovil()"></div>
     <!-- 📦 SCRIPTS EXTERNOS (ordenados por dependencia) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
