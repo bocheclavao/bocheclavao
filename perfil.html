@@ -20,8 +20,22 @@
         .loading-container { text-align: center; margin-top: 50px; color: #FFD700; font-size: 1.2rem; }
         
         .profile-header { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); border: 1px solid #222; border-radius: 12px; padding: 30px; margin-bottom: 30px; text-align: center; }
-        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #FFD700; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 800; color: #000; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); overflow: hidden; }
+        
+        /* ========== AVATAR EDITABLE ========== */
+        .avatar-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 15px; cursor: pointer; }
+        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #FFD700; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 800; color: #000; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); overflow: hidden; transition: all 0.3s ease; }
         .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-wrapper:hover .profile-avatar { border-color: #fff; box-shadow: 0 0 25px rgba(255, 215, 0, 0.5); }
+        .avatar-edit-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 38px;
+            background: rgba(0, 0, 0, 0.75); color: #FFD700;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: 0.75rem; font-weight: 700; border-radius: 0 0 60px 60px;
+            opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+        }
+        .avatar-wrapper:hover .avatar-edit-overlay { opacity: 1; }
+        .avatar-edit-hint { font-size: 0.75rem; color: #666; margin-bottom: 15px; }
+        
         .profile-name { font-size: 1.8rem; font-weight: 800; margin-bottom: 10px; }
         .profile-id { display: inline-block; background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: #FFD700; font-weight: 600; margin-bottom: 10px; }
         .profile-email { color: #999; font-size: 0.95rem; }
@@ -32,13 +46,24 @@
         .kyc-status.reviewing { background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-        .form-section { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 30px; margin-bottom: 20px; }
+        .form-section { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 30px; margin-bottom: 20px; position: relative; }
         .form-section h2 { font-size: 1.3rem; font-weight: 800; color: #FFD700; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .form-group { margin-bottom: 18px; }
         .form-group label { display: block; margin-bottom: 8px; color: #cccccc; font-size: 0.9rem; font-weight: 600; }
         .required-asterisk { color: #ff4444; margin-left: 4px; }
         .form-group input, .form-group select { width: 100%; padding: 12px 16px; background: #111; border: 1px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem; font-family: 'Montserrat', sans-serif; transition: all 0.3s ease; }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; background: #1a1a1a; }
+        .form-group input:disabled, .form-group select:disabled { background: #0a0a0a; color: #666; cursor: not-allowed; border-color: #222; opacity: 0.7; }
+        
+        .locked-hint { display: none; align-items: center; gap: 6px; font-size: 0.75rem; color: #FFA500; margin-top: 6px; }
+        .locked-hint.show { display: flex; }
+        
+        /* ========== ESTADO DE DOCUMENTOS (check ✓/✗) ========== */
+        .doc-status { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; }
+        .doc-status.ok { background: rgba(0, 255, 0, 0.08); border: 1px solid #00ff00; color: #00ff00; }
+        .doc-status.missing { background: rgba(255, 68, 68, 0.08); border: 1px solid #ff4444; color: #ff4444; }
+        .doc-status.optional { background: rgba(128, 128, 128, 0.08); border: 1px solid #555; color: #888; }
+        .doc-status.pending-save { background: rgba(255, 215, 0, 0.08); border: 1px solid #FFD700; color: #FFD700; }
         
         .select-with-flag { display: flex; gap: 10px; }
         .select-with-flag select { flex: 0 0 130px; padding: 12px; }
@@ -51,8 +76,6 @@
         .btn-camera.secondary { background: #333; color: #fff; }
         .btn-camera:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
         .btn-camera:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: grayscale(100%); }
-        .image-preview { margin-top: 15px; text-align: center; }
-        .image-preview img { max-width: 100%; border-radius: 8px; border: 2px solid #FFD700; }
         
         .face-detection-status { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 0.85rem; display: none; text-align: center; font-weight: 600; }
         .face-detection-status.detecting { display: block; background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; }
@@ -62,6 +85,16 @@
         .btn-primary { width: 100%; padding: 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 800; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; font-family: 'Montserrat', sans-serif; margin-top: 20px; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4); }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-save-profile {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #00aaff 0%, #0088cc 100%);
+            color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 800;
+            cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+            font-family: 'Montserrat', sans-serif; margin-top: 15px; display: flex;
+            align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-save-profile:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0, 170, 255, 0.4); }
+        .btn-save-profile:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         .message { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-size: 0.9rem; font-weight: 600; }
         .message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
@@ -73,55 +106,44 @@
         .modal-content { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 20px; max-width: 500px; width: 100%; text-align: center; }
         .modal-title { font-size: 1.2rem; font-weight: 800; color: #FFD700; margin-bottom: 15px; }
         
+        .avatar-options { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .avatar-option-btn {
+            padding: 16px; border: 1px solid #333; border-radius: 10px; background: #111;
+            color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700;
+            cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center;
+            justify-content: center; gap: 12px;
+        }
+        .avatar-option-btn:hover { border-color: #FFD700; background: #1a1a1a; transform: translateY(-2px); }
+        .avatar-option-btn i { color: #FFD700; font-size: 1.3rem; }
+        .avatar-option-btn.cancel { border-color: #ff4444; color: #ff4444; }
+        .avatar-option-btn.cancel i { color: #ff4444; }
+        
         .video-wrapper { position: relative; display: inline-block; width: 100%; max-width: 400px; }
         .video-wrapper video { width: 100%; border-radius: 8px; border: 2px solid #333; }
         .video-wrapper canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px; pointer-events: none; }
 
         .camera-error { color: #ff4444; font-size: 0.9rem; margin-top: 10px; display: none; }
 
-        .form-section[style*="opacity: 0.5"] { position: relative; }
-        .form-section[style*="opacity: 0.5"]::after {
+        .form-section.locked-section::after {
             content: '🔒 Bloqueado - En Revisión';
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.9); color: #FFD700; padding: 15px 30px;
             border-radius: 8px; font-weight: 700; font-size: 1.1rem; border: 2px solid #FFD700; z-index: 10;
         }
+        
         @media (max-width: 768px) {
             .navbar { flex-direction: column; gap: 15px; }
             .profile-name { font-size: 1.5rem; }
             .form-section { padding: 20px; }
             .select-with-flag { flex-direction: column; }
             .select-with-flag select { flex: 1; }
+            .avatar-edit-overlay { opacity: 1; }
         }
-        /* 🎂 Mensajes de validación de edad */
-.validation-message {
-    margin-top: 8px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    display: none;
-    animation: slideDown 0.3s ease;
-}
-
-.validation-message.error {
-    display: block;
-    background: rgba(255, 0, 0, 0.1);
-    border: 1px solid #ff4444;
-    color: #ff4444;
-}
-
-.validation-message.success {
-    display: block;
-    background: rgba(0, 255, 0, 0.1);
-    border: 1px solid #00ff00;
-    color: #00ff00;
-}
-
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+        
+        .validation-message { margin-top: 8px; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; display: none; animation: slideDown 0.3s ease; }
+        .validation-message.error { display: block; background: rgba(255, 0, 0, 0.1); border: 1px solid #ff4444; color: #ff4444; }
+        .validation-message.success { display: block; background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -140,11 +162,20 @@
 
         <div id="contentState" style="display: none;">
             <div class="profile-header">
-                <div class="profile-avatar" id="profileAvatar">
-                    <span id="avatarInitial">?</span>
-                    <img id="avatarImage" src="" alt="Avatar" style="display: none;">
+                <!-- ========== AVATAR EDITABLE ========== -->
+                <div class="avatar-wrapper" id="avatarWrapper" title="Clic para cambiar tu foto de perfil">
+                    <div class="profile-avatar" id="profileAvatar">
+                        <span id="avatarInitial">?</span>
+                        <img id="avatarImage" src="" alt="Avatar" style="display: none;">
+                    </div>
+                    <div class="avatar-edit-overlay">
+                        <i class="fas fa-camera"></i> Cambiar
+                    </div>
                 </div>
-                <h1 class="profile-name" id="profileName">Usuario</h1>
+                <p class="avatar-edit-hint"><i class="fas fa-info-circle"></i> Toca tu foto para cambiarla</p>
+                
+                <!-- ========== APODO (editable) ========== -->
+                <h1 class="profile-name" id="profileApodo">Usuario</h1>
                 <div class="profile-id" id="profileId">ID: BC-00000000</div>
                 <p class="profile-email" id="profileEmail">email@ejemplo.com</p>
                 <div class="kyc-status pending" id="kycStatus">
@@ -152,13 +183,31 @@
                 </div>
             </div>
 
+            <!-- ========== SECCIÓN: EDITAR PERFIL (Avatar + Apodo) ========== -->
+            <div class="form-section" style="border-color: #00aaff;">
+                <h2><i class="fas fa-user-edit"></i> Editar Mi Perfil</h2>
+                <p style="color: #999; font-size: 0.85rem; margin-bottom: 15px;">
+                    <i class="fas fa-camera" style="color: #FFD700;"></i> Cambia tu foto tocando el avatar de arriba.
+                    <br><i class="fas fa-pen" style="color: #FFD700;"></i> Cambia tu apodo aquí abajo.
+                </p>
+                <div class="form-group">
+                    <label>Apodo / Nombre público</label>
+                    <input type="text" id="apodo" placeholder="Ej: ElClavao23" maxlength="30">
+                </div>
+                <button type="button" class="btn-save-profile" id="btnSaveProfile">
+                    <i class="fas fa-save"></i> Guardar Cambios de Perfil
+                </button>
+                <div id="profileMessage" class="message"></div>
+            </div>
+
             <form id="fullProfileForm">
                 <!-- Información Personal -->
-                <div class="form-section">
+                <div class="form-section" id="sectionPersonal">
                     <h2><i class="fas fa-user"></i> Información Personal</h2>
                     <div class="form-group">
                         <label>Nombre completo <span class="required-asterisk">*</span></label>
-                        <input type="text" id="nombre" required>
+                        <input type="text" id="nombre" disabled>
+                        <div class="locked-hint show"><i class="fas fa-lock"></i> Bloqueado - Validado por KYC</div>
                     </div>
                     <div class="form-group">
                         <label>Teléfono <span class="required-asterisk">*</span></label>
@@ -167,11 +216,11 @@
                             <input type="tel" id="telefono" placeholder="300 123 4567" required>
                         </div>
                     </div>
-                   <div class="form-group">
-    <label>Fecha de nacimiento <span class="required-asterisk">*</span></label>
-    <input type="date" id="fechaNacimiento" required>
-    <div id="edadValidationMsg" class="validation-message"></div>
-</div>
+                    <div class="form-group">
+                        <label>Fecha de nacimiento <span class="required-asterisk">*</span></label>
+                        <input type="date" id="fechaNacimiento" required>
+                        <div id="edadValidationMsg" class="validation-message"></div>
+                    </div>
                     <div class="form-group">
                         <label>Nacionalidad <span class="required-asterisk">*</span></label>
                         <select id="nacionalidad" required></select>
@@ -179,7 +228,7 @@
                 </div>
 
                 <!-- Dirección -->
-                <div class="form-section">
+                <div class="form-section" id="sectionDireccion">
                     <h2><i class="fas fa-map-marker-alt"></i> Dirección</h2>
                     <div class="form-group">
                         <label>Dirección completa <span class="required-asterisk">*</span></label>
@@ -204,7 +253,7 @@
                 </div>
 
                 <!-- Verificación KYC -->
-                <div class="form-section">
+                <div class="form-section" id="sectionKyc">
                     <h2><i class="fas fa-shield-alt"></i> Verificación KYC con IA</h2>
                     <div class="form-group">
                         <label>Tipo de documento <span class="required-asterisk">*</span></label>
@@ -220,36 +269,33 @@
                         <input type="text" id="numeroDocumento" required>
                     </div>
 
+                    <!-- Documento Frontal: solo check, sin imagen -->
                     <div class="form-group">
                         <label>📸 Foto del documento (Frente) <span class="required-asterisk">*</span></label>
-                        <div class="camera-container">
-                            <div id="docFrontPreview" class="image-preview"></div>
-                        </div>
+                        <div class="doc-status missing" id="docFrontStatus"><i class="fas fa-times-circle"></i> No cargada</div>
                         <div class="camera-controls">
-                            <button type="button" class="btn-camera secondary" onclick="openCamera('docFront')"><i class="fas fa-camera"></i> Abrir cámara</button>
+                            <button type="button" class="btn-camera secondary" data-camera-btn="docFront"><i class="fas fa-camera"></i> Tomar foto</button>
                         </div>
                         <input type="hidden" id="docFrontalUrl">
                     </div>
 
+                    <!-- Documento Reverso: solo check, sin imagen -->
                     <div class="form-group">
                         <label>📸 Foto del documento (Reverso)</label>
-                        <div class="camera-container">
-                            <div id="docBackPreview" class="image-preview"></div>
-                        </div>
+                        <div class="doc-status optional" id="docBackStatus"><i class="fas fa-minus-circle"></i> No cargada (opcional)</div>
                         <div class="camera-controls">
-                            <button type="button" class="btn-camera secondary" onclick="openCamera('docBack')"><i class="fas fa-camera"></i> Abrir cámara</button>
+                            <button type="button" class="btn-camera secondary" data-camera-btn="docBack"><i class="fas fa-camera"></i> Tomar foto</button>
                         </div>
                         <input type="hidden" id="docTraseroUrl">
                     </div>
 
+                    <!-- Selfie: solo check, sin imagen -->
                     <div class="form-group">
                         <label>🤳 Selfie con rastreo facial en tiempo real (IA) <span class="required-asterisk">*</span></label>
                         <div id="faceDetectionStatus" class="face-detection-status">Esperando apertura de cámara...</div>
-                        <div class="camera-container">
-                            <div id="selfiePreview" class="image-preview"></div>
-                        </div>
+                        <div class="doc-status missing" id="selfieStatus"><i class="fas fa-times-circle"></i> No cargada</div>
                         <div class="camera-controls">
-                            <button type="button" class="btn-camera secondary" onclick="openCamera('selfie')"><i class="fas fa-camera"></i> Abrir cámara</button>
+                            <button type="button" class="btn-camera secondary" data-camera-btn="selfie"><i class="fas fa-camera"></i> Tomar selfie</button>
                         </div>
                         <input type="hidden" id="selfieUrl">
                     </div>
@@ -264,7 +310,26 @@
         </div>
     </div>
 
-    <!-- Modal para cámara con Canvas superpuesto para rastreo -->
+    <!-- ========== MODAL: OPCIONES DE AVATAR ========== -->
+    <div class="modal" id="avatarOptionsModal">
+        <div class="modal-content" style="max-width: 360px;">
+            <h3 class="modal-title"><i class="fas fa-user-circle"></i> Cambiar Foto de Perfil</h3>
+            <div class="avatar-options">
+                <button type="button" class="avatar-option-btn" id="btnAvatarCamera">
+                    <i class="fas fa-camera"></i> Tomar foto
+                </button>
+                <button type="button" class="avatar-option-btn" id="btnAvatarGallery">
+                    <i class="fas fa-images"></i> Elegir de galería
+                </button>
+                <button type="button" class="avatar-option-btn cancel" id="btnAvatarCancel">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+    <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+
+    <!-- Modal para cámara -->
     <div class="modal" id="cameraModal">
         <div class="modal-content">
             <h3 class="modal-title" id="modalTitle">Cámara</h3>
@@ -274,9 +339,9 @@
             </div>
             <p class="camera-error" id="cameraError">⚠️ No se detectó una cámara. Verifica los permisos.</p>
             <div class="camera-controls">
-                <button type="button" class="btn-camera secondary" onclick="closeCamera()"><i class="fas fa-times"></i> Cancelar</button>
-                <button type="button" class="btn-camera primary" id="modalCaptureBtn" onclick="captureFromModal()" disabled>
-                    <i class="fas fa-camera"></i> Esperando rostro...
+                <button type="button" class="btn-camera secondary" id="btnCloseCamera"><i class="fas fa-times"></i> Cancelar</button>
+                <button type="button" class="btn-camera primary" id="modalCaptureBtn" disabled>
+                    <i class="fas fa-camera"></i> Esperando...
                 </button>
             </div>
         </div>
