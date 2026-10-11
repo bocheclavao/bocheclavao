@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     if (attemptData && attemptData.allowed === false) {
-                        showMessage('🚫 Cuenta suspendida por 12 horas por múltiples intentos fallidos.', 'error');
+                        showMessage('🚫 Cuenta suspendida por 12 horas.', 'error');
                     } else {
                         const intentos = attemptData ? attemptData.attempts : 1;
                         const restantes = 4 - intentos;
@@ -75,18 +75,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 await db.rpc('check_login_attempt', { p_email: email, p_success: true });
-                await db.auth.signOut({ scope: 'others' });
 
-                // 🚨 CLAVE: Emitir evento de Realtime para notificar a otros dispositivos
+                // ✅ REGISTRAR NUEVA SESIÓN ACTIVA (Esto invalida las anteriores)
                 if (data.user) {
-                    const channel = db.channel(`session_${data.user.id}`);
-                    await channel.send({
-                        type: 'broadcast',
-                        event: 'new_session',
-                        payload: { userId: data.user.id, timestamp: Date.now() }
+                    const sessionToken = Date.now().toString(36) + Math.random().toString(36).substr(2);
+                    
+                    // Insertar/actualizar sesión activa (upsert)
+                    await db.from('active_sessions').upsert({
+                        user_id: data.user.id,
+                        session_token: sessionToken,
+                        last_active: new Date().toISOString(),
+                        device_info: navigator.userAgent
                     });
-                    channel.unsubscribe();
+
+                    // Guardar token en localStorage para verificaciones futuras
+                    localStorage.setItem('session_token', sessionToken);
                 }
+
+                await db.auth.signOut({ scope: 'others' });
 
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
@@ -112,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = 'Ingresar';
     }
 
-    // 🌐 LOGIN CON GOOGLE
+    //  LOGIN CON GOOGLE
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
@@ -127,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (error) {
                 if (error.message.includes('already registered') || error.message.includes('already exists')) {
-                    showMessage('Este correo ya está registrado con otro método. Usa correo y contraseña.', 'error');
+                    showMessage('Este correo ya está registrado con otro método.', 'error');
                 } else {
                     showMessage('Error al iniciar sesión con Google: ' + error.message, 'error');
                 }
@@ -155,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Error: ' + error.message, 'error');
         } else {
             await db.rpc('check_login_attempt', { p_email: email, p_success: true });
-            showMessage('✅ Enlace de recuperación enviado. Revisa tu correo (y Spam).', 'success');
+            showMessage('✅ Enlace de recuperación enviado. Revisa tu correo.', 'success');
         }
     };
 
