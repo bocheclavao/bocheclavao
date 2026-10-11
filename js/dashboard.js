@@ -38,23 +38,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // 🕐 PERÍODO DE GRACIA: 5 segundos sin verificar después del login
     let gracePeriodUntil = Date.now() + 5000;
-    let lastLoginTime = Date.now();
     
     // 🛑 Banderas de control
     let sesionBloqueada = false;
     let mostrandoAlertaSesion = false;
+    let realtimeChannel = null;
 
-    // 🆔 ID DE DISPOSITIVO ESTABLE (no cambia con refresh de token)
-    function obtenerDeviceId() {
-        let deviceId = localStorage.getItem('bc_device_id');
-        if (!deviceId) {
-            deviceId = 'dev_' + Math.random().toString(36).substr(2, 10) + '_' + Date.now();
-            localStorage.setItem('bc_device_id', deviceId);
+    // 🆔 ID DE INSTANCIA (único por pestaña/dispositivo, NO cambia con refresh)
+    function obtenerInstanceId() {
+        let id = sessionStorage.getItem('bc_session_instance');
+        if (!id) {
+            id = 'inst_' + Math.random().toString(36).substr(2, 10) + '_' + Date.now();
+            sessionStorage.setItem('bc_session_instance', id);
         }
-        return deviceId;
+        return id;
     }
-    const DEVICE_ID = obtenerDeviceId();
-    console.log('🆔 Device ID:', DEVICE_ID);
+    const INSTANCE_ID = obtenerInstanceId();
+    console.log('🆔 Instance ID:', INSTANCE_ID);
 
     // ============================================
     // 🚀 1. MENÚS MÓVILES
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <i class="fas fa-shield-alt" style="color: #ff0000;"></i>
                 </div>
                 <h2 style="color: #ff0000; font-size: 1.4rem; margin-bottom: 15px; font-weight: 800; font-family: 'Montserrat', sans-serif;">⚠️ Sesión Duplicada Detectada</h2>
-                <p style="color: #cccccc; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; font-family: 'Montserrat', sans-serif;">Tu cuenta fue abierta en otro dispositivo más reciente. Por seguridad, esta sesión ha sido cerrada. La otra sesión permanece activa.</p>
+                <p style="color: #cccccc; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; font-family: 'Montserrat', sans-serif;">Tu cuenta fue abierta en otro dispositivo. Por seguridad, esta sesión ha sido cerrada inmediatamente.</p>
                 <button id="closeSessionBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;">
                     <i class="fas fa-check-circle"></i> Entendido, Ir al Inicio
                 </button>
@@ -105,57 +105,87 @@ document.addEventListener('DOMContentLoaded', async function() {
         `;
         
         document.body.appendChild(modal);
-        
-        // ✅ El botón SOLO redirige (la sesión YA fue cerrada al mostrar el modal)
         document.getElementById('closeSessionBtn').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
-        
         return modal;
     }
     const duplicateModal = crearModalSesionDuplicada();
 
+    // ✅ EXPULSA INMEDIATAMENTE + MUESTRA MODAL QUE ESPERA AL USUARIO
     function mostrarAlertaSesionDuplicada() {
+        if (sesionBloqueada) return; // Evitar doble llamada
         if (!duplicateModal) return;
-        if (duplicateModal.style.display === 'flex') return;
         
-        sesionBloqueada = true;
+        sesionBloqueada = true;          // 🛑 Bloquear TODO inmediatamente
         mostrandoAlertaSesion = true;
+        
+        // 🛑 Detener monitoreo
+        detenerRealtime();
+        
+        // 🖥️ Mostrar modal INMEDIATAMENTE
         duplicateModal.style.display = 'flex';
         
-        // 🔒 Desconectar SOLO este dispositivo
+        // 🔒 Desconectar SOLO este dispositivo al instante
         db.auth.signOut({ scope: 'local' }).then(() => {
             localStorage.removeItem('session_token');
-            console.log('🔒 Sesión local desconectada por seguridad');
+            console.log('🔒 Sesión local desconectada INMEDIATAMENTE');
         }).catch(e => {
-            console.warn('Error al desconectar:', e.message);
             localStorage.removeItem('session_token');
         });
     }
 
     // ============================================
-    // 🔐 3. GESTIÓN DE SESIONES (CON DEVICE ID)
+    // 🔐 3. GESTIÓN DE SESIONES (INSTANTÁNEA)
     // ============================================
     
-    // 🔑 Registrar MI dispositivo (usa DEVICE_ID, no el token)
     async function registrarSesionSilenciosa() {
         for (let intento = 1; intento <= 3; intento++) {
             try {
-                await db.rpc('registrar_mi_sesion', { p_token: DEVICE_ID });
-                console.log('✅ Sesión registrada (device:', DEVICE_ID, ')');
+                await db.rpc('registrar_mi_sesion', { p_token: INSTANCE_ID });
+                console.log('✅ Sesión registrada:', INSTANCE_ID);
                 return true;
             } catch (e) {
-                if (intento < 3) {
-                    await new Promise(resolve => setTimeout(resolve, intento * 500));
-                } else {
-                    console.warn('⚠️ No se pudo registrar sesión tras 3 intentos');
-                }
+                if (intento < 3) await new Promise(r => setTimeout(r, intento * 400));
             }
         }
         return false;
     }
 
-    // 🔍 Verificar sesión duplicada REAL (comparando DEVICE IDs)
+    // ⚡ REALTIME: detecta OTRA sesión en <1 segundo
+    function iniciarRealtimeSesiones() {
+        if (!currentUser || realtimeChannel) return;
+        
+        realtimeChannel = db.channel('sesiones_' + currentUser.id)
+            .on('postgres_changes',
+                { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'active_sessions',
+                    filter: 'user_id=eq.' + currentUser.id
+                },
+                (payload) => {
+                    const nueva = payload.new;
+                    // Si otra instancia (distinta a la mía) se registró → soy la vieja → expulsar
+                    if (nueva && nueva.session_token !== INSTANCE_ID) {
+                        console.warn('⚡ REALTIME: otra sesión activa detectada al instante');
+                        mostrarAlertaSesionDuplicada();
+                    }
+                }
+            )
+            .subscribe((status) => {
+                console.log('📡 Realtime sesiones:', status);
+            });
+    }
+
+    function detenerRealtime() {
+        if (realtimeChannel) {
+            db.removeChannel(realtimeChannel);
+            realtimeChannel = null;
+        }
+    }
+
+    // 🔄 POLLING DE RESPALDO (por si Realtime falla)
     async function verificarSesionActiva() {
         if (sesionBloqueada) return;
         if (Date.now() < gracePeriodUntil) return;
@@ -164,15 +194,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         try {
             const ahoraISO = new Date().toISOString();
-            const limiteISO = new Date(Date.now() - 60000).toISOString(); // últimos 60s
+            const limiteISO = new Date(Date.now() - 60000).toISOString();
             
-            // Refrescar MI actividad
             await db.from('active_sessions')
                 .update({ last_active: ahoraISO })
                 .eq('user_id', currentUser.id)
-                .eq('session_token', DEVICE_ID);
+                .eq('session_token', INSTANCE_ID);
             
-            // Buscar sesiones activas recientes
             const { data: sesiones, error } = await db
                 .from('active_sessions')
                 .select('session_token, last_active, created_at')
@@ -181,30 +209,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (error || !sesiones) return;
             
-            const miFila = sesiones.find(s => s.session_token === DEVICE_ID);
-            const otras = sesiones.filter(s => s.session_token !== DEVICE_ID);
+            const miFila = sesiones.find(s => s.session_token === INSTANCE_ID);
+            const otras = sesiones.filter(s => s.session_token !== INSTANCE_ID);
             
-            // Si no estoy registrado aún → registrarme sin alertar
             if (!miFila) {
                 await registrarSesionSilenciosa();
                 return;
             }
             
-            // Si hay OTRA sesión activa:
             if (otras.length > 0) {
-                // ¿La otra es MÁS NUEVA que la mía? → yo soy la vieja → me cierro
                 const hayOtraMasNueva = otras.some(o => 
                     new Date(o.created_at) > new Date(miFila.created_at)
                 );
-                
                 if (hayOtraMasNueva) {
-                    console.warn('⚠️ Sesión duplicada: hay un dispositivo más reciente activo');
                     mostrarAlertaSesionDuplicada();
                     return;
                 }
-                // Si la otra es MÁS VIEJA → yo soy la nueva → permanezco (la vieja se cierra sola)
             }
-            
         } catch (err) {
             console.error('Error verificando sesión:', err);
         } finally {
@@ -213,29 +234,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function setupInteractionListeners() {
-        let lastCheck = 0;
-        const checkOnInteraction = async () => {
-            if (sesionBloqueada) return;
-            if (Date.now() < gracePeriodUntil) return;
-            const now = Date.now();
-            if (now - lastCheck < 2000) return;
-            lastCheck = now;
-            await verificarSesionActiva();
-        };
+        // 📡 Realtime instantáneo
+        iniciarRealtimeSesiones();
         
-        document.addEventListener('click', checkOnInteraction);
-        document.addEventListener('touchstart', checkOnInteraction);
-        document.addEventListener('keypress', checkOnInteraction);
-        
-        // 🔄 POLLING cada 3 segundos
+        // 🔄 Polling de respaldo cada 2 segundos
         setInterval(async () => {
             if (sesionBloqueada) return;
             if (Date.now() >= gracePeriodUntil && currentUser) {
                 await verificarSesionActiva();
             }
-        }, 3000);
+        }, 2000);
         
-        console.log('👀 Monitoreo de sesiones activado');
+        console.log('⚡ Monitoreo INSTANTÁNEO activado (Realtime + polling 2s)');
     }
 
     // ============================================
@@ -245,19 +255,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('🔐 Auth event:', event);
         
         if (event === 'SIGNED_IN' && session) {
-            lastLoginTime = Date.now();
             gracePeriodUntil = Date.now() + 5000;
             await registrarSesionSilenciosa();
         } else if (event === 'INITIAL_SESSION' && session) {
             await registrarSesionSilenciosa();
         } else if (event === 'SIGNED_OUT' || !session) {
             localStorage.removeItem('session_token');
-            if (mostrandoAlertaSesion) return; // 🖥️ Esperar al clic del usuario
+            if (mostrandoAlertaSesion) return;
             if (!window.location.pathname.includes('index.html')) {
                 window.location.href = 'index.html';
             }
         }
-        // TOKEN_REFRESHED ya NO nos afecta: usamos DEVICE_ID estable
     });
 
     // ============================================
@@ -282,17 +290,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     estado_kyc: null 
                 };
                 const { data: creado, error: insertError } = await db.from('perfiles').insert(nuevoPerfil).select().single();
-                if (insertError) { 
-                    console.error('Error al crear perfil:', insertError); 
-                    return null; 
-                }
+                if (insertError) { console.error('Error al crear perfil:', insertError); return null; }
                 return creado;
             }
             return null;
-        } catch (err) { 
-            console.error('Error en cargarOCrearPerfil:', err); 
-            return null; 
-        }
+        } catch (err) { console.error('Error en cargarOCrearPerfil:', err); return null; }
     }
 
     async function verificarSiEsAdmin(userId) {
@@ -382,9 +384,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             notificationDropdown.classList.remove('show');
         }
         const isShowing = dropdownMenu.classList.contains('show');
-        if (isShowing) {
-            cerrarPanelesMovil();
-        } else {
+        if (isShowing) { cerrarPanelesMovil(); } 
+        else {
             bloquearScrollFondo();
             forzarVisibilidadMenu(dropdownMenu);
             if (menuToggle) menuToggle.classList.add('active');
@@ -398,9 +399,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             dropdownMenu.classList.remove('show');
         }
         const isShowing = notificationDropdown.classList.contains('show');
-        if (isShowing) {
-            cerrarPanelesMovil();
-        } else {
+        if (isShowing) { cerrarPanelesMovil(); } 
+        else {
             bloquearScrollFondo();
             forzarVisibilidadMenu(notificationDropdown);
             if (notificationBtn) notificationBtn.classList.add('active');
@@ -511,9 +511,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 liveIframe.style.display = 'block'; 
                 liveIframe.src = streamConfig.url_stream;
             }
-        } catch (err) { 
-            console.error('Error cargando stream en vivo:', err); 
-        }
+        } catch (err) { console.error('Error cargando stream en vivo:', err); }
     }
 
     // ============================================
@@ -651,14 +649,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
             
-            console.log('✅ Dashboard cargado correctamente');
+            console.log('✅ Dashboard cargado. Monitoreo instantáneo activo.');
         } catch (err) {
             console.error('Error al obtener usuario:', err);
             loadingState.style.display = 'none';
             errorState.style.display = 'block';
-            setTimeout(() => { 
-                window.location.href = 'index.html'; 
-            }, 3000);
+            setTimeout(() => { window.location.href = 'index.html'; }, 3000);
         }
     }
 
