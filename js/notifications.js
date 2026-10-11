@@ -1,5 +1,5 @@
 // ============================================
-//  SISTEMA DE NOTIFICACIONES + MENÚ MÓVIL
+// 🔔 SISTEMA DE NOTIFICACIONES + MENÚ MÓVIL
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     cargarNotificaciones();
-    setupMobileListeners();
+    setupGlobalListeners();
 });
 
 const notificacionesEjemplo = [
@@ -31,8 +31,12 @@ function cargarNotificaciones() {
     const mostrar = notificaciones.slice(0, 5);
     const noLeidas = notificaciones.filter(n => !n.leida).length;
     
-    badge.textContent = noLeidas;
-    badge.classList.toggle('hidden', noLeidas === 0);
+    if (badge) {
+        badge.textContent = noLeidas;
+        badge.classList.toggle('hidden', noLeidas === 0);
+    }
+    
+    if (!list) return;
     
     if (mostrar.length === 0) {
         list.innerHTML = `<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>No tienes notificaciones</p></div>`;
@@ -58,10 +62,14 @@ function cerrarTodo() {
     const overlay = document.getElementById('mobileOverlay');
     const notif = document.getElementById('notificationDropdown');
     const user = document.getElementById('dropdownMenu');
+    const btnNotif = document.getElementById('notificationBtn');
+    const btnMenu = document.getElementById('menuToggle');
     
     if (overlay) overlay.classList.remove('active');
     if (notif) notif.classList.remove('show');
     if (user) user.classList.remove('show');
+    if (btnNotif) btnNotif.classList.remove('active');
+    if (btnMenu) btnMenu.classList.remove('active');
 }
 
 // Toggle Notificaciones
@@ -74,20 +82,25 @@ window.toggleNotifications = function(e) {
     const isMobile = window.innerWidth <= 768;
     
     if (isMobile) {
-        // En móvil: comportamiento Bottom Sheet
-        if (notif.classList.contains('show')) {
+        // Comportamiento Bottom Sheet en móvil
+        const isOpen = notif.classList.contains('show');
+        
+        if (isOpen) {
             cerrarTodo();
         } else {
-            user.classList.remove('show'); // Cerrar otro si está abierto
+            user.classList.remove('show'); // Cerrar menú usuario si está abierto
             notif.classList.add('show');
             if (overlay) overlay.classList.add('active');
         }
     } else {
-        // En escritorio: dropdown normal
+        // Dropdown normal en escritorio
         const isOpen = notif.classList.contains('show');
+        
+        // Cerrar menú usuario
         user.classList.remove('show');
         document.getElementById('menuToggle')?.classList.remove('active');
         
+        // Toggle notificaciones
         notif.classList.toggle('show', !isOpen);
         document.getElementById('notificationBtn')?.classList.toggle('active', !isOpen);
     }
@@ -103,32 +116,37 @@ window.toggleMenu = function(e) {
     const isMobile = window.innerWidth <= 768;
     
     if (isMobile) {
-        if (user.classList.contains('show')) {
+        const isOpen = user.classList.contains('show');
+        
+        if (isOpen) {
             cerrarTodo();
         } else {
-            notif.classList.remove('show');
+            notif.classList.remove('show'); // Cerrar notificaciones si están abiertas
             user.classList.add('show');
             if (overlay) overlay.classList.add('active');
         }
     } else {
         const isOpen = user.classList.contains('show');
+        
+        // Cerrar notificaciones
         notif.classList.remove('show');
         document.getElementById('notificationBtn')?.classList.remove('active');
         
+        // Toggle menú usuario
         user.classList.toggle('show', !isOpen);
         document.getElementById('menuToggle')?.classList.toggle('active', !isOpen);
     }
 };
 
-// Configurar listeners globales
-function setupMobileListeners() {
-    // Cerrar al tocar el overlay
+// Listeners globales
+function setupGlobalListeners() {
+    // 1. Cerrar al tocar el overlay
     const overlay = document.getElementById('mobileOverlay');
     if (overlay) {
         overlay.addEventListener('click', cerrarTodo);
     }
     
-    // Cerrar al tocar fuera de los menús (solo en móvil)
+    // 2. Cerrar al tocar fuera de los menús (solo móvil)
     document.addEventListener('click', function(e) {
         if (window.innerWidth > 768) return;
         
@@ -137,13 +155,20 @@ function setupMobileListeners() {
         const btnNotif = document.getElementById('notificationBtn');
         const btnMenu = document.getElementById('menuToggle');
         
-        const clickedInsideNotif = notif?.contains(e.target);
-        const clickedInsideUser = user?.contains(e.target);
-        const clickedBtnNotif = btnNotif?.contains(e.target);
-        const clickedBtnMenu = btnMenu?.contains(e.target);
+        const clickedInsideNotif = notif && notif.contains(e.target);
+        const clickedInsideUser = user && user.contains(e.target);
+        const clickedBtnNotif = btnNotif && btnNotif.contains(e.target);
+        const clickedBtnMenu = btnMenu && btnMenu.contains(e.target);
         
-        // Si no tocó ningún menú ni sus botones, cerrar todo
+        // Si tocó fuera de todo, cerrar
         if (!clickedInsideNotif && !clickedInsideUser && !clickedBtnNotif && !clickedBtnMenu) {
+            cerrarTodo();
+        }
+    });
+    
+    // 3. Cerrar al cambiar orientación o redimensionar
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
             cerrarTodo();
         }
     });
