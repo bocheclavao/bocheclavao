@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Boche Clava'o</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Montserrat', sans-serif; background: #000000; min-height: 100vh; color: #ffffff; padding: 20px; }
+        
+        .back-link { display: inline-block; margin-bottom: 20px; color: #FFD700; text-decoration: none; padding: 8px 16px; border: 1px solid #FFD700; border-radius: 6px; }
+        .back-link:hover { background: #FFD700; color: #000; }
+        
+        .header { text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); border-radius: 12px; border: 1px solid #FFD700; }
+        .header h1 { color: #FFD700; font-size: 1.8rem; margin-bottom: 10px; }
+        
+        .admin-tabs { display: flex; gap: 15px; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
+        .tab-btn { padding: 15px 30px; background: #0a0a0a; border: 2px solid #333; border-radius: 10px; color: #999; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Montserrat', sans-serif; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
+        .tab-btn:hover { border-color: #FFD700; color: #FFD700; }
+        .tab-btn.active { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border-color: #FFD700; }
+        .tab-btn .badge { background: #ff4444; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .stats-bar { display: flex; gap: 20px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+        .stat-box { background: #0a0a0a; border: 1px solid #222; padding: 20px; border-radius: 8px; text-align: center; min-width: 150px; flex: 1; max-width: 200px; }
+        .stat-box .number { font-size: 2rem; font-weight: 800; color: #FFD700; }
+        .stat-box .label { color: #999; font-size: 0.85rem; margin-top: 5px; }
+        
+        .search-container { max-width: 900px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .search-input { flex: 1; min-width: 250px; padding: 12px 16px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; font-family: 'Montserrat', sans-serif; }
+        .search-input:focus { outline: none; border-color: #FFD700; }
+        .search-select { padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; }
+        
+        .user-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 25px; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
+        .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .user-name { font-size: 1.3rem; font-weight: 700; color: #FFD700; }
+        .user-id { color: #999; font-size: 0.9rem; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+        .status-pending { background: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid #FFA500; }
+        .status-verified { background: rgba(0, 255, 0, 0.2); color: #00ff00; border: 1px solid #00ff00; }
+        .status-rejected { background: rgba(255, 0, 0, 0.2); color: #ff4444; border: 1px solid #ff4444; }
+        .status-blocked { background: rgba(128, 128, 128, 0.2); color: #888; border: 1px solid #888; }
+        
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .info-item label { display: block; color: #666; font-size: 0.8rem; margin-bottom: 5px; }
+        .info-item span { color: #fff; font-weight: 600; word-break: break-all; }
+        
+        .images-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .image-box { text-align: center; }
+        .image-box img { width: 100%; border-radius: 8px; border: 1px solid #333; margin-bottom: 8px; max-height: 200px; object-fit: cover; cursor: pointer; }
+        .image-box img:hover { border-color: #FFD700; }
+        .image-box p { font-size: 0.85rem; color: #999; }
+        
+        .actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s; display: flex; align-items: center; gap: 8px; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-approve { background: #00ff00; color: #000; }
+        .btn-approve:hover { background: #00cc00; }
+        .btn-reject { background: #ff4444; color: #fff; }
+        .btn-reject:hover { background: #cc0000; }
+        .btn-block { background: #666; color: #fff; }
+        .btn-block:hover { background: #444; }
+        .btn-unblock { background: #00aaff; color: #fff; }
+        .btn-unblock:hover { background: #0088cc; }
+        .btn-coins { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
+        .btn-coins:hover { background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); }
+        .btn-view { background: #333; color: #fff; }
+        .btn-view:hover { background: #444; }
+        .btn-save { background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%); color: #000; width: 100%; justify-content: center; font-size: 1.1rem; padding: 15px; }
+        .btn-save:hover { background: linear-gradient(135deg, #00cc00 0%, #009900 100%); }
+        
+        .users-table { width: 100%; max-width: 900px; margin: 0 auto; border-collapse: collapse; }
+        .users-table th { background: #0a0a0a; color: #FFD700; padding: 12px; text-align: left; border-bottom: 2px solid #333; font-size: 0.9rem; }
+        .users-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .users-table tr:hover { background: rgba(255, 215, 0, 0.05); }
+        .users-table tr { cursor: pointer; }
+        
+        .pagination { display: flex; gap: 10px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+        .page-btn { padding: 10px 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 6px; color: #fff; cursor: pointer; font-family: 'Montserrat', sans-serif; }
+        .page-btn:hover { border-color: #FFD700; color: #FFD700; }
+        .page-btn.active { background: #FFD700; color: #000; border-color: #FFD700; }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .stream-form-container { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 30px; max-width: 800px; margin: 0 auto; }
+        .stream-form-container h3 { color: #FFD700; margin-bottom: 20px; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; color: #ccc; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #FFD700; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        
+        .toggle-container { display: flex; align-items: center; gap: 15px; background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #00ff00; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        .stream-status-msg { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-weight: 600; }
+        .stream-status-msg.success { display: block; background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
+        .stream-status-msg.error { display: block; background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .modal.show { display: flex; }
+        .modal-content { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 30px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #333; }
+        .modal-title { color: #FFD700; font-size: 1.5rem; font-weight: 800; }
+        .modal-close { background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
+        .modal-close:hover { color: #FFD700; }
+        
+        .loading { text-align: center; color: #FFD700; margin-top: 50px; font-size: 1.2rem; }
+        .empty { text-align: center; color: #666; margin-top: 50px; padding: 40px; }
+        .access-denied { text-align: center; padding: 60px 20px; }
+        .access-denied i { font-size: 5rem; color: #ff4444; margin-bottom: 20px; }
+        .access-denied h2 { color: #ff4444; margin-bottom: 15px; }
+        
+        @media (max-width: 768px) {
+            .users-table { font-size: 0.8rem; }
+            .users-table th, .users-table td { padding: 8px; }
+            .admin-tabs { flex-direction: column; }
+            .tab-btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
+    
+    <div id="accessDenied" style="display: none;" class="access-denied">
+        <i class="fas fa-shield-alt"></i>
+        <h2>Acceso Denegado</h2>
+        <p>No tienes permisos de administrador.</p>
+    </div>
+
+    <div id="adminContent" style="display: none;">
+        <div class="header">
+            <h1><i class="fas fa-user-shield"></i> Panel de Administración</h1>
+            <p>Gestión completa de usuarios, verificaciones y transmisiones</p>
+        </div>
+
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="cambiarTab('kyc', this)">
+                <i class="fas fa-id-card"></i> Verificaciones KYC
+                <span class="badge" id="kycBadge">0</span>
+            </button>
+            <button class="tab-btn" onclick="cambiarTab('usuarios', this)">
+                <i class="fas fa-users"></i> Gestión de Usuarios
+            </button>
+            <button class="tab-btn" onclick="cambiarTab('stream', this)">
+                <i class="fas fa-broadcast-tower"></i> Transmisión en Vivo
+            </button>
+        </div>
+
+        <div id="tab-kyc" class="tab-content active">
+            <div id="statsBar" class="stats-bar"></div>
+            <div id="loadingKyc" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando solicitudes KYC...</div>
+            <div id="containerKyc"></div>
+        </div>
+
+        <div id="tab-usuarios" class="tab-content">
+            <div class="search-container">
+                <select id="searchType" class="search-select">
+                    <option value="email">Buscar por Correo</option>
+                    <option value="user_id">Buscar por ID</option>
+                    <option value="numero_documento">Buscar por Cédula</option>
+                    <option value="nombre">Buscar por Nombre</option>
+                </select>
+                <input type="text" id="searchInput" class="search-input" placeholder="Escribe para buscar...">
+                <button class="btn btn-view" onclick="buscarUsuarios()"><i class="fas fa-search"></i> Buscar</button>
+                <button class="btn btn-view" onclick="limpiarBusqueda()"><i class="fas fa-times"></i> Limpiar</button>
+            </div>
+            <div id="loadingUsers" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Cargando usuarios...</div>
+            <div id="containerUsers"></div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+
+        <div id="tab-stream" class="tab-content">
+            <div class="stream-form-container">
+                <h3><i class="fas fa-satellite-dish"></i> Configurar Transmisión en Vivo</h3>
+                
+                <div class="form-group">
+                    <label>Estado de la Transmisión</label>
+                    <div class="toggle-container">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="streamActivo">
+                            <span class="slider"></span>
+                        </label>
+                        <span id="streamStatusText" style="color: #999; font-weight: 600;">Desactivada</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Título del Evento</label>
+                    <input type="text" id="streamTitulo" placeholder="Ej: Final Nacional de Bochas 2024">
+                </div>
+
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="streamDescripcion" placeholder="Breve descripción del evento en vivo..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Stream</label>
+                    <select id="streamTipo">
+                        <option value="hls">HLS (Cámara IP / OBS / Servidor propio)</option>
+                        <option value="youtube">YouTube Live (Embed)</option>
+                        <option value="twitch">Twitch (Embed)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>URL del Stream</label>
+                    <input type="text" id="streamUrl" placeholder="https://...">
+                    <p style="color: #666; font-size: 0.8rem; margin-top: 5px;">
+                        <i class="fas fa-info-circle"></i> Para YouTube usa: <code>https://www.youtube.com/embed/VIDEO_ID?autoplay=1</code>
+                    </p>
+                </div>
+
+                <button class="btn btn-save" id="btnGuardarStream">
+                    <i class="fas fa-save"></i> Guardar y Actualizar Transmisión
+                </button>
+
+                <div id="streamStatusMsg" class="stream-status-msg"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-user"></i> Perfil de Usuario</h2>
+                <button class="modal-close" onclick="cerrarModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <div id="coinsModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-coins"></i> Agregar Monedas BC</h2>
+                <button class="modal-close" onclick="cerrarCoinsModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="coinsModalBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/admin.js"></script>
+</body>
+</html>
