@@ -560,6 +560,21 @@
             .navbar-title { font-size: 0.8rem; }
             .notification-btn, .menu-toggle { width: 38px; height: 38px; }
         }
+        /* ✅ CORRECCIÓN DE SCROLL EN MÓVIL */
+body.menu-open {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    /* Evita el rebote elástico en iOS */
+    overscroll-behavior: none; 
+}
+
+/* Asegurar que el overlay capture los toques */
+#mobileOverlay {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
     </style>
 </head>
 <body>
