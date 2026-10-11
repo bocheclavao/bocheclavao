@@ -80,11 +80,6 @@
             height: auto;
             margin-bottom: 15px;
             animation: logoAppear 1s ease-out;
-            border: none;
-            border-radius: 0;
-            padding: 0;
-            background: transparent;
-            box-shadow: none;
         }
 
         @keyframes logoAppear {
@@ -140,7 +135,6 @@
             font-size: 1rem;
             font-family: 'Montserrat', sans-serif;
             transition: all 0.3s ease;
-            -webkit-appearance: none;
         }
 
         .form-group input:focus {
@@ -150,7 +144,6 @@
         }
         .form-group input::placeholder { color: #666; }
 
-        /* Input con icono de ojo */
         .input-with-icon {
             position: relative;
             width: 100%;
@@ -159,31 +152,18 @@
             width: 100%;
             padding-right: 45px;
         }
-   .toggle-password {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #666;
-    cursor: pointer;
-    font-size: 1.1rem;
-    transition: color 0.3s ease;
-    -webkit-tap-highlight-color: transparent;
-    z-index: 10;
-    pointer-events: auto;
-}
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
         .toggle-password:hover { color: #FFD700; }
 
-        /* Input OTP */
-        .otp-input {
-            text-align: center;
-            font-size: 1.5rem !important;
-            letter-spacing: 8px;
-            font-weight: 700;
-            color: #FFD700 !important;
-        }
-
-        /* Requisitos de contraseña */
         .password-requirements {
             margin-top: 5px;
             margin-bottom: 20px;
@@ -215,14 +195,9 @@
         .req-valid { color: #00ff00; }
         .req-invalid { color: #666; }
 
-        /* Validación de email */
         .input-error {
             border-color: #ff4444 !important;
             background: rgba(255, 0, 0, 0.05) !important;
-        }
-        .input-error:focus {
-            border-color: #ff4444 !important;
-            box-shadow: 0 0 0 2px rgba(255, 68, 68, 0.2) !important;
         }
         .input-valid {
             border-color: #00ff00 !important;
@@ -238,12 +213,6 @@
             border-radius: 6px;
             font-size: 0.8rem;
             color: #ff4444;
-            animation: slideDown 0.3s ease;
-        }
-        .field-error i { font-size: 0.75rem; }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .btn-primary {
@@ -260,10 +229,8 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             font-family: 'Montserrat', sans-serif;
-            -webkit-tap-highlight-color: transparent;
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
-        .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -280,6 +247,7 @@
             font-size: 0.9rem;
             display: inline-block;
             padding: 10px;
+            cursor: pointer;
         }
         .back-link a:hover { color: #FFD700; text-decoration: underline; }
 
@@ -295,7 +263,21 @@
         .message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
         .message.info { background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; color: #FFD700; display: block; }
 
-        /*  OPTIMIZACIÓN PARA CELULARES */
+        .success-icon {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .success-icon i {
+            font-size: 4rem;
+            color: #00ff00;
+            animation: bounceIn 0.6s ease;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
         @media (max-width: 480px) {
             body { padding: 15px; align-items: flex-start; padding-top: 8vh; }
             .container { padding: 15px; }
@@ -333,7 +315,7 @@
             <!-- PASO 1: Ingresar correo -->
             <div id="step1">
                 <h2 class="card-title">Recuperar Contraseña</h2>
-                <p class="card-subtitle">Ingresa tu correo registrado para recibir un código de verificación</p>
+                <p class="card-subtitle">Ingresa tu correo y te enviaremos un <strong>enlace</strong> para crear una nueva contraseña</p>
                 
                 <form id="emailForm">
                     <div class="form-group">
@@ -344,7 +326,9 @@
                         </div>
                     </div>
 
-                    <button type="submit" id="btnEnviarCodigo" class="btn-primary">Enviar código</button>
+                    <button type="submit" id="btnEnviarCodigo" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i> Enviar enlace de recuperación
+                    </button>
                 </form>
 
                 <div class="back-link">
@@ -352,56 +336,80 @@
                 </div>
             </div>
 
-            <!-- PASO 2: Ingresar código OTP -->
+            <!-- PASO 2: Confirmación de envío -->
             <div id="step2" style="display: none;">
-                <h2 class="card-title">Verificar Código</h2>
-                <p class="card-subtitle">Hemos enviado un código de 6 dígitos a:<br><strong id="emailDisplay"></strong></p>
-                
-                <form id="otpForm">
-                    <div class="form-group">
-                        <input type="text" id="otpCode" class="otp-input" required placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*">
-                    </div>
-
-                    <button type="submit" class="btn-primary">Verificar código</button>
-                </form>
+                <div class="success-icon">
+                    <i class="fas fa-envelope-circle-check"></i>
+                </div>
+                <h2 class="card-title">¡Enlace enviado!</h2>
+                <p class="card-subtitle">
+                    Hemos enviado un enlace de recuperación a:<br>
+                    <strong id="emailDisplay"></strong>
+                </p>
+                <p class="card-subtitle" style="margin-top: 15px; font-size: 0.85rem;">
+                    📧 Revisa tu bandeja de entrada y la carpeta de <strong>Spam</strong>.<br>
+                    Haz clic en el enlace del correo para crear tu nueva contraseña.
+                </p>
+                <p class="card-subtitle" style="margin-top: 15px; font-size: 0.8rem; color: #FFA500;">
+                    ⏱️ Por seguridad, puedes solicitar un nuevo enlace en <strong>60 segundos</strong>.
+                </p>
 
                 <div class="back-link">
-                    <a onclick="volverAlPaso1()">← Cambiar correo</a>
+                    <a onclick="volverAlPaso1()"><i class="fas fa-redo"></i> Enviar a otro correo</a>
+                </div>
+                <div class="back-link">
+                    <a href="login.html">← Volver al login</a>
                 </div>
             </div>
 
-            <!-- PASO 3: Nueva contraseña -->
-<div id="step3" style="display: none;">
-    <h2 class="card-title">Nueva Contraseña</h2>
-    <p class="card-subtitle">Crea una contraseña segura para tu cuenta</p>
-    
-    <form id="passwordForm">
-        <div class="form-group">
-            <div class="input-with-icon">
-                <input type="password" id="newPassword" required placeholder="Nueva contraseña" minlength="8">
-                <i class="fas fa-eye toggle-password" onclick="togglePassword('newPassword', this)"></i>
-            </div>
-        </div>
-        <div class="form-group">
-            <div class="input-with-icon">
-                <input type="password" id="confirmPassword" required placeholder="Confirmar contraseña" minlength="8">
-                <i class="fas fa-eye toggle-password" onclick="togglePassword('confirmPassword', this)"></i>
-            </div>
-        </div>
+            <!-- PASO 3: Nueva contraseña (se muestra al venir del enlace) -->
+            <div id="step3" style="display: none;">
+                <h2 class="card-title">Nueva Contraseña</h2>
+                <p class="card-subtitle">Crea una contraseña segura para tu cuenta</p>
+                
+                <form id="passwordForm">
+                    <div class="form-group">
+                        <label style="color: #999; font-size: 0.85rem; margin-bottom: 6px; display: block;">Nueva contraseña</label>
+                        <div class="input-with-icon">
+                            <input type="password" id="newPassword" required placeholder="Mínimo 8 caracteres" minlength="8">
+                            <i class="fas fa-eye toggle-password" onclick="togglePassword('newPassword', this)"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #999; font-size: 0.85rem; margin-bottom: 6px; display: block;">Confirmar contraseña</label>
+                        <div class="input-with-icon">
+                            <input type="password" id="confirmPassword" required placeholder="Repite la contraseña" minlength="8">
+                            <i class="fas fa-eye toggle-password" onclick="togglePassword('confirmPassword', this)"></i>
+                        </div>
+                    </div>
 
-        <div class="password-requirements">
-            <strong>La contraseña debe tener:</strong>
-            <ul>
-                <li id="req-length" class="req-invalid"><i class="fas fa-circle"></i> Mínimo 8 caracteres</li>
-                <li id="req-letter" class="req-invalid"><i class="fas fa-circle"></i> Al menos una letra</li>
-                <li id="req-number" class="req-invalid"><i class="fas fa-circle"></i> Al menos un número</li>
-                <li id="req-special" class="req-invalid"><i class="fas fa-circle"></i> Al menos un carácter especial (!@#$%...)</li>
-            </ul>
-        </div>
+                    <div class="password-requirements">
+                        <strong><i class="fas fa-shield-alt"></i> La contraseña debe tener:</strong>
+                        <ul>
+                            <li id="req-length" class="req-invalid"><i class="fas fa-circle"></i> Mínimo 8 caracteres</li>
+                            <li id="req-letter" class="req-invalid"><i class="fas fa-circle"></i> Al menos una letra</li>
+                            <li id="req-number" class="req-invalid"><i class="fas fa-circle"></i> Al menos un número</li>
+                            <li id="req-special" class="req-invalid"><i class="fas fa-circle"></i> Al menos un carácter especial (!@#$%...)</li>
+                        </ul>
+                    </div>
 
-        <button type="submit" class="btn-primary">Actualizar contraseña</button>
-    </form>
-</div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-key"></i> Actualizar contraseña
+                    </button>
+                </form>
+            </div>
+
+            <!-- PASO 4: Éxito -->
+            <div id="step4" style="display: none;">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle" style="color: #00ff00;"></i>
+                </div>
+                <h2 class="card-title">¡Contraseña actualizada!</h2>
+                <p class="card-subtitle">
+                    Tu nueva contraseña se guardó correctamente.<br>
+                    Redirigiendo al login...
+                </p>
+            </div>
 
             <div id="message" class="message"></div>
         </div>
