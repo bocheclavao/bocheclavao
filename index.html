@@ -87,7 +87,8 @@
         @media (max-width: 768px) { .main-content { grid-template-columns: 1fr; gap: 30px; } .left-side { text-align: center; display: none; } .login-card { padding: 30px 25px; max-width: 100%; } .logo-main { max-width: 200px; } .brand-name { font-size: 1.5rem; letter-spacing: 2px; } }
         @media (max-width: 480px) { body { padding: 15px; align-items: flex-start; padding-top: 8vh; } .container { padding: 15px; } .logo-container { margin-bottom: 30px; } .login-card { padding: 25px 20px; } .card-title { font-size: 1.4rem; } .card-subtitle { font-size: 0.8rem; margin-bottom: 20px; } .form-group { margin-bottom: 15px; } .form-group input { padding: 12px 14px; font-size: 1rem; } .btn-primary, .btn-google { padding: 13px; font-size: 0.95rem; } }
    /* ============================================
-   🦵 FOOTER PROFESIONAL
+/* ============================================
+   🦵 FOOTER PROFESIONAL (BLINDADO)
    ============================================ */
 .main-footer {
     background: #050505; 
@@ -96,6 +97,8 @@
     text-align: center; 
     margin-top: auto;
     width: 100%;
+    position: relative;
+    z-index: 100; /* Asegura que esté por encima de cualquier fondo */
 }
 
 .footer-content { 
@@ -135,6 +138,12 @@
     font-size: 1.2rem; 
     text-decoration: none;
     transition: all 0.3s ease;
+    
+    /* 🛡️ BLINDAJE DE CLIC */
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    position: relative;
+    z-index: 101;
 }
 
 .social-icons a:hover {
@@ -143,20 +152,6 @@
     border-color: #FFD700;
     transform: translateY(-3px); 
     box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-}
-
-/* Ajuste para que el body ocupe toda la altura */
-body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
 }
     
     </style>
@@ -275,10 +270,10 @@ body {
             </div>
         </div>
     </div>
-        <!-- ============================================
-          FOOTER PROFESIONAL
+         <!-- ============================================
+         FOOTER PROFESIONAL
          ============================================ -->
-        <footer class="main-footer">
+    <footer class="main-footer">
         <div class="footer-content">
             <p class="footer-text">
                 Copyright © todos los derechos reservados<br>
@@ -286,23 +281,24 @@ body {
                 Versión <span>0.1 beta experimental</span>
             </p>
             <div class="social-icons">
-                <!-- ⚠️ REEMPLAZA ESTOS ENLACES CON TUS REDES REALES -->
-                <a href="https://facebook.com/tu_pagina" target="_blank" rel="noopener noreferrer" title="Facebook">
+                <!-- Enlaces de prueba (Cámbialos por los tuyos reales) -->
+                <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" title="Facebook">
                     <i class="fab fa-facebook-f"></i>
                 </a>
-                <a href="https://instagram.com/tu_usuario" target="_blank" rel="noopener noreferrer" title="Instagram">
+                <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" title="Instagram">
                     <i class="fab fa-instagram"></i>
                 </a>
-                <a href="https://tiktok.com/@tu_usuario" target="_blank" rel="noopener noreferrer" title="TikTok">
+                <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" title="TikTok">
                     <i class="fab fa-tiktok"></i>
                 </a>
-                <!-- Para WhatsApp: usa https://wa.me/NUMERO (ej: 573001234567, sin el +) -->
+                <!-- Para WhatsApp usa: https://wa.me/TU_NUMERO (ej: 573001234567, sin el +) -->
                 <a href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer" title="WhatsApp">
                     <i class="fab fa-whatsapp"></i>
                 </a>
             </div>
         </div>
     </footer>
+
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
