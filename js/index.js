@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-           // ============================================
+              // ============================================
     // 🔐 LOGIN CON EMAIL Y CONTRASEÑA
     // ============================================
     if (loginForm) {
@@ -76,35 +76,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 // PASO 1: ¿El correo existe?
-                const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { 
-                    p_email: email 
-                });
+                const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
                 
-                if (existeError) {
-                    console.error('Error verificando correo:', existeError);
-                    showMessage('Error al verificar el correo.', 'error');
-                    resetButton();
-                    return;
-                }
-                
-                if (existeData !== true) {
+                if (existeError || existeData !== true) {
                     showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
                     resetButton();
                     return;
                 }
 
                 // PASO 2: ¿Está suspendido?
-                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
-                    p_email: email, 
-                    p_success: false 
-                });
+                const { data: preCheck } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
                 
                 if (preCheck && preCheck.allowed === false) {
                     const hasta = preCheck.blocked_until 
-                        ? new Date(preCheck.blocked_until).toLocaleString('es-ES', {
-                            day: '2-digit', month: '2-digit', year: 'numeric', 
-                            hour: '2-digit', minute: '2-digit'
-                          }) 
+                        ? new Date(preCheck.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
                         : 'varias horas';
                     showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     resetButton();
@@ -112,34 +97,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // PASO 3: Intentar login
-                const { data, error: authError } = await db.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+                const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
                     // PASO 4: Registrar intento fallido
-                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
-                        p_email: email, 
-                        p_success: false 
-                    });
+                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
                     
-                    if (rpcError) {
-                        console.error('Error registrando intento:', rpcError);
-                    }
+                    if (rpcError) console.error('Error RPC:', rpcError);
+
+                    // 🕵️ DIAGNÓSTICO: Mira la consola (F12) para ver qué devuelve la BD
+                    console.log('📊 DATOS DE INTENTOS:', attemptData);
 
                     if (attemptData && attemptData.allowed === false) {
                         const hasta = attemptData.blocked_until 
-                            ? new Date(attemptData.blocked_until).toLocaleString('es-ES', {
-                                day: '2-digit', month: '2-digit', year: 'numeric', 
-                                hour: '2-digit', minute: '2-digit'
-                              }) 
+                            ? new Date(attemptData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
                             : 'varias horas';
                         showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     } else {
-                        const intentos = (attemptData && attemptData.attempts !== undefined) 
-                            ? attemptData.attempts 
-                            : 1;
+                        const intentos = (attemptData && attemptData.attempts) ? attemptData.attempts : 1;
                         const restantes = Math.max(0, 5 - intentos);
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
@@ -149,11 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // PASO 5: Login exitoso
-                try {
-                    await db.rpc('check_login_attempt', { p_email: email, p_success: true });
-                } catch (rpcErr) {
-                    console.warn('No se pudo resetear contador:', rpcErr.message);
-                }
+                await db.rpc('check_login_attempt', { p_email: email, p_success: true }).catch(e => console.warn(e));
 
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
@@ -172,19 +143,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             device_info: navigator.userAgent.substring(0, 200)
                         });
                         localStorage.setItem('session_token', sessionToken);
-                    } catch (sessionErr) {
-                        console.error('Error registrando sesión:', sessionErr);
-                    }
+                    } catch (sessionErr) { console.error(sessionErr); }
                 }
 
-                try { await db.auth.signOut({ scope: 'others' }); } catch (e) {}
+                await db.auth.signOut({ scope: 'others' }).catch(e => {});
                 
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 setTimeout(() => {
-                    const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
-                        ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                        : 'dashboard.html';
-                    window.location.href = redirectUrl;
+                    window.location.href = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) ? APP_CONFIG.REDIRECT_AFTER_LOGIN : 'dashboard.html';
                 }, 1500);
                 
             } catch (err) {
@@ -194,7 +160,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
     function resetButton() {
         if (submitBtn) {
             submitBtn.disabled = false;
