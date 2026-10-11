@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 👁️ 1. MOSTRAR / OCULTAR CONTRASEÑA
+    // 👁️ MOSTRAR / OCULTAR CONTRASEÑA
     window.togglePasswordVisibility = function() {
         const passwordInput = document.getElementById('password');
         const icon = document.querySelector('.toggle-password');
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 🔐 2. LOGIN CON EMAIL Y CONTRASEÑA (CON PROTECCIÓN BRUTE-FORCE Y SESIÓN ÚNICA)
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -52,35 +52,41 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // Paso A: Intentar iniciar sesión en Supabase
                 const { data, error: authError } = await db.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
                 if (authError) {
-                    // Paso B: Si falla, registramos el intento fallido en la base de datos
                     const { data: attemptData } = await db.rpc('check_login_attempt', {
                         p_email: email,
                         p_success: false
                     });
 
                     if (attemptData && attemptData.allowed === false) {
-                        showMessage('🚫 Cuenta suspendida por 12 horas por múltiples intentos fallidos. Por favor, restablece tu contraseña.', 'error');
+                        showMessage('🚫 Cuenta suspendida por 12 horas por múltiples intentos fallidos.', 'error');
                     } else {
                         const intentos = attemptData ? attemptData.attempts : 1;
                         const restantes = 4 - intentos;
-                        showMessage(`Correo o contraseña incorrectos. Te quedan ${restantes} intento(s) antes del bloqueo.`, 'error');
+                        showMessage(`Correo o contraseña incorrectos. Te quedan ${restantes} intento(s).`, 'error');
                     }
                     resetButton();
                     return;
                 }
                 
-                // Paso C: Si tiene éxito, limpiamos cualquier registro de bloqueo previo
                 await db.rpc('check_login_attempt', { p_email: email, p_success: true });
-
-                // ✅ PASO CLAVE: Cerrar sesión en TODOS los demás dispositivos/navegadores (Sesión Única)
                 await db.auth.signOut({ scope: 'others' });
+
+                // 🚨 CLAVE: Emitir evento de Realtime para notificar a otros dispositivos
+                if (data.user) {
+                    const channel = db.channel(`session_${data.user.id}`);
+                    await channel.send({
+                        type: 'broadcast',
+                        event: 'new_session',
+                        payload: { userId: data.user.id, timestamp: Date.now() }
+                    });
+                    channel.unsubscribe();
+                }
 
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
@@ -106,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = 'Ingresar';
     }
 
-    // 🌐 3. LOGIN CON GOOGLE
+    // 🌐 LOGIN CON GOOGLE
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
@@ -131,11 +137,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 🔄 4. RECUPERAR CONTRASEÑA (Limpia el bloqueo si lo hace)
+    // 🔄 RECUPERAR CONTRASEÑA
     window.mostrarRecuperarContrasena = async function() {
         const email = document.getElementById('email').value.trim();
         if (!email) {
-            showMessage('Por favor, ingresa tu correo electrónico primero para enviarte el enlace de recuperación.', 'info');
+            showMessage('Por favor, ingresa tu correo electrónico primero.', 'info');
             document.getElementById('email').focus();
             return;
         }
@@ -153,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 🛡️ 5. VERIFICAR SESIÓN ACTIVA AL CARGAR
+    // 🛡️ VERIFICAR SESIÓN ACTIVA AL CARGAR
     async function checkSession() {
         const { data: { session } } = await db.auth.getSession();
         if (session) {
@@ -162,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     checkSession();
 
-    // 📩 6. MOSTRAR MENSAJE DE EXPULSIÓN SI EXISTE (Sesión Única)
+    // 📩 MOSTRAR MENSAJE DE EXPULSIÓN SI EXISTE
     const logoutReason = sessionStorage.getItem('auth_message');
     const logoutType = sessionStorage.getItem('auth_type') || 'info';
     
