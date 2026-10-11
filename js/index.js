@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 🔐 2. LOGIN CON EMAIL Y CONTRASEÑA (CON PROTECCIÓN BRUTE-FORCE)
+    // 🔐 2. LOGIN CON EMAIL Y CONTRASEÑA (CON PROTECCIÓN BRUTE-FORCE Y SESIÓN ÚNICA)
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (authError) {
                     // Paso B: Si falla, registramos el intento fallido en la base de datos
-                    const { data: attemptData, error: attemptError } = await db.rpc('check_login_attempt', {
+                    const { data: attemptData } = await db.rpc('check_login_attempt', {
                         p_email: email,
                         p_success: false
                     });
@@ -76,8 +76,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Paso C: Si tiene éxito, limpiamos cualquier registro de bloqueo
+                // Paso C: Si tiene éxito, limpiamos cualquier registro de bloqueo previo
                 await db.rpc('check_login_attempt', { p_email: email, p_success: true });
+
+                // ✅ PASO CLAVE: Cerrar sesión en TODOS los demás dispositivos/navegadores (Sesión Única)
+                await db.auth.signOut({ scope: 'others' });
 
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
@@ -139,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         showMessage('Enviando enlace de recuperación...', 'info');
         const { error } = await db.auth.resetPasswordForEmail(email, {
-            redirectTo: construirURL('/reset-password.html') // Asegúrate de tener esta página o ajustar la ruta
+            redirectTo: construirURL('/dashboard.html') // Redirige al dashboard o a una página de reset si la tienes
         });
 
         if (error) {
@@ -159,4 +162,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     checkSession();
+
+    // 📩 6. MOSTRAR MENSAJE DE EXPULSIÓN SI EXISTE (Sesión Única)
+    // Si el usuario fue expulsado desde otro dispositivo, el dashboard guardó este mensaje antes de redirigir
+    const logoutReason = sessionStorage.getItem('auth_message');
+    const logoutType = sessionStorage.getItem('auth_type') || 'info';
+    
+    if (logoutReason) {
+        showMessage(logoutReason, logoutType);
+        // Limpiar el mensaje para que no aparezca en recargas futuras
+        sessionStorage.removeItem('auth_message');
+        sessionStorage.removeItem('auth_type');
+    }
 });
