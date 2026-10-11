@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
         if (!session || error) {
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
             return;
         }
 
@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.error('Error al obtener usuario:', err);
             loadingState.style.display = 'none';
             errorState.style.display = 'block';
-            setTimeout(() => { window.location.href = 'login.html'; }, 3000);
+            setTimeout(() => { window.location.href = 'index.html'; }, 3000);
         }
     }
 
@@ -383,7 +383,7 @@ async function cerrarSesion() {
     try {
         const { error } = await db.auth.signOut({ scope: 'global' });
         if (error) throw error;
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     } catch (err) {
         console.error('Error al cerrar sesión:', err);
         alert('Hubo un error al cerrar sesión.');
