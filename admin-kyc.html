@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin KYC - Boche Clava'o</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/admin-modules.css">
+</head>
+<body>
+    <a href="admin.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> Volver al Panel
+    </a>
+
+    <div class="module-header">
+        <h1><i class="fas fa-id-card"></i> Verificaciones KYC</h1>
+        <p>Revisa y aprueba documentos de identidad de los usuarios</p>
+    </div>
+
+    <div id="statsBar" class="stats-bar"></div>
+    
+    <div id="loadingKyc" class="loading">
+        <i class="fas fa-circle-notch fa-spin"></i> Cargando solicitudes KYC...
+    </div>
+    
+    <div id="containerKyc"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/admin-kyc.js"></script>
+</body>
+</html>
