@@ -1,9 +1,9 @@
 // ============================================
-// 🔔 SISTEMA DE NOTIFICACIONES + CARRUSEL
+// 🔔 SISTEMA DE NOTIFICACIONES + CARRUSEL + MENÚ MÓVIL
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 🎠 Inicializar carrusel infinito
+    //  Inicializar carrusel infinito
     const track = document.getElementById('eventsCarouselTrack');
     if (track) {
         const slides = track.innerHTML;
@@ -12,9 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 🔔 Cargar notificaciones
     cargarNotificaciones();
+    
+    // Configurar cierre al tocar fuera (Overlay)
+    setupMobileCloseListeners();
 });
 
-// Notificaciones de ejemplo (eventos terminados)
+// Notificaciones de ejemplo
 const notificacionesEjemplo = [
     { id: 1, tipo: 'win', titulo: '¡Ganaste el Torneo Regional!', mensaje: 'El evento "Copa Norte 2024" ha finalizado. Quedaste en 1er lugar y ganaste +50 BC.', tiempo: 'Hace 5 minutos', leida: false },
     { id: 2, tipo: 'lose', titulo: 'Evento finalizado - Desafío Semanal', mensaje: 'No clasificaste al Desafío Semanal. ¡Sigue practicando para la próxima!', tiempo: 'Hace 2 horas', leida: false },
@@ -67,46 +70,77 @@ window.cerrarPanelesMovil = function() {
 };
 
 // Toggle Notificaciones (Adaptado para móvil)
-window.toggleNotifications = function() {
+window.toggleNotifications = function(e) {
+    if(e) e.stopPropagation(); // Evitar que el clic se propague
+    
+    const dropdown = document.getElementById('notificationDropdown');
+    const overlay = document.getElementById('mobileOverlay');
+    const userDropdown = document.getElementById('dropdownMenu');
+    
+    // Si estamos en móvil (menos de 768px)
     if (window.innerWidth <= 768) {
-        const dropdown = document.getElementById('notificationDropdown');
-        const overlay = document.getElementById('mobileOverlay');
-        
         if (dropdown.classList.contains('show')) {
             window.cerrarPanelesMovil();
         } else {
-            document.getElementById('dropdownMenu').classList.remove('show');
+            // Cerrar el menú de usuario si está abierto
+            userDropdown.classList.remove('show');
+            
+            // Abrir notificaciones y mostrar overlay
             dropdown.classList.add('show');
             if (overlay) overlay.style.display = 'block';
         }
     } else {
-        const dropdown = document.getElementById('notificationDropdown');
-        const btn = document.getElementById('notificationBtn');
-        dropdown.classList.toggle('show');
-        btn.classList.toggle('active');
-        document.getElementById('dropdownMenu').classList.remove('show');
+        // Comportamiento de escritorio (dropdown normal)
+        const isShowing = dropdown.classList.contains('show');
+        
+        // Cerrar menú de usuario
+        userDropdown.classList.remove('show');
+        document.getElementById('menuToggle').classList.remove('active');
+        
+        if (!isShowing) {
+            dropdown.classList.add('show');
+            document.getElementById('notificationBtn').classList.add('active');
+        } else {
+            dropdown.classList.remove('show');
+            document.getElementById('notificationBtn').classList.remove('active');
+        }
     }
 };
 
 // Toggle Menú de Usuario (Adaptado para móvil)
-window.toggleMenu = function() {
+window.toggleMenu = function(e) {
+    if(e) e.stopPropagation();
+    
+    const dropdown = document.getElementById('dropdownMenu');
+    const overlay = document.getElementById('mobileOverlay');
+    const notifDropdown = document.getElementById('notificationDropdown');
+    
     if (window.innerWidth <= 768) {
-        const dropdown = document.getElementById('dropdownMenu');
-        const overlay = document.getElementById('mobileOverlay');
-        
         if (dropdown.classList.contains('show')) {
             window.cerrarPanelesMovil();
         } else {
-            document.getElementById('notificationDropdown').classList.remove('show');
+            // Cerrar notificaciones si están abiertas
+            notifDropdown.classList.remove('show');
+            
+            // Abrir menú y mostrar overlay
             dropdown.classList.add('show');
             if (overlay) overlay.style.display = 'block';
         }
     } else {
-        const dropdown = document.getElementById('dropdownMenu');
-        const btn = document.getElementById('menuToggle');
-        dropdown.classList.toggle('show');
-        btn.classList.toggle('active');
-        document.getElementById('notificationDropdown').classList.remove('show');
+        // Comportamiento de escritorio
+        const isShowing = dropdown.classList.contains('show');
+        
+        // Cerrar notificaciones
+        notifDropdown.classList.remove('show');
+        document.getElementById('notificationBtn').classList.remove('active');
+        
+        if (!isShowing) {
+            dropdown.classList.add('show');
+            document.getElementById('menuToggle').classList.add('active');
+        } else {
+            dropdown.classList.remove('show');
+            document.getElementById('menuToggle').classList.remove('active');
+        }
     }
 };
 
@@ -125,13 +159,27 @@ window.marcarTodasLeidas = function(event) {
 };
 
 window.verMasNotificaciones = function() {
-    alert('🚧 El módulo "Mis Apuestas" estará disponible próximamente.');
+    alert(' El módulo "Mis Apuestas" estará disponible próximamente.');
 };
 
-// Cerrar al tocar el overlay
-document.addEventListener('click', function(event) {
+// Configurar listeners para cerrar al tocar fuera
+function setupMobileCloseListeners() {
     const overlay = document.getElementById('mobileOverlay');
-    if (event.target === overlay) {
-        window.cerrarPanelesMovil();
+    if (overlay) {
+        overlay.addEventListener('click', window.cerrarPanelesMovil);
     }
-});
+    
+    // También cerrar al hacer scroll (opcional, mejora UX en móvil)
+    let scrollTimeout;
+    document.addEventListener('scroll', () => {
+        if (window.innerWidth <= 768) {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                // Solo cerrar si el usuario scrollea mucho hacia abajo
+                if (window.scrollY > 100) {
+                    window.cerrarPanelesMovil();
+                }
+            }, 500);
+        }
+    }, { passive: true });
+}
