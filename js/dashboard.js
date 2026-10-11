@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     db.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
         }
     });
 
