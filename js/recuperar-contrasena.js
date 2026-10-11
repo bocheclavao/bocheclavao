@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Script de recuperación cargado');
+    console.log('📧 Script de recuperación cargado');
     
     const messageDiv = document.getElementById('message');
     const emailForm = document.getElementById('emailForm');
+    const passwordForm = document.getElementById('passwordForm');
     const emailInput = document.getElementById('email');
     const emailError = document.getElementById('emailError');
     const emailErrorText = document.getElementById('emailErrorText');
@@ -10,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const db = window.supabaseClient;
     let debounceTimer = null;
+    let isRecoveryMode = false;
 
     if (!db) {
         console.error('No se pudo obtener el cliente de Supabase');
@@ -20,10 +22,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (messageDiv) {
             messageDiv.textContent = text;
             messageDiv.className = 'message ' + type;
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    messageDiv.className = 'message';
+                }, 5000);
+            }
         }
     }
 
-    // 1. Función global para los ojitos (MUY IMPORTANTE)
+    function construirURL(base) {
+        const path = window.location.pathname;
+        const repoPath = path.substring(0, path.lastIndexOf('/'));
+        return window.location.origin + repoPath + base;
+    }
+
+    // 👁️ Mostrar/Ocultar contraseña
     window.togglePassword = function(inputId, iconElement) {
         const input = document.getElementById(inputId);
         if (!input || !iconElement) return;
@@ -39,13 +52,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    function construirURL(base) {
-        const path = window.location.pathname;
-        const repoPath = path.substring(0, path.lastIndexOf('/'));
-        return window.location.origin + repoPath + base;
-    }
+    // Volver al paso 1
+    window.volverAlPaso1 = function() {
+        document.getElementById('step1').style.display = 'block';
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'none';
+        document.getElementById('step4').style.display = 'none';
+    };
 
-    // 2. Inicializar requisitos en estado inválido (gris) al cargar
+    // 🎯 Detectar recuperación de contraseña desde enlace de email
+    db.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Evento de autenticación:', event);
+        
+        if (event === 'PASSWORD_RECOVERY') {
+            console.log('✅ Usuario viene del enlace de recuperación');
+            isRecoveryMode = true;
+            
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
+            document.getElementById('step4').style.display = 'none';
+            
+            inicializarRequisitos();
+            showMessage('Enlace verificado. Crea tu nueva contraseña.', 'success');
+        }
+    });
+
+    // Verificar también si ya hay sesión de recuperación (por si el evento no se dispara)
+    async function verificarSesionRecuperacion() {
+        const { data: { session } } = await db.auth.getSession();
+        if (session && window.location.hash.includes('recovery')) {
+            console.log('✅ Sesión de recuperación detectada por hash');
+            isRecoveryMode = true;
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
+            inicializarRequisitos();
+        }
+    }
+    verificarSesionRecuperacion();
+
+    // Inicializar requisitos
     function inicializarRequisitos() {
         const ids = ['req-length', 'req-letter', 'req-number', 'req-special'];
         ids.forEach(id => {
@@ -59,29 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. Detectar recuperación de contraseña
-    db.auth.onAuthStateChange((event, session) => {
-        console.log('Evento de autenticación:', event);
-        
-        if (event === 'PASSWORD_RECOVERY') {
-            console.log('Usuario viene del enlace de recuperación');
-            
-            const step1 = document.getElementById('step1');
-            const step3 = document.getElementById('step3');
-            
-            if (step1 && step3) {
-                step1.style.display = 'none';
-                step3.style.display = 'block';
-            }
-            
-            // Inicializar requisitos en gris cuando se muestra el paso 3
-            inicializarRequisitos();
-            
-            showMessage('Enlace verificado. Ahora crea tu nueva contraseña.', 'success');
-        }
-    });
-
-    // 4. Validación visual del email
+    // Validación visual del email
     if (emailInput) {
         emailInput.addEventListener('input', function() {
             const email = this.value.trim();
@@ -105,7 +129,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const { data, error } = await db.rpc('verificar_correo_existente', { p_email: email });
             
             if (error) {
-                console.warn('No se pudo verificar en tiempo real:', error.message);
+                console.warn('No se pudo verificar email:', error.message);
+                // No mostrar error, continuar normalmente
                 return;
             }
             
@@ -121,11 +146,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } catch (err) {
-            console.error('Error en verificación:', err);
+            console.warn('Error en verificación:', err.message);
         }
     }
 
-    // 5. Enviar enlace de recuperación
+    // 📧 Enviar enlace de recuperación
     if (emailForm) {
         emailForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -138,11 +163,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            if (btnEnviarCodigo) {
+                btnEnviarCodigo.disabled = true;
+                btnEnviarCodigo.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Enviando...';
+            }
+            
             showMessage('Enviando enlace de recuperación...', 'info');
             
             try {
                 const redirectURL = construirURL('/recuperar-contrasena.html');
-                console.log('URL de redirección:', redirectURL);
+                console.log('🔗 URL de redirección:', redirectURL);
                 
                 const { data, error } = await db.auth.resetPasswordForEmail(email, {
                     redirectTo: redirectURL
@@ -154,31 +184,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (error.message.includes('User not found') || error.message.includes('no user found')) {
                         showMessage('Este correo no está registrado en nuestro sistema.', 'error');
                         emailInput.classList.add('input-error');
-                        if (emailError) {
-                            emailErrorText.textContent = 'Este correo no está registrado';
-                            emailError.style.display = 'flex';
-                        }
-                    } else if (error.message.includes('For security purposes, you can only request this after')) {
-                        showMessage('Por seguridad, debes esperar unos segundos antes de solicitar otro enlace.', 'error');
-                    } else if (error.message.includes('rate limit') || error.message.includes('Too many requests')) {
-                        showMessage('Demasiados intentos. Por favor, espera un momento antes de intentar de nuevo.', 'error');
+                    } else if (error.message.includes('For security purposes') || error.message.includes('rate limit')) {
+                        showMessage('⏱️ Por seguridad, debes esperar 60 segundos antes de solicitar otro enlace.', 'error');
                     } else {
                         showMessage('Error: ' + error.message, 'error');
+                    }
+                    
+                    if (btnEnviarCodigo) {
+                        btnEnviarCodigo.disabled = false;
+                        btnEnviarCodigo.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar enlace de recuperación';
                     }
                     return;
                 }
                 
-                emailForm.style.display = 'none';
-                showMessage('Enlace de recuperación enviado. Revisa tu correo (y la carpeta de Spam). Haz clic en el botón para crear tu nueva contraseña.', 'success');
+                // Mostrar paso 2 (confirmación de envío)
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
+                document.getElementById('emailDisplay').textContent = email;
+                
+                showMessage('✅ Enlace enviado. Revisa tu correo.', 'success');
                 
             } catch (err) {
                 console.error('Error inesperado:', err);
                 showMessage('Error inesperado: ' + err.message, 'error');
+                if (btnEnviarCodigo) {
+                    btnEnviarCodigo.disabled = false;
+                    btnEnviarCodigo.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar enlace de recuperación';
+                }
             }
         });
     }
 
-    // 6. Validación en tiempo real de la nueva contraseña
+    // Validación en tiempo real de la nueva contraseña
     const newPasswordInput = document.getElementById('newPassword');
     if (newPasswordInput) {
         newPasswordInput.addEventListener('input', function() {
@@ -205,8 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 7. Actualizar contraseña
-    const passwordForm = document.getElementById('passwordForm');
+    // 🔐 Actualizar contraseña
     if (passwordForm) {
         passwordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -219,8 +255,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            if (newPassword.length < 8 || !/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
-                showMessage('La contraseña no cumple con los requisitos de seguridad.', 'error');
+            if (newPassword.length < 8) {
+                showMessage('La contraseña debe tener al menos 8 caracteres.', 'error');
+                return;
+            }
+            
+            if (!/[a-zA-Z]/.test(newPassword)) {
+                showMessage('La contraseña debe contener al menos una letra.', 'error');
+                return;
+            }
+            
+            if (!/[0-9]/.test(newPassword)) {
+                showMessage('La contraseña debe contener al menos un número.', 'error');
+                return;
+            }
+            
+            if (!/[^a-zA-Z0-9]/.test(newPassword)) {
+                showMessage('La contraseña debe contener al menos un carácter especial.', 'error');
                 return;
             }
             
@@ -233,14 +284,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (error) {
                     console.error('Error al actualizar contraseña:', error);
-                    showMessage('Error al actualizar: ' + error.message, 'error');
+                    showMessage('Error: ' + error.message, 'error');
                     return;
                 }
                 
+                // Cerrar sesión y mostrar éxito
                 await db.auth.signOut();
                 
-                showMessage('Contraseña actualizada exitosamente. Redirigiendo al login...', 'success');
+                // Mostrar paso 4 (éxito)
+                document.getElementById('step3').style.display = 'none';
+                document.getElementById('step4').style.display = 'block';
                 
+                // Redirigir al login después de 2.5 segundos
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 2500);
