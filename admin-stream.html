@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transmisión en Vivo - Boche Clava'o</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            background: #000000; 
+            min-height: 100vh; 
+            color: #ffffff; 
+            padding: 20px;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 25%);
+        }
+        
+        .back-link { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px;
+            margin-bottom: 20px; 
+            color: #FFD700; 
+            text-decoration: none; 
+            padding: 10px 20px; 
+            border: 1px solid #FFD700; 
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .back-link:hover { background: #FFD700; color: #000; transform: translateX(-5px); }
+        
+        .module-header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            padding: 25px; 
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); 
+            border-radius: 12px; 
+            border: 1px solid #FFD700;
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.1);
+        }
+        .module-header h1 { 
+            color: #FFD700; 
+            font-size: 1.8rem; 
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .module-header p { color: #999; font-size: 0.95rem; }
+        
+        /* ========== ESTADÍSTICAS ========== */
+        .stats-bar { 
+            display: flex; 
+            gap: 15px; 
+            justify-content: center; 
+            margin-bottom: 25px; 
+            flex-wrap: wrap;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .stat-box { 
+            background: #0a0a0a; 
+            border: 1px solid #222; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            min-width: 150px; 
+            flex: 1; 
+            max-width: 220px;
+            transition: all 0.3s;
+        }
+        .stat-box:hover { border-color: #FFD700; transform: translateY(-3px); }
+        .stat-box .number { font-size: 1.5rem; font-weight: 800; color: #FFD700; }
+        .stat-box .label { color: #999; font-size: 0.8rem; margin-top: 5px; }
+        .stat-box.live { border-color: #ff0000; }
+        .stat-box.live .number { color: #ff0000; }
+        
+        /* ========== LAYOUT 2 COLUMNAS ========== */
+        .stream-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .stream-panel {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 25px;
+        }
+        .stream-panel h3 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* ========== TOGGLE SWITCH ========== */
+        .toggle-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            background: #111; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border: 1px solid #333; 
+            margin-bottom: 20px;
+        }
+        .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { 
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+            background-color: #333; transition: .4s; border-radius: 34px; 
+        }
+        .slider:before { 
+            position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; 
+            background-color: white; transition: .4s; border-radius: 50%; 
+        }
+        input:checked + .slider { background-color: #00ff00; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        /* ========== BADGE EN VIVO ========== */
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 8px; background: #ff0000; color: #fff;
+            padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; animation: pulse-live 2s infinite;
+        }
+        @keyframes pulse-live { 
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 
+            50% { opacity: 0.9; box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 
+        }
+        .live-dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .offline-badge {
+            display: inline-flex; align-items: center; gap: 8px; background: #333; color: #999;
+            padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        
+        /* ========== FORMULARIO ========== */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { 
+            display: block; color: #ccc; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; 
+        }
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea { 
+            width: 100%; padding: 12px; background: #111; border: 1px solid #333; 
+            border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem; 
+        }
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus { outline: none; border-color: #FFD700; }
+        .form-group textarea { resize: vertical; min-height: 90px; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .url-hint {
+            margin-top: 8px; padding: 10px; background: rgba(255, 215, 0, 0.05);
+            border: 1px solid #333; border-radius: 6px; font-size: 0.8rem; color: #999;
+            display: none;
+        }
+        .url-hint.show { display: block; }
+        .url-hint i { color: #FFD700; margin-right: 5px; }
+        .url-hint code { color: #FFD700; background: #111; padding: 2px 5px; border-radius: 3px; }
+        
+        /* ========== BOTONES ========== */
+        .btn { 
+            padding: 12px 25px; border: none; border-radius: 8px; font-weight: 700; 
+            cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s; 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            font-size: 0.9rem;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-save { 
+            background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%); color: #000; 
+            width: 100%; font-size: 1.05rem; padding: 15px; margin-top: 10px;
+        }
+        .btn-save:hover { background: linear-gradient(135deg, #00cc00 0%, #009900 100%); }
+        .btn-preview { background: #333; color: #fff; width: 100%; margin-top: 15px; }
+        .btn-preview:hover { background: #444; }
+        
+        .stream-status-msg { 
+            margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; 
+            display: none; font-weight: 600; 
+        }
+        .stream-status-msg.success { display: block; background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
+        .stream-status-msg.error { display: block; background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; }
+        
+        /* ========== VISTA PREVIA ========== */
+        .video-container { 
+            position: relative; width: 100%; padding-bottom: 56.25%; 
+            background: #000; border-radius: 12px; overflow: hidden; 
+            border: 2px solid #222;
+        }
+        .video-container.live-border { border-color: #ff0000; box-shadow: 0 0 30px rgba(255, 0, 0, 0.3); }
+        .video-container video, .video-container iframe { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; 
+        }
+        .video-placeholder {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); color: #666;
+        }
+        .video-placeholder i { font-size: 4rem; margin-bottom: 15px; color: #333; }
+        .video-placeholder p { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+        .video-placeholder span { font-size: 0.85rem; color: #999; }
+        
+        .preview-info {
+            margin-top: 15px; padding: 15px; background: #111; border: 1px solid #333;
+            border-radius: 8px; font-size: 0.85rem; color: #999; line-height: 1.6;
+        }
+        .preview-info strong { color: #FFD700; }
+        
+        /* ========== GUÍA RÁPIDA ========== */
+        .guide-box {
+            max-width: 1400px; margin: 25px auto 0; background: #0a0a0a;
+            border: 1px solid #222; border-radius: 12px; padding: 25px;
+        }
+        .guide-box h3 { color: #FFD700; margin-bottom: 15px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .guide-item { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; }
+        .guide-item h4 { color: #fff; font-size: 0.95rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .guide-item h4 i { color: #FFD700; }
+        .guide-item p { color: #999; font-size: 0.8rem; line-height: 1.5; margin-bottom: 8px; }
+        .guide-item code { 
+            display: block; background: #0a0a0a; color: #00ff00; padding: 8px; 
+            border-radius: 4px; font-size: 0.75rem; word-break: break-all; 
+        }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 900px) {
+            .stream-layout { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .module-header h1 { font-size: 1.3rem; flex-direction: column; }
+            .stat-box { min-width: 120px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="admin.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> Volver al Panel
+    </a>
+
+    <div class="module-header">
+        <h1><i class="fas fa-broadcast-tower"></i> Transmisión en Vivo</h1>
+        <p>Configura y gestiona tus streams de YouTube, Twitch o HLS</p>
+    </div>
+
+    <!-- ========== ESTADÍSTICAS ========== -->
+    <div id="statsBar" class="stats-bar"></div>
+
+    <!-- ========== LAYOUT PRINCIPAL ========== -->
+    <div class="stream-layout">
+        <!-- COLUMNA 1: CONFIGURACIÓN -->
+        <div class="stream-panel">
+            <h3><i class="fas fa-satellite-dish"></i> Configuración del Stream</h3>
+            
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="streamActivo">
+                    <span class="slider"></span>
+                </label>
+                <span id="streamStatusText" style="color: #999; font-weight: 600;">Desactivada</span>
+            </div>
+
+            <div class="form-group">
+                <label>Título del Evento *</label>
+                <input type="text" id="streamTitulo" placeholder="Ej: Final Nacional de Bochas 2026">
+            </div>
+
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="streamDescripcion" placeholder="Breve descripción del evento en vivo..."></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tipo de Stream</label>
+                    <select id="streamTipo">
+                        <option value="youtube">YouTube Live</option>
+                        <option value="twitch">Twitch</option>
+                        <option value="hls">HLS (OBS / Cámara IP)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Espectadores</label>
+                    <input type="number" id="streamEspectadores" min="0" placeholder="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>URL del Stream *</label>
+                <input type="text" id="streamUrl" placeholder="https://...">
+                <div class="url-hint" id="urlHint"></div>
+            </div>
+
+            <button class="btn btn-save" id="btnGuardarStream">
+                <i class="fas fa-save"></i> Guardar y Actualizar Transmisión
+            </button>
+
+            <div id="streamStatusMsg" class="stream-status-msg"></div>
+        </div>
+
+        <!-- COLUMNA 2: VISTA PREVIA -->
+        <div class="stream-panel">
+            <h3><i class="fas fa-eye"></i> Vista Previa <span id="previewLiveBadge"></span></h3>
+            
+            <div class="video-container" id="videoContainer">
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <i class="fas fa-video-slash"></i>
+                    <p>Sin vista previa</p>
+                    <span>Configura una URL y pulsa "Cargar Vista Previa"</span>
+                </div>
+                <video id="liveVideo" style="display: none;" controls muted></video>
+                <iframe id="liveIframe" style="display: none;" allowfullscreen allow="autoplay; encrypted-media; fullscreen"></iframe>
+            </div>
+
+            <button class="btn btn-preview" id="btnRefreshPreview">
+                <i class="fas fa-sync-alt"></i> Cargar Vista Previa
+            </button>
+
+            <div class="preview-info" id="previewInfo">
+                <strong>Consejo:</strong> La vista previa es solo para ti (admin). 
+                Los usuarios verán el stream en su dashboard cuando actives la transmisión.
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== GUÍA RÁPIDA ========== -->
+    <div class="guide-box">
+        <h3><i class="fas fa-book"></i> Guía Rápida de URLs</h3>
+        <div class="guide-grid">
+            <div class="guide-item">
+                <h4><i class="fab fa-youtube"></i> YouTube Live</h4>
+                <p>Pega el link normal del directo o del video. El sistema lo convierte solo.</p>
+                <code>https://www.youtube.com/watch?v=XXXXX</code>
+                <code>https://youtu.be/XXXXX</code>
+            </div>
+            <div class="guide-item">
+                <h4><i class="fab fa-twitch"></i> Twitch</h4>
+                <p>Pega el link de tu canal. El sistema genera el embed automáticamente.</p>
+                <code>https://www.twitch.tv/tucanal</code>
+            </div>
+            <div class="guide-item">
+                <h4><i class="fas fa-video"></i> HLS (OBS / Cámara IP)</h4>
+                <p>Usa la URL .m3u8 de tu servidor de streaming (Nginx, Wowza, etc).</p>
+                <code>https://servidor.com/stream.m3u8</code>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/admin-stream.js"></script>
+</body>
+</html>
