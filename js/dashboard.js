@@ -635,3 +635,39 @@ async function cerrarSesion() {
         alert('Hubo un error al cerrar sesión.');
     }
 }
+// ============================================
+// ⚡ 10. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
+// ============================================
+function iniciarRealtime() {
+    if (!currentUser) return;
+
+    // 1. Escuchar cambios en el saldo del usuario
+    const channelSaldo = db.channel('saldo_updates')
+        .on('postgres_changes', 
+            { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${currentUser.id}` }, 
+            (payload) => {
+                const nuevoSaldo = payload.new.saldo_bc;
+                // Animación suave de actualización del saldo
+                document.getElementById('balanceAmount').textContent = `${nuevoSaldo.toFixed(2)} BC`;
+                
+                // Opcional: Mostrar notificación toast de "Saldo actualizado"
+                console.log('💰 Saldo actualizado en tiempo real:', nuevoSaldo);
+            }
+        )
+        .subscribe();
+
+    // 2. Escuchar nuevas notificaciones
+    const channelNotif = db.channel('notificaciones_updates')
+        .on('postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${currentUser.id}` },
+            (payload) => {
+                console.log('🔔 Nueva notificación recibida:', payload.new);
+                // Aquí llamarías a tu función para actualizar el badge y la lista
+                // ej: agregarNotificacionAlDOM(payload.new);
+            }
+        )
+        .subscribe();
+}
+
+// Llama a esta función después de que el usuario se cargue exitosamente
+// (Justo después de `contentState.style.display = 'block';` en protegerRuta)
