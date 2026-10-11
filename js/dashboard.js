@@ -30,42 +30,52 @@ document.addEventListener('DOMContentLoaded', async function() {
     let estadoKyc = null;
     let saldoBC = 0;
     let currentUser = null;
-    let sessionCheckInterval = null;
+    let sessionCheckActive = false;
 
     // 🚨 CREAR MODAL DE ALERTA DE SESIÓN DUPLICADA
     function crearModalSesionDuplicada() {
+        // Eliminar modal existente si hay
+        const existing = document.getElementById('duplicateSessionModal');
+        if (existing) existing.remove();
+
         const modal = document.createElement('div');
         modal.id = 'duplicateSessionModal';
         modal.style.cssText = `
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 100000;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 999999;
             justify-content: center;
             align-items: center;
-            animation: fadeIn 0.3s ease;
+            padding: 20px;
         `;
         
         modal.innerHTML = `
-            <style>
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-            </style>
             <div style="
                 background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
                 border: 2px solid #ff0000;
                 border-radius: 16px;
-                padding: 40px;
+                padding: 40px 30px;
                 max-width: 450px;
-                width: 90%;
+                width: 100%;
                 text-align: center;
-                box-shadow: 0 20px 60px rgba(255, 0, 0, 0.3);
-                animation: slideUp 0.4s ease;
+                box-shadow: 0 20px 60px rgba(255, 0, 0, 0.4);
+                animation: modalAppear 0.4s ease;
             ">
+                <style>
+                    @keyframes modalAppear {
+                        from { transform: scale(0.8); opacity: 0; }
+                        to { transform: scale(1); opacity: 1; }
+                    }
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.05); }
+                    }
+                </style>
                 <div style="
                     width: 80px; height: 80px;
-                    background: rgba(255, 0, 0, 0.1);
+                    background: rgba(255, 0, 0, 0.15);
                     border: 2px solid #ff0000;
                     border-radius: 50%;
                     display: flex; align-items: center; justify-content: center;
@@ -75,10 +85,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 ">
                     <i class="fas fa-shield-alt" style="color: #ff0000;"></i>
                 </div>
-                <h2 style="color: #ff0000; font-size: 1.5rem; margin-bottom: 15px; font-weight: 800;">
+                <h2 style="color: #ff0000; font-size: 1.4rem; margin-bottom: 15px; font-weight: 800; font-family: 'Montserrat', sans-serif;">
                     ⚠️ Sesión Duplicada Detectada
                 </h2>
-                <p style="color: #cccccc; font-size: 1rem; line-height: 1.6; margin-bottom: 25px;">
+                <p style="color: #cccccc; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; font-family: 'Montserrat', sans-serif;">
                     Se ha iniciado sesión en otro dispositivo. Esta sesión se cerrará automáticamente por motivos de seguridad.
                 </p>
                 <button id="closeSessionBtn" style="
@@ -101,9 +111,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         document.body.appendChild(modal);
         
-        // Cerrar sesión al hacer clic en el botón
         document.getElementById('closeSessionBtn').addEventListener('click', async () => {
             await db.auth.signOut({ scope: 'global' });
+            localStorage.removeItem('session_token');
             window.location.href = 'index.html';
         });
         
@@ -112,66 +122,85 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     const duplicateModal = crearModalSesionDuplicada();
 
-    // 🚨 FUNCIÓN PARA MOSTRAR EL MODAL Y CERRAR SESIÓN
+    // 🚨 FUNCIÓN PARA VERIFICAR SESIÓN Y MOSTRAR ALERTA
+    async function verificarSesionActiva() {
+        if (sessionCheckActive) return; // Evitar verificaciones simultáneas
+        if (!currentUser) return;
+        
+        sessionCheckActive = true;
+        
+        try {
+            const localToken = localStorage.getItem('session_token');
+            if (!localToken) {
+                mostrarAlertaSesionDuplicada();
+                return;
+            }
+
+            const { data, error } = await db
+                .from('active_sessions')
+                .select('session_token')
+                .eq('user_id', currentUser.id)
+                .single();
+
+            if (error || !data) {
+                mostrarAlertaSesionDuplicada();
+                return;
+            }
+
+            // Si el token en la BD no coincide con el local, hay una nueva sesión
+            if (data.session_token !== localToken) {
+                mostrarAlertaSesionDuplicada();
+            } else {
+                // Actualizar last_active
+                await db
+                    .from('active_sessions')
+                    .update({ last_active: new Date().toISOString() })
+                    .eq('user_id', currentUser.id);
+            }
+        } catch (err) {
+            console.error('Error verificando sesión:', err);
+        } finally {
+            sessionCheckActive = false;
+        }
+    }
+
     function mostrarAlertaSesionDuplicada() {
-        if (duplicateModal.style.display === 'flex') return; // Ya está mostrando
+        if (duplicateModal.style.display === 'flex') return;
         
         duplicateModal.style.display = 'flex';
         
-        // Auto-cerrar después de 10 segundos si no hace clic
+        // Auto-cerrar después de 8 segundos
         setTimeout(() => {
             if (duplicateModal.style.display === 'flex') {
                 db.auth.signOut({ scope: 'global' }).then(() => {
+                    localStorage.removeItem('session_token');
                     window.location.href = 'index.html';
                 });
             }
-        }, 10000);
+        }, 8000);
     }
 
-    //  LISTENER DE REALTIME PARA DETECTAR NUEVA SESIÓN
-    async function setupSessionListener() {
-        if (!currentUser) return;
-        
-        const channel = db.channel(`session_${currentUser.id}`)
-            .on('broadcast', { event: 'new_session' }, (payload) => {
-                console.log('🚨 Nueva sesión detectada:', payload);
-                mostrarAlertaSesionDuplicada();
-            })
-            .subscribe();
-        
-        return channel;
-    }
-
-    // 🚨 LISTENER DE CLICS PARA VERIFICAR SESIÓN
-    function setupClickListener() {
+    // ️ LISTENER DE INTERACCIONES (clic, scroll, touch)
+    function setupInteractionListeners() {
         let lastCheck = 0;
         
-        document.addEventListener('click', async (e) => {
-            // No verificar si el modal ya está abierto
-            if (duplicateModal.style.display === 'flex') return;
-            
-            // Verificar cada 3 segundos máximo (debounce)
+        const checkOnInteraction = async () => {
             const now = Date.now();
-            if (now - lastCheck < 3000) return;
+            if (now - lastCheck < 2000) return; // Verificar cada 2 segundos máximo
             lastCheck = now;
-            
-            // Verificar si la sesión sigue siendo válida
-            const { data: { session } } = await db.auth.getSession();
-            if (!session) {
-                mostrarAlertaSesionDuplicada();
-            }
-        });
+            await verificarSesionActiva();
+        };
+
+        document.addEventListener('click', checkOnInteraction);
+        document.addEventListener('touchstart', checkOnInteraction);
+        document.addEventListener('scroll', checkOnInteraction);
+        document.addEventListener('keypress', checkOnInteraction);
     }
 
     db.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
+            localStorage.removeItem('session_token');
             sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
-            sessionStorage.setItem('auth_type', 'info');
-            window.location.href = 'index.html';
-        }
-        
-        if (event === 'TOKEN_REFRESHED' && !session) {
-            sessionStorage.setItem('auth_message', 'Tu sesión ha expirado o fue cerrada desde otro lugar.');
             sessionStorage.setItem('auth_type', 'info');
             window.location.href = 'index.html';
         }
@@ -483,15 +512,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { data: { user }, error: userError } = await db.auth.getUser();
             if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
 
-            currentUser = user; // Guardar usuario actual para el listener
+            currentUser = user;
             const perfil = await cargarOCrearPerfil(user);
             estadoKyc = perfil?.estado_kyc || null;
             mostrarDatos(user, perfil);
             await cargarStreamEnVivo();
             
-            // 🚨 ACTIVAR LISTENERS DE SESIÓN DUPLICADA
-            await setupSessionListener();
-            setupClickListener();
+            // 🚨 ACTIVAR DETECCIÓN DE SESIÓN DUPLICADA
+            setupInteractionListeners();
             
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
@@ -512,6 +540,7 @@ async function cerrarSesion() {
     try {
         const { error } = await db.auth.signOut({ scope: 'global' });
         if (error) throw error;
+        localStorage.removeItem('session_token');
         window.location.href = 'index.html';
     } catch (err) {
         console.error('Error al cerrar sesión:', err);
