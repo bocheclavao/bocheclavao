@@ -183,23 +183,36 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // ✅ 3. LÓGICA DE MENÚS MÓVILES (A prueba de blur y scroll)
     window.cerrarPanelesMovil = function() {
-        if (dropdownMenu) dropdownMenu.classList.remove('show');
-        if (notificationDropdown) notificationDropdown.classList.remove('show');
+        if (dropdownMenu) {
+            dropdownMenu.classList.remove('show');
+            dropdownMenu.style.transform = '';
+            dropdownMenu.style.opacity = '';
+            dropdownMenu.style.visibility = '';
+        }
+        if (notificationDropdown) {
+            notificationDropdown.classList.remove('show');
+            notificationDropdown.style.transform = '';
+            notificationDropdown.style.opacity = '';
+            notificationDropdown.style.visibility = '';
+        }
         if (mobileOverlay) mobileOverlay.classList.remove('active');
         if (menuToggle) menuToggle.classList.remove('active');
         if (notificationBtn) notificationBtn.classList.remove('active');
 
-        // Liberar scroll y volver a la posición
+        // Liberar scroll
+        document.body.classList.remove('menu-open');
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.width = '';
         document.body.style.overflow = '';
+        
         const scrollY = parseInt(document.body.dataset.scrollPos || '0');
         window.scrollTo(0, scrollY);
     };
 
     function bloquearScrollFondo() {
         const scrollY = window.scrollY;
+        document.body.classList.add('menu-open');
         document.body.style.position = 'fixed';
         document.body.style.top = `-${scrollY}px`;
         document.body.style.width = '100%';
@@ -207,29 +220,70 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.dataset.scrollPos = scrollY;
     }
 
-    window.toggleMenu = function(event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        if (notificationDropdown && notificationDropdown.classList.contains('show')) notificationDropdown.classList.remove('show');
+    // ✅ FORZAR VISIBILIDAD (Truco nuclear para móviles)
+    function forzarVisibilidadMenu(elemento) {
+        if (!elemento) return;
         
+        // Limpiar estilos inline que puedan estar bloqueando
+        elemento.style.transform = '';
+        elemento.style.opacity = '';
+        elemento.style.visibility = '';
+        elemento.style.display = '';
+        
+        // Forzar reflow (recálculo del navegador)
+        void elemento.offsetHeight;
+        
+        // Añadir clase show
+        elemento.classList.add('show');
+        
+        // Backup inline por si el CSS no aplica
+        setTimeout(() => {
+            elemento.style.transform = 'translateY(0) translateZ(0)';
+            elemento.style.opacity = '1';
+            elemento.style.visibility = 'visible';
+            elemento.style.pointerEvents = 'auto';
+        }, 10);
+    }
+
+    window.toggleMenu = function(event) {
+        if (event) { 
+            event.preventDefault(); 
+            event.stopPropagation(); 
+        }
+
+        if (notificationDropdown && notificationDropdown.classList.contains('show')) {
+            notificationDropdown.classList.remove('show');
+        }
+
         const isShowing = dropdownMenu.classList.contains('show');
-        if (isShowing) { cerrarPanelesMovil(); } 
-        else {
+        
+        if (isShowing) {
+            cerrarPanelesMovil();
+        } else {
             bloquearScrollFondo();
-            dropdownMenu.classList.add('show');
+            forzarVisibilidadMenu(dropdownMenu);
             if (menuToggle) menuToggle.classList.add('active');
             if (mobileOverlay) mobileOverlay.classList.add('active');
         }
     };
 
     window.toggleNotifications = function(event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        if (dropdownMenu && dropdownMenu.classList.contains('show')) dropdownMenu.classList.remove('show');
-        
+        if (event) { 
+            event.preventDefault(); 
+            event.stopPropagation(); 
+        }
+
+        if (dropdownMenu && dropdownMenu.classList.contains('show')) {
+            dropdownMenu.classList.remove('show');
+        }
+
         const isShowing = notificationDropdown.classList.contains('show');
-        if (isShowing) { cerrarPanelesMovil(); } 
-        else {
+
+        if (isShowing) {
+            cerrarPanelesMovil();
+        } else {
             bloquearScrollFondo();
-            notificationDropdown.classList.add('show');
+            forzarVisibilidadMenu(notificationDropdown);
             if (notificationBtn) notificationBtn.classList.add('active');
             if (mobileOverlay) mobileOverlay.classList.add('active');
         }
@@ -244,6 +298,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         menuToggle.onclick = null;
         menuToggle.addEventListener('click', toggleMenu);
     }
+    
+    // Asignar evento a los panel-close-btn (barras superiores de los menús móviles)
+    document.querySelectorAll('.panel-close-btn').forEach(btn => {
+        btn.addEventListener('click', window.cerrarPanelesMovil);
+    });
     
     if (mobileOverlay) {
         mobileOverlay.addEventListener('click', window.cerrarPanelesMovil);
@@ -345,10 +404,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     function mostrarAvatarNavbar(nombre, avatarUrl) {
         if (avatarUrl) {
-            navAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-small" onclick="toggleMenu(event)">`;
+            navAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-small">`;
         } else {
             const inicial = (nombre || 'U').charAt(0).toUpperCase();
-            navAvatarContainer.innerHTML = `<div class="avatar-placeholder-small" onclick="toggleMenu(event)">${inicial}</div>`;
+            navAvatarContainer.innerHTML = `<div class="avatar-placeholder-small">${inicial}</div>`;
         }
     }
 
