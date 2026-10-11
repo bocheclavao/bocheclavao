@@ -165,3 +165,52 @@ document.addEventListener('click', function(event) {
         if (menuToggle) menuToggle.classList.remove('active');
     }
 });
+
+// Cerrar dropdowns al tocar el overlay en móvil
+function cerrarDropdownsMovil() {
+    const overlay = document.getElementById('mobileOverlay');
+    const notifDropdown = document.getElementById('notificationDropdown');
+    const userDropdown = document.getElementById('dropdownMenu');
+    
+    if (overlay) overlay.style.display = 'none';
+    if (notifDropdown) notifDropdown.classList.remove('show');
+    if (userDropdown) userDropdown.classList.remove('show');
+}
+
+// Modificar toggleNotifications para mostrar el overlay en móvil
+const originalToggleNotifications = window.toggleNotifications;
+window.toggleNotifications = function() {
+    const dropdown = document.getElementById('notificationDropdown');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    if (window.innerWidth <= 768) {
+        // En móvil: usar overlay
+        if (dropdown.classList.contains('show')) {
+            cerrarDropdownsMovil();
+        } else {
+            dropdown.classList.add('show');
+            if (overlay) overlay.style.display = 'block';
+        }
+    } else {
+        // En desktop: comportamiento normal
+        dropdown.classList.toggle('show');
+    }
+};
+
+// Lo mismo para el menú de usuario
+const originalToggleMenu = window.toggleMenu;
+window.toggleMenu = function() {
+    const dropdown = document.getElementById('dropdownMenu');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    if (window.innerWidth <= 768) {
+        if (dropdown.classList.contains('show')) {
+            cerrarDropdownsMovil();
+        } else {
+            dropdown.classList.add('show');
+            if (overlay) overlay.style.display = 'block';
+        }
+    } else {
+        dropdown.classList.toggle('show');
+    }
+};
