@@ -242,68 +242,93 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 🔐 Actualizar contraseña
-    if (passwordForm) {
-        passwordForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+ // 🔐 Actualizar contraseña
+if (passwordForm) {
+    passwordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (newPassword !== confirmPassword) {
+            showMessage('Las contraseñas no coinciden', 'error');
+            return;
+        }
+        
+        if (newPassword.length < 8) {
+            showMessage('La contraseña debe tener al menos 8 caracteres.', 'error');
+            return;
+        }
+        
+        if (!/[a-zA-Z]/.test(newPassword)) {
+            showMessage('La contraseña debe contener al menos una letra.', 'error');
+            return;
+        }
+        
+        if (!/[0-9]/.test(newPassword)) {
+            showMessage('La contraseña debe contener al menos un número.', 'error');
+            return;
+        }
+        
+        if (!/[^a-zA-Z0-9]/.test(newPassword)) {
+            showMessage('La contraseña debe contener al menos un carácter especial.', 'error');
+            return;
+        }
+        
+        showMessage('Actualizando contraseña...', 'info');
+        
+        try {
+            const { data, error } = await db.auth.updateUser({
+                password: newPassword
+            });
             
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            if (newPassword !== confirmPassword) {
-                showMessage('Las contraseñas no coinciden', 'error');
-                return;
-            }
-            
-            if (newPassword.length < 8) {
-                showMessage('La contraseña debe tener al menos 8 caracteres.', 'error');
-                return;
-            }
-            
-            if (!/[a-zA-Z]/.test(newPassword)) {
-                showMessage('La contraseña debe contener al menos una letra.', 'error');
-                return;
-            }
-            
-            if (!/[0-9]/.test(newPassword)) {
-                showMessage('La contraseña debe contener al menos un número.', 'error');
-                return;
-            }
-            
-            if (!/[^a-zA-Z0-9]/.test(newPassword)) {
-                showMessage('La contraseña debe contener al menos un carácter especial.', 'error');
-                return;
-            }
-            
-            showMessage('Actualizando contraseña...', 'info');
-            
-            try {
-                const { data, error } = await db.auth.updateUser({
-                    password: newPassword
-                });
+            if (error) {
+                console.error('Error al actualizar contraseña:', error);
                 
-                if (error) {
-                    console.error('Error al actualizar contraseña:', error);
-                    showMessage('Error: ' + error.message, 'error');
-                    return;
+                // 🌐 TRADUCCIÓN DE MENSAJES DE ERROR AL ESPAÑOL
+                let mensajeError = error.message;
+                
+                if (error.message.includes('different from the old password')) {
+                    mensajeError = 'La nueva contraseña debe ser diferente a la actual.';
+                } else if (error.message.includes('Password should be at least')) {
+                    mensajeError = 'La contraseña debe tener al menos 8 caracteres.';
+                } else if (error.message.includes('User not found')) {
+                    mensajeError = 'Usuario no encontrado. Por favor, solicita un nuevo enlace.';
+                } else if (error.message.includes('invalid_refresh_token') || error.message.includes('expired')) {
+                    mensajeError = 'El enlace ha expirado. Por favor, solicita uno nuevo desde el login.';
+                } else if (error.message.includes('rate limit')) {
+                    mensajeError = 'Demasiados intentos. Por favor, espera un momento.';
                 }
                 
-                // Cerrar sesión y mostrar éxito
-                await db.auth.signOut();
+                showMessage('❌ ' + mensajeError, 'error');
                 
-                // Mostrar paso 4 (éxito)
-                document.getElementById('step3').style.display = 'none';
-                document.getElementById('step4').style.display = 'block';
+                // Si el enlace expiró, ofrecer solicitar uno nuevo
+                if (error.message.includes('expired') || error.message.includes('invalid_refresh_token')) {
+                    setTimeout(() => {
+                        document.getElementById('step3').style.display = 'none';
+                        document.getElementById('step1').style.display = 'block';
+                    }, 3000);
+                }
                 
-                // Redirigir al login después de 2.5 segundos
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2500);
-                
-            } catch (err) {
-                console.error('Error inesperado:', err);
-                showMessage('Error inesperado: ' + err.message, 'error');
+                return;
             }
-        });
-    }
+            
+            // Cerrar sesión y mostrar éxito
+            await db.auth.signOut();
+            
+            // Mostrar paso 4 (éxito)
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step4').style.display = 'block';
+            
+            // Redirigir al login después de 2.5 segundos
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2500);
+            
+        } catch (err) {
+            console.error('Error inesperado:', err);
+            showMessage('Error inesperado: ' + err.message, 'error');
+        }
+    });
+}
 });
