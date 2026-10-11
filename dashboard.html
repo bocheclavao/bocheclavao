@@ -599,10 +599,10 @@ body.menu-open {
 
         <div class="user-actions">
             <div style="position: relative;">
-                <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications()">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge" id="notificationBadge">0</span>
-                </button>
+                <button class="notification-btn" id="notificationBtn" onclick="toggleNotifications(event)">
+    <i class="fas fa-bell"></i>
+    <span class="notification-badge" id="notificationBadge">0</span>
+</button>
                 
                 <div class="notification-dropdown" id="notificationDropdown">
                     <div class="panel-close-btn" onclick="cerrarPanelesMovil()"></div>
@@ -621,9 +621,9 @@ body.menu-open {
 
             <div class="user-menu-container">
                 <div id="navAvatarContainer"></div>
-                <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
-                    <i class="fas fa-chevron-down"></i>
-                </button>
+             <button class="menu-toggle" id="menuToggle" onclick="toggleMenu(event)">
+    <i class="fas fa-chevron-down"></i>
+</button>
                 
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="panel-close-btn" onclick="cerrarPanelesMovil()"></div>
