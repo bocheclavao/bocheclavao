@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Chat - Boche Clava'o</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Montserrat', sans-serif; background: #000; color: #fff; height: 100vh; display: flex; }
+        
+        /* Sidebar: Lista de usuarios */
+        .chat-sidebar {
+            width: 350px; background: #0a0a0a; border-right: 1px solid #222;
+            display: flex; flex-direction: column;
+        }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #222; }
+        .sidebar-header h2 { color: #FFD700; font-size: 1.2rem; }
+        .user-list { flex: 1; overflow-y: auto; }
+        .user-item {
+            padding: 15px 20px; border-bottom: 1px solid #1a1a1a; cursor: pointer;
+            transition: background 0.2s; display: flex; justify-content: space-between; align-items: center;
+        }
+        .user-item:hover, .user-item.active { background: rgba(255, 215, 0, 0.1); }
+        .user-item .name { font-weight: 600; color: #fff; font-size: 0.9rem; }
+        .user-item .preview { color: #888; font-size: 0.8rem; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        .user-item .time { font-size: 0.7rem; color: #666; }
+        .user-item .unread-dot { width: 10px; height: 10px; background: #ff0000; border-radius: 50%; display: none; }
+        .user-item.has-unread .unread-dot { display: block; }
+        .user-item.has-unread .name { color: #FFD700; }
+
+        /* Área principal de chat */
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: #050505; }
+        .chat-main-header {
+            padding: 15px 25px; border-bottom: 1px solid #222; background: #0a0a0a;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .chat-main-header h3 { color: #FFD700; font-size: 1rem; }
+        .chat-main-header span { color: #888; font-size: 0.8rem; }
+        
+        .main-messages { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
+        .main-msg { max-width: 70%; padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.4; }
+        .main-msg.from-user { align-self: flex-start; background: #1a1a1a; border: 1px solid #333; color: #fff; border-bottom-left-radius: 4px; }
+        .main-msg.from-admin { align-self: flex-end; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border-bottom-right-radius: 4px; }
+        .main-msg .time { font-size: 0.65rem; opacity: 0.7; margin-top: 5px; text-align: right; }
+
+        .main-input-area {
+            padding: 20px; border-top: 1px solid #222; background: #0a0a0a;
+            display: flex; gap: 10px;
+        }
+        .main-input-area input {
+            flex: 1; background: #111; border: 1px solid #333; border-radius: 8px;
+            padding: 12px 15px; color: #fff; font-family: 'Montserrat', sans-serif; outline: none;
+        }
+        .main-input-area input:focus { border-color: #FFD700; }
+        .main-send-btn {
+            background: #FFD700; color: #000; border: none; padding: 0 25px;
+            border-radius: 8px; cursor: pointer; font-weight: 700; font-family: 'Montserrat', sans-serif;
+            transition: transform 0.2s;
+        }
+        .main-send-btn:hover { transform: scale(1.05); }
+        .no-chat-selected { flex: 1; display: flex; align-items: center; justify-content: center; color: #666; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <div class="chat-sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-headset"></i> Soporte Usuarios</h2>
+        </div>
+        <div class="user-list" id="userList">
+            <div style="padding: 20px; text-align: center; color: #666;">Cargando chats...</div>
+        </div>
+    </div>
+
+    <div class="chat-main" id="chatMain">
+        <div class="no-chat-selected">Selecciona un usuario para chatear</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script>
+        const db = window.supabaseClient;
+        let currentChatUserId = null;
+        let adminId = null;
+
+        async function init() {
+            const { data: { user } } = await db.auth.getUser();
+            if (!user) { window.location.href = 'login.html'; return; }
+            adminId = user.id;
+            loadUserList();
+            setupRealtime();
+        }
+
+        async function loadUserList() {
+            // Obtenemos los últimos mensajes agrupados por usuario
+            const { data, error } = await db
+                .from('chat_messages')
+                .select(`sender_id, message, created_at, is_read, perfiles!chat_messages_sender_id_fkey (nombre, email)`)
+                .eq('receiver_id', adminId)
+                .order('created_at', { ascending: false });
+
+            if (error) return;
+
+            // Agrupar por usuario (manteniendo el último mensaje)
+            const chats = {};
+            data.forEach(msg => {
+                if (!chats[msg.sender_id]) {
+                    chats[msg.sender_id] = {
+                        nombre: msg.perfiles?.nombre || 'Usuario',
+                        email: msg.perfiles?.email || 'Sin email',
+                        ultimoMensaje: msg.message,
+                        hora: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                        noLeido: !msg.is_read,
+                        userId: msg.sender_id
+                    };
+                }
+            });
+
+            const userListEl = document.getElementById('userList');
+            userListEl.innerHTML = '';
+            
+            Object.values(chats).forEach(chat => {
+                const div = document.createElement('div');
+                div.className = `user-item ${chat.noLeido ? 'has-unread' : ''}`;
+                div.onclick = () => openChat(chat.userId, chat.nombre);
+                div.innerHTML = `
+                    <div>
+                        <div class="name">${chat.nombre}</div>
+                        <div class="preview">${chat.ultimoMensaje}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="time">${chat.hora}</div>
+                        <div class="unread-dot"></div>
+                    </div>
+                `;
+                userListEl.appendChild(div);
+            });
+        }
+
+        async function openChat(userId, nombre) {
+            currentChatUserId = userId;
+            
+            // Marcar como leídos los mensajes de este usuario
+            await db.from('chat_messages')
+                .update({ is_read: true })
+                .eq('sender_id', userId)
+                .eq('receiver_id', adminId)
+                .eq('is_read', false);
+
+            loadUserList(); // Refrescar lista para quitar punto rojo
+
+            const chatMain = document.getElementById('chatMain');
+            chatMain.innerHTML = `
+                <div class="chat-main-header">
+                    <div style="width: 40px; height: 40px; background: #FFD700; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 800;">${nombre.charAt(0).toUpperCase()}</div>
+                    <div>
+                        <h3>${nombre}</h3>
+                        <span>En línea</span>
+                    </div>
+                </div>
+                <div class="main-messages" id="mainMessages"></div>
+                <div class="main-input-area">
+                    <input type="text" id="adminChatInput" placeholder="Escribe una respuesta..." onkeypress="if(event.key==='Enter') sendAdminMessage()">
+                    <button class="main-send-btn" onclick="sendAdminMessage()">Enviar</button>
+                </div>
+            `;
+
+            loadChatHistory(userId);
+        }
+
+        async function loadChatHistory(userId) {
+            const { data } = await db
+                .from('chat_messages')
+                .select('*')
+                .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+                .order('created_at', { ascending: true });
+
+            const container = document.getElementById('mainMessages');
+            container.innerHTML = '';
+            
+            data.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = `main-msg ${msg.sender_id === adminId ? 'from-admin' : 'from-user'}`;
+                const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                div.innerHTML = `${msg.message}<div class="time">${time}</div>`;
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.sendAdminMessage = async function() {
+            const input = document.getElementById('adminChatInput');
+            const text = input.value.trim();
+            if (!text || !currentChatUserId) return;
+
+            await db.from('chat_messages').insert({
+                sender_id: adminId,
+                receiver_id: currentChatUserId,
+                message: text,
+                is_read: false
+            });
+
+            input.value = '';
+            loadChatHistory(currentChatUserId);
+        };
+
+        function setupRealtime() {
+            db.channel('admin_chat_all')
+                .on('postgres_changes', 
+                    { event: 'INSERT', schema: 'public', table: 'chat_messages' }, 
+                    (payload) => {
+                        const msg = payload.new;
+                        // Si es un mensaje nuevo para el admin, recargar lista
+                        if (msg.receiver_id === adminId) {
+                            loadUserList();
+                            if (currentChatUserId === msg.sender_id) {
+                                loadChatHistory(currentChatUserId);
+                            }
+                        }
+                        // Si es una respuesta del admin, actualizar historial si está abierto ese chat
+                        if (msg.sender_id === adminId && currentChatUserId === msg.receiver_id) {
+                            loadChatHistory(currentChatUserId);
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        init();
+    </script>
+</body>
+</html>
