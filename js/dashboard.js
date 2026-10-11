@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.addEventListener('resize', sacarMenusDelNavbar);
 
     // ============================================
-    // 🚨 2. MODAL DE SESIÓN DUPLICADA (como el original)
+    // 🚨 2. MODAL DE SESIÓN DUPLICADA (ORIGINAL)
     // ============================================
     function crearModalSesionDuplicada() {
         const existing = document.getElementById('duplicateSessionModal');
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (duplicateModal.style.display === 'flex') return;
         duplicateModal.style.display = 'flex';
         
-        // Auto-cerrar después de 8 segundos (como el original)
+        // Auto-cerrar después de 8 segundos
         setTimeout(() => {
             if (duplicateModal.style.display === 'flex') {
                 db.auth.signOut({ scope: 'global' }).then(() => {
@@ -110,56 +110,64 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🔐 3. VERIFICACIÓN DE SESIÓN (LÓGICA ORIGINAL + FIX)
+    // 🔐 3. GESTIÓN DE SESIONES (SIMPLE Y ROBUSTA)
     // ============================================
     
-    // Guardar token local + registrar en BD
-    async function registrarSesionActual() {
+    // Guardar mi token en BD (upsert - 1 fila por usuario)
+    async function registrarMiSesion() {
         try {
             const { data: { session } } = await db.auth.getSession();
             if (!session || !session.access_token) return;
-            localStorage.setItem('session_token', session.access_token);
-            await db.rpc('registrar_mi_sesion', { p_token: session.access_token });
-            console.log('✅ Sesión registrada');
+            
+            const token = session.access_token;
+            localStorage.setItem('session_token', token);
+            
+            await db.rpc('registrar_mi_sesion', { p_token: token });
+            console.log('✅ Mi sesión registrada en BD');
         } catch (e) {
             console.warn('No se pudo registrar sesión:', e.message);
         }
     }
 
+    // ⚡ Verificación simple: mi token local vs token en BD
     async function verificarSesionActiva() {
-        if (sessionCheckActive) return;
-        if (!currentUser) return;
+        if (sessionCheckActive || !currentUser) return;
         sessionCheckActive = true;
         
         try {
-            const localToken = localStorage.getItem('session_token');
+            const miToken = localStorage.getItem('session_token');
             
-            // ✅ FIX USUARIO NUEVO: si no hay token local, registrar el actual (NO alertar)
-            if (!localToken) {
-                await registrarSesionActual();
+            // Si no hay token local → registrarme y continuar (usuario nuevo)
+            if (!miToken) {
+                await registrarMiSesion();
                 return;
             }
 
+            // Leer mi token actual de la BD (solo 1 fila por usuario)
             const { data, error } = await db
                 .from('active_sessions')
                 .select('session_token')
                 .eq('user_id', currentUser.id)
-                .single();
-
-            // ✅ FIX USUARIO NUEVO: si aún no existe la fila, crearla (NO alertar)
+                .maybeSingle();
+            
+            // Si no hay fila en BD (usuario recién registrado) → crearla
             if (error || !data) {
-                await registrarSesionActual();
+                await registrarMiSesion();
                 return;
             }
 
-            // ⚠️ LÓGICA ORIGINAL: si el token de BD ≠ token local → OTRO dispositivo inició sesión
-            if (data.session_token !== localToken) {
+            // ✅ LÓGICA ORIGINAL: comparar tokens
+            if (data.session_token !== miToken) {
+                // El token de BD es diferente → OTRO dispositivo inició sesión más recientemente
+                console.warn('⚠️ Sesión duplicada detectada');
                 mostrarAlertaSesionDuplicada();
             } else {
-                // Actualizar last_active
-                await db.from('active_sessions')
-                    .update({ last_active: new Date().toISOString() })
-                    .eq('user_id', currentUser.id);
+                // Mi sesión sigue siendo la activa → refrescar last_active
+                try {
+                    await db.from('active_sessions')
+                        .update({ last_active: new Date().toISOString() })
+                        .eq('user_id', currentUser.id);
+                } catch (e) { /* silencioso */ }
             }
         } catch (err) {
             console.error('Error verificando sesión:', err);
@@ -183,20 +191,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     db.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
+        if (event === 'SIGNED_IN' && session) {
+            // Nuevo login → registrar como la sesión activa
+            registrarMiSesion();
+        } else if (event === 'SIGNED_OUT' || !session) {
             localStorage.removeItem('session_token');
-            sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
-            sessionStorage.setItem('auth_type', 'info');
-            window.location.href = 'index.html';
+            if (!window.location.pathname.includes('index.html')) {
+                sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
+                sessionStorage.setItem('auth_type', 'info');
+                window.location.href = 'index.html';
+            }
         }
     });
-
-    async function asegurarSesionUnica() {
-        const { data: { session } } = await db.auth.getSession();
-        if (session) {
-            await db.auth.signOut({ scope: 'others' });
-        }
-    }
 
     // ============================================
     // 👤 4. FUNCIONES DE PERFIL
@@ -563,10 +569,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         try {
-            await asegurarSesionUnica();
-            
-            // ✅ Registrar MI sesión ANTES de activar la detección (fix usuario nuevo)
-            await registrarSesionActual();
+            // ✅ REGISTRAR MI SESIÓN PRIMERO (esto evita el falso positivo del usuario nuevo)
+            await registrarMiSesion();
             
             const { data: { user }, error: userError } = await db.auth.getUser();
             if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
