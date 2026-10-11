@@ -19,22 +19,6 @@
                 radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 25%);
         }
         
-        /* ========== LOGO CENTRADO ========== */
-        .logo-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo-container img {
-            max-width: 120px;
-            height: auto;
-            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
-            animation: floatLogo 3s ease-in-out infinite;
-        }
-        @keyframes floatLogo {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-        
         .back-link { 
             display: inline-flex; 
             align-items: center; 
@@ -155,8 +139,8 @@
         .btn-search:hover { background: #FFC700; }
         .btn-clear { background: #333; color: #fff; }
         .btn-clear:hover { background: #444; }
-        .btn-export { background: #00aaff; color: #fff; }
-        .btn-export:hover { background: #0088cc; }
+        .btn-excel { background: #217346; color: #fff; }
+        .btn-excel:hover { background: #1a5c38; }
         .btn-view { background: #333; color: #fff; padding: 8px 12px; }
         .btn-view:hover { background: #444; }
         .btn-block { background: #666; color: #fff; }
@@ -165,6 +149,8 @@
         .btn-unblock:hover { background: #0088cc; }
         .btn-coins { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
         .btn-coins:hover { background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); }
+        .btn-delete { background: #ff0000; color: #fff; }
+        .btn-delete:hover { background: #cc0000; }
         
         /* ========== ESTADÍSTICAS ========== */
         .stats-bar { 
@@ -225,7 +211,7 @@
         .users-table { 
             width: 100%; 
             border-collapse: collapse;
-            min-width: 900px;
+            min-width: 950px;
         }
         .users-table th { 
             background: #151515; 
@@ -324,6 +310,8 @@
         .action-btn.coins { background: rgba(255, 215, 0, 0.2); color: #FFD700; }
         .action-btn.block { background: rgba(255, 0, 0, 0.2); color: #ff4444; }
         .action-btn.unblock { background: rgba(0, 170, 255, 0.2); color: #00aaff; }
+        .action-btn.delete { background: rgba(255, 0, 0, 0.15); color: #ff0000; border: 1px solid rgba(255, 0, 0, 0.3); }
+        .action-btn.delete:hover { background: #ff0000; color: #fff; }
         
         /* ========== PAGINACIÓN ========== */
         .pagination { 
@@ -387,6 +375,7 @@
             overflow-y: auto; 
             animation: modalAppear 0.3s ease;
         }
+        .modal-content.danger { border-color: #ff0000; }
         @keyframes modalAppear {
             from { opacity: 0; transform: scale(0.9) translateY(20px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
@@ -400,6 +389,7 @@
             border-bottom: 1px solid #333; 
         }
         .modal-title { color: #FFD700; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .modal-title.danger { color: #ff0000; }
         .modal-close { background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; transition: color 0.3s; }
         .modal-close:hover { color: #FFD700; }
         
@@ -492,6 +482,59 @@
             border-color: #FFD700; 
         }
         
+        /* ========== MODAL DE ELIMINACIÓN ========== */
+        .danger-warning {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff0000;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .danger-warning i {
+            font-size: 2.5rem;
+            color: #ff0000;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .danger-warning h3 {
+            color: #ff0000;
+            margin-bottom: 10px;
+        }
+        .danger-warning p {
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .delete-user-info {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .delete-user-info p {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        .delete-user-info strong {
+            color: #FFD700;
+        }
+        .confirm-input {
+            width: 100%;
+            padding: 12px;
+            background: #111;
+            border: 2px solid #ff0000;
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        .confirm-input:focus { outline: none; border-color: #ff4444; box-shadow: 0 0 10px rgba(255, 0, 0, 0.3); }
+        
         /* ========== ESTADOS VACÍOS ========== */
         .loading { text-align: center; color: #FFD700; margin: 50px 0; font-size: 1.2rem; }
         .empty { 
@@ -510,7 +553,6 @@
         /* ========== RESPONSIVE ========== */
         @media (max-width: 768px) {
             .module-header h1 { font-size: 1.3rem; flex-direction: column; }
-            .logo-container img { max-width: 80px; }
             .stat-box { min-width: 100px; padding: 10px; }
             .stat-box .number { font-size: 1.4rem; }
             .search-filter-bar { padding: 15px; }
@@ -521,11 +563,6 @@
     </style>
 </head>
 <body>
-    <!-- ========== LOGO CENTRADO ========== -->
-    <div class="logo-container">
-        <img src="../img/logo.png" alt="Boche Clava'o" onerror="this.style.display='none'">
-    </div>
-
     <a href="admin.html" class="back-link">
         <i class="fas fa-arrow-left"></i> Volver al Panel
     </a>
@@ -551,8 +588,8 @@
             <button class="btn btn-clear" id="btnLimpiar">
                 <i class="fas fa-times"></i> Limpiar
             </button>
-            <button class="btn btn-export" id="btnExportar">
-                <i class="fas fa-file-csv"></i> Exportar CSV
+            <button class="btn btn-excel" id="btnExportar">
+                <i class="fas fa-file-excel"></i> Exportar Excel
             </button>
         </div>
         
@@ -643,6 +680,19 @@
         </div>
     </div>
 
+    <!-- ========== MODAL: ELIMINAR USUARIO ========== -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content danger" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title danger"><i class="fas fa-trash-alt"></i> Eliminar Usuario</h2>
+                <button class="modal-close" id="btnCerrarDelete"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="deleteModalBody"></div>
+        </div>
+    </div>
+
+    <!-- 📦 LIBRERÍA SHEETJS PARA EXPORTAR EXCEL -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
     <script src="../js/admin-usuarios.js"></script>
