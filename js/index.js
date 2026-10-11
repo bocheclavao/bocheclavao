@@ -142,13 +142,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         showMessage('Enviando enlace de recuperación...', 'info');
         const { error } = await db.auth.resetPasswordForEmail(email, {
-            redirectTo: construirURL('/dashboard.html') // Redirige al dashboard o a una página de reset si la tienes
+            redirectTo: construirURL('/dashboard.html')
         });
 
         if (error) {
             showMessage('Error: ' + error.message, 'error');
         } else {
-            // Si se envió el correo, limpiamos los intentos fallidos porque va a cambiar la contraseña
             await db.rpc('check_login_attempt', { p_email: email, p_success: true });
             showMessage('✅ Enlace de recuperación enviado. Revisa tu correo (y Spam).', 'success');
         }
@@ -164,13 +163,11 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSession();
 
     // 📩 6. MOSTRAR MENSAJE DE EXPULSIÓN SI EXISTE (Sesión Única)
-    // Si el usuario fue expulsado desde otro dispositivo, el dashboard guardó este mensaje antes de redirigir
     const logoutReason = sessionStorage.getItem('auth_message');
     const logoutType = sessionStorage.getItem('auth_type') || 'info';
     
     if (logoutReason) {
         showMessage(logoutReason, logoutType);
-        // Limpiar el mensaje para que no aparezca en recargas futuras
         sessionStorage.removeItem('auth_message');
         sessionStorage.removeItem('auth_type');
     }
