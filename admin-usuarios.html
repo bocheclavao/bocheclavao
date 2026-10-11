@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - Boche Clava'o</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            background: #000000; 
+            min-height: 100vh; 
+            color: #ffffff; 
+            padding: 20px;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 25%);
+        }
+        
+        /* ========== LOGO CENTRADO ========== */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-container img {
+            max-width: 120px;
+            height: auto;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
+            animation: floatLogo 3s ease-in-out infinite;
+        }
+        @keyframes floatLogo {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        .back-link { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px;
+            margin-bottom: 20px; 
+            color: #FFD700; 
+            text-decoration: none; 
+            padding: 10px 20px; 
+            border: 1px solid #FFD700; 
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .back-link:hover { background: #FFD700; color: #000; transform: translateX(-5px); }
+        
+        .module-header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            padding: 25px; 
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); 
+            border-radius: 12px; 
+            border: 1px solid #FFD700;
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.1);
+        }
+        .module-header h1 { 
+            color: #FFD700; 
+            font-size: 1.8rem; 
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .module-header p { color: #999; font-size: 0.95rem; }
+        
+        /* ========== BARRA DE BÚSQUEDA Y FILTROS ========== */
+        .search-filter-bar {
+            max-width: 1400px;
+            margin: 0 auto 25px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .search-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .search-select,
+        .search-input {
+            padding: 12px 16px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .search-input:focus, .search-select:focus {
+            outline: none;
+            border-color: #FFD700;
+        }
+        .search-select { min-width: 180px; }
+        .search-input { flex: 1; min-width: 200px; }
+        
+        .filter-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #222;
+        }
+        
+        .filter-label {
+            color: #FFD700;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .date-input, .filter-select {
+            padding: 10px 14px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+        }
+        .date-input:focus, .filter-select:focus { outline: none; border-color: #FFD700; }
+        
+        .btn { 
+            padding: 10px 18px; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-family: 'Montserrat', sans-serif; 
+            transition: all 0.3s; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-search { background: #FFD700; color: #000; }
+        .btn-search:hover { background: #FFC700; }
+        .btn-clear { background: #333; color: #fff; }
+        .btn-clear:hover { background: #444; }
+        .btn-export { background: #00aaff; color: #fff; }
+        .btn-export:hover { background: #0088cc; }
+        .btn-view { background: #333; color: #fff; padding: 8px 12px; }
+        .btn-view:hover { background: #444; }
+        .btn-block { background: #666; color: #fff; }
+        .btn-block:hover { background: #444; }
+        .btn-unblock { background: #00aaff; color: #fff; }
+        .btn-unblock:hover { background: #0088cc; }
+        .btn-coins { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
+        .btn-coins:hover { background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); }
+        
+        /* ========== ESTADÍSTICAS ========== */
+        .stats-bar { 
+            display: flex; 
+            gap: 15px; 
+            justify-content: center; 
+            margin-bottom: 25px; 
+            flex-wrap: wrap;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .stat-box { 
+            background: #0a0a0a; 
+            border: 1px solid #222; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            min-width: 130px; 
+            flex: 1; 
+            max-width: 180px;
+            transition: all 0.3s;
+        }
+        .stat-box:hover { border-color: #FFD700; transform: translateY(-3px); }
+        .stat-box .number { font-size: 1.8rem; font-weight: 800; color: #FFD700; }
+        .stat-box .label { color: #999; font-size: 0.8rem; margin-top: 5px; }
+        
+        /* ========== INFO DE RESULTADOS ========== */
+        .results-info {
+            max-width: 1400px;
+            margin: 0 auto 15px;
+            padding: 12px 20px;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid #FFD700;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .results-info-text {
+            color: #FFD700;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        /* ========== TABLA DE USUARIOS ========== */
+        .table-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+        
+        .users-table { 
+            width: 100%; 
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+        .users-table th { 
+            background: #151515; 
+            color: #FFD700; 
+            padding: 15px 12px; 
+            text-align: left; 
+            border-bottom: 2px solid #333; 
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .users-table td { 
+            padding: 14px 12px; 
+            border-bottom: 1px solid #222; 
+            font-size: 0.9rem; 
+        }
+        .users-table tbody tr { 
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .users-table tbody tr:hover { background: rgba(255, 215, 0, 0.05); }
+        
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-avatar-small {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #000;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .user-name-cell {
+            font-weight: 600;
+            color: #fff;
+        }
+        .user-id-cell {
+            color: #FFD700;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .user-email-cell {
+            color: #999;
+            font-size: 0.85rem;
+        }
+        .balance-cell {
+            color: #FFD700;
+            font-weight: 700;
+        }
+        
+        .status-badge { 
+            padding: 4px 10px; 
+            border-radius: 20px; 
+            font-size: 0.7rem; 
+            font-weight: 700; 
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-pending { background: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid #FFA500; }
+        .status-verified { background: rgba(0, 255, 0, 0.2); color: #00ff00; border: 1px solid #00ff00; }
+        .status-rejected { background: rgba(255, 0, 0, 0.2); color: #ff4444; border: 1px solid #ff4444; }
+        .status-blocked { background: rgba(128, 128, 128, 0.2); color: #888; border: 1px solid #888; }
+        .status-none { background: rgba(102, 102, 102, 0.2); color: #666; border: 1px solid #444; }
+        
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+        .action-btn:hover { transform: scale(1.1); }
+        .action-btn.view { background: #333; color: #fff; }
+        .action-btn.coins { background: rgba(255, 215, 0, 0.2); color: #FFD700; }
+        .action-btn.block { background: rgba(255, 0, 0, 0.2); color: #ff4444; }
+        .action-btn.unblock { background: rgba(0, 170, 255, 0.2); color: #00aaff; }
+        
+        /* ========== PAGINACIÓN ========== */
+        .pagination { 
+            display: flex; 
+            gap: 8px; 
+            justify-content: center; 
+            margin-top: 30px; 
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 20px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .page-btn { 
+            padding: 10px 14px; 
+            background: #111; 
+            border: 1px solid #333; 
+            border-radius: 6px; 
+            color: #fff; 
+            cursor: pointer; 
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            min-width: 40px;
+        }
+        .page-btn:hover:not(:disabled) { border-color: #FFD700; color: #FFD700; }
+        .page-btn.active { background: #FFD700; color: #000; border-color: #FFD700; }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-info {
+            color: #999;
+            font-size: 0.85rem;
+            margin: 0 10px;
+        }
+        
+        /* ========== MODALES ========== */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0, 0, 0, 0.9); 
+            z-index: 1000; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; 
+            overflow-y: auto; 
+        }
+        .modal.show { display: flex; }
+        .modal-content { 
+            background: #0a0a0a; 
+            border: 2px solid #FFD700; 
+            border-radius: 12px; 
+            padding: 30px; 
+            max-width: 800px; 
+            width: 100%; 
+            max-height: 90vh; 
+            overflow-y: auto; 
+            animation: modalAppear 0.3s ease;
+        }
+        @keyframes modalAppear {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            padding-bottom: 15px; 
+            border-bottom: 1px solid #333; 
+        }
+        .modal-title { color: #FFD700; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .modal-close { background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; transition: color 0.3s; }
+        .modal-close:hover { color: #FFD700; }
+        
+        .info-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        .info-item label { 
+            display: block; 
+            color: #666; 
+            font-size: 0.75rem; 
+            margin-bottom: 4px; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-item span { color: #fff; font-weight: 600; font-size: 0.9rem; word-break: break-all; }
+        
+        .section-title {
+            color: #FFD700;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 20px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #222;
+        }
+        
+        .images-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        .image-box { text-align: center; }
+        .image-box img { 
+            width: 100%; 
+            border-radius: 8px; 
+            border: 2px solid #333; 
+            margin-bottom: 8px; 
+            height: 160px; 
+            object-fit: cover; 
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .image-box img:hover { border-color: #FFD700; transform: scale(1.03); }
+        .image-box p { font-size: 0.8rem; color: #999; font-weight: 600; }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #222;
+        }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { 
+            display: block; 
+            color: #ccc; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            font-size: 0.9rem; 
+        }
+        .form-group input, 
+        .form-group textarea { 
+            width: 100%; 
+            padding: 12px; 
+            background: #111; 
+            border: 1px solid #333; 
+            border-radius: 8px; 
+            color: #fff; 
+            font-family: 'Montserrat', sans-serif; 
+            font-size: 1rem; 
+        }
+        .form-group input:focus, 
+        .form-group textarea:focus { 
+            outline: none; 
+            border-color: #FFD700; 
+        }
+        
+        /* ========== ESTADOS VACÍOS ========== */
+        .loading { text-align: center; color: #FFD700; margin: 50px 0; font-size: 1.2rem; }
+        .empty { 
+            text-align: center; 
+            color: #666; 
+            padding: 60px 40px;
+            font-size: 1rem;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            max-width: 600px;
+            margin: 30px auto;
+        }
+        .empty i { font-size: 3rem; margin-bottom: 15px; display: block; }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            .module-header h1 { font-size: 1.3rem; flex-direction: column; }
+            .logo-container img { max-width: 80px; }
+            .stat-box { min-width: 100px; padding: 10px; }
+            .stat-box .number { font-size: 1.4rem; }
+            .search-filter-bar { padding: 15px; }
+            .filter-row { flex-direction: column; align-items: stretch; }
+            .date-input, .filter-select { width: 100%; }
+            .modal-content { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ========== LOGO CENTRADO ========== -->
+    <div class="logo-container">
+        <img src="../img/logo.png" alt="Boche Clava'o" onerror="this.style.display='none'">
+    </div>
+
+    <a href="admin.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> Volver al Panel
+    </a>
+
+    <div class="module-header">
+        <h1><i class="fas fa-users"></i> Gestión de Usuarios</h1>
+        <p>Administra cuentas, bloqueos, saldos y permisos de todos los usuarios</p>
+    </div>
+
+    <!-- ========== BARRA DE BÚSQUEDA Y FILTROS ========== -->
+    <div class="search-filter-bar">
+        <div class="search-row">
+            <select id="searchType" class="search-select">
+                <option value="user_id">🔍 Buscar por ID (BC-xxxx)</option>
+                <option value="numero_documento">🆔 Buscar por Cédula</option>
+                <option value="nombre">👤 Buscar por Nombre</option>
+                <option value="email">📧 Buscar por Email</option>
+            </select>
+            <input type="text" id="searchInput" class="search-input" placeholder="Escribe el ID, cédula, nombre o email...">
+            <button class="btn btn-search" id="btnBuscar">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+            <button class="btn btn-clear" id="btnLimpiar">
+                <i class="fas fa-times"></i> Limpiar
+            </button>
+            <button class="btn btn-export" id="btnExportar">
+                <i class="fas fa-file-csv"></i> Exportar CSV
+            </button>
+        </div>
+        
+        <div class="filter-row">
+            <span class="filter-label"><i class="fas fa-filter"></i> Filtros:</span>
+            <select id="filtroEstadoKyc" class="filter-select">
+                <option value="">Todos los KYC</option>
+                <option value="verificado">✅ Verificados</option>
+                <option value="pendiente">⏳ Pendientes</option>
+                <option value="rechazado">❌ Rechazados</option>
+                <option value="null">⚪ Sin KYC</option>
+            </select>
+            <select id="filtroBloqueo" class="filter-select">
+                <option value="">Todas las cuentas</option>
+                <option value="activos">🟢 Activos</option>
+                <option value="bloqueados">🔴 Bloqueados</option>
+            </select>
+            <input type="date" id="fechaDesde" class="date-input" title="Registrado desde">
+            <span style="color: #666;">→</span>
+            <input type="date" id="fechaHasta" class="date-input" title="Registrado hasta">
+            <button class="btn btn-search" id="btnAplicarFiltros">
+                <i class="fas fa-filter"></i> Aplicar
+            </button>
+        </div>
+    </div>
+
+    <!-- ========== ESTADÍSTICAS ========== -->
+    <div id="statsBar" class="stats-bar"></div>
+    
+    <!-- ========== INFO DE RESULTADOS ========== -->
+    <div id="resultsInfo" class="results-info" style="display: none;">
+        <span class="results-info-text" id="resultsInfoText"></span>
+    </div>
+    
+    <!-- ========== LOADING ========== -->
+    <div id="loadingUsers" class="loading">
+        <i class="fas fa-circle-notch fa-spin"></i> Cargando usuarios...
+    </div>
+    
+    <!-- ========== TABLA DE USUARIOS ========== -->
+    <div class="table-container" id="tableContainer" style="display: none;">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Estado KYC</th>
+                    <th>Saldo BC</th>
+                    <th>Registro</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+        </table>
+    </div>
+    
+    <!-- ========== ESTADO VACÍO ========== -->
+    <div id="emptyState" style="display: none;">
+        <div class="empty">
+            <i class="fas fa-user-slash" style="color: #666;"></i>
+            No se encontraron usuarios con los filtros aplicados
+        </div>
+    </div>
+    
+    <!-- ========== PAGINACIÓN ========== -->
+    <div id="pagination" class="pagination" style="display: none;"></div>
+
+    <!-- ========== MODAL: PERFIL DE USUARIO ========== -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-user"></i> Perfil de Usuario</h2>
+                <button class="modal-close" id="btnCerrarModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: AGREGAR MONEDAS ========== -->
+    <div id="coinsModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-coins"></i> Agregar Monedas BC</h2>
+                <button class="modal-close" id="btnCerrarCoins"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="coinsModalBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/admin-usuarios.js"></script>
+</body>
+</html>
