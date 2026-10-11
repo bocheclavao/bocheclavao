@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     
@@ -114,134 +113,121 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
+    // 🔐 3. GESTIÓN DE SESIONES (VERSIÓN MEJORADA)
     // ============================================
-// 🔐 3. GESTIÓN DE SESIONES (VERSIÓN MEJORADA)
-// ============================================
-
-// 🔑 Registrar sesión de forma silenciosa
-async function registrarSesionSilenciosa() {
-    try {
-        const { data: { session } } = await db.auth.getSession();
-        if (!session || !session.access_token) return;
-        
-        const token = session.access_token;
-        localStorage.setItem('session_token', token);
-        
-        // Intentar hasta 3 veces con delay progresivo
-        for (let intento = 1; intento <= 3; intento++) {
-            try {
-                await db.rpc('registrar_mi_sesion', { p_token: token });
-                console.log('✅ Sesión registrada correctamente');
-                return;
-            } catch (e) {
-                if (intento < 3) {
-                    await new Promise(resolve => setTimeout(resolve, intento * 500));
-                } else {
-                    console.warn('⚠️ No se pudo registrar sesión después de 3 intentos');
+    
+    // 🔑 Registrar sesión de forma silenciosa
+    async function registrarSesionSilenciosa() {
+        try {
+            const { data: { session } } = await db.auth.getSession();
+            if (!session || !session.access_token) return;
+            
+            const token = session.access_token;
+            localStorage.setItem('session_token', token);
+            
+            for (let intento = 1; intento <= 3; intento++) {
+                try {
+                    await db.rpc('registrar_mi_sesion', { p_token: token });
+                    console.log('✅ Sesión registrada correctamente');
+                    return;
+                } catch (e) {
+                    if (intento < 3) {
+                        await new Promise(resolve => setTimeout(resolve, intento * 500));
+                    } else {
+                        console.warn('⚠️ No se pudo registrar sesión después de 3 intentos');
+                    }
                 }
             }
-        }
-    } catch (e) {
-        console.warn('Error silencioso al registrar sesión:', e.message);
-    }
-}
-
-// 🔍 Verificar sesión duplicada REAL
-async function verificarSesionActiva() {
-    // ⏱️ NO verificar durante el período de gracia (15 segundos después del login)
-    if (Date.now() < gracePeriodUntil) {
-        return;
-    }
-    
-    if (sessionCheckActive || !currentUser) return;
-    sessionCheckActive = true;
-    
-    try {
-        const localToken = localStorage.getItem('session_token');
-        if (!localToken) {
-            await registrarSesionSilenciosa();
-            return;
-        }
-        
-        // Actualizar last_active de nuestra sesión
-        try {
-            await db.from('active_sessions')
-                .update({ last_active: new Date().toISOString() })
-                .eq('user_id', currentUser.id)
-                .eq('session_token', localToken);
         } catch (e) {
-            await registrarSesionSilenciosa();
+            console.warn('Error silencioso al registrar sesión:', e.message);
         }
-        
-        // 🎯 LÓGICA MEJORADA: Buscar la sesión MÁS RECIENTE del usuario
-        const { data: sesiones, error } = await db
-            .from('active_sessions')
-            .select('session_token, last_active')
-            .eq('user_id', currentUser.id)
-            .order('last_active', { ascending: false })
-            .limit(10);
-        
-        if (error || !sesiones || sesiones.length === 0) {
+    }
+
+    // 🔍 Verificar sesión duplicada REAL
+    async function verificarSesionActiva() {
+        if (Date.now() < gracePeriodUntil) {
             return;
         }
         
-        // Obtener la sesión más reciente
-        const sesionMasReciente = sesiones[0];
+        if (sessionCheckActive || !currentUser) return;
+        sessionCheckActive = true;
         
-        // Si la sesión más reciente NO es la mía → hay otra sesión activa más nueva
-        if (sesionMasReciente.session_token !== localToken) {
-            // Verificar que la otra sesión sea realmente reciente (últimos 10 minutos)
-            const otraFecha = new Date(sesionMasReciente.last_active).getTime();
-            const ahora = Date.now();
-            const minutosDiferencia = (ahora - otraFecha) / 1000 / 60;
-            
-            if (minutosDiferencia <= 10) {
-                console.warn('⚠️ Sesión duplicada detectada: otra sesión más reciente está activa');
-                mostrarAlertaSesionDuplicada();
+        try {
+            const localToken = localStorage.getItem('session_token');
+            if (!localToken) {
+                await registrarSesionSilenciosa();
                 return;
             }
+            
+            try {
+                await db.from('active_sessions')
+                    .update({ last_active: new Date().toISOString() })
+                    .eq('user_id', currentUser.id)
+                    .eq('session_token', localToken);
+            } catch (e) {
+                await registrarSesionSilenciosa();
+            }
+            
+            const { data: sesiones, error } = await db
+                .from('active_sessions')
+                .select('session_token, last_active')
+                .eq('user_id', currentUser.id)
+                .order('last_active', { ascending: false })
+                .limit(10);
+            
+            if (error || !sesiones || sesiones.length === 0) {
+                return;
+            }
+            
+            const sesionMasReciente = sesiones[0];
+            
+            if (sesionMasReciente.session_token !== localToken) {
+                const otraFecha = new Date(sesionMasReciente.last_active).getTime();
+                const ahora = Date.now();
+                const minutosDiferencia = (ahora - otraFecha) / 1000 / 60;
+                
+                if (minutosDiferencia <= 10) {
+                    console.warn('⚠️ Sesión duplicada detectada: otra sesión más reciente está activa');
+                    mostrarAlertaSesionDuplicada();
+                    return;
+                }
+            }
+            
+        } catch (err) {
+            console.error('Error verificando sesión (no expulsando):', err);
+        } finally {
+            sessionCheckActive = false;
         }
-        
-        // Si mi sesión es la más reciente → todo OK
-        
-    } catch (err) {
-        console.error('Error verificando sesión (no expulsando):', err);
-    } finally {
-        sessionCheckActive = false;
     }
-}
 
-function setupInteractionListeners() {
-    let lastCheck = 0;
-    const checkOnInteraction = async () => {
-        // ⏱️ Respetar período de gracia
-        if (Date.now() < gracePeriodUntil) return;
-        
-        const now = Date.now();
-        if (now - lastCheck < 5000) return; // Mínimo 5 segundos entre checks
-        lastCheck = now;
-        await verificarSesionActiva();
-    };
-    document.addEventListener('click', checkOnInteraction);
-    document.addEventListener('touchstart', checkOnInteraction);
-    document.addEventListener('keypress', checkOnInteraction);
-}
+    function setupInteractionListeners() {
+        let lastCheck = 0;
+        const checkOnInteraction = async () => {
+            if (Date.now() < gracePeriodUntil) return;
+            
+            const now = Date.now();
+            if (now - lastCheck < 5000) return;
+            lastCheck = now;
+            await verificarSesionActiva();
+        };
+        document.addEventListener('click', checkOnInteraction);
+        document.addEventListener('touchstart', checkOnInteraction);
+        document.addEventListener('keypress', checkOnInteraction);
+    }
 
     // ============================================
-    // 🔐 4. AUTH STATE CHANGE (simplificado)
+    // 🔐 4. AUTH STATE CHANGE
     // ============================================
     db.auth.onAuthStateChange(async (event, session) => {
         console.log('🔐 Auth event:', event);
         
         if (event === 'SIGNED_IN' && session) {
-            // 🕐 Reiniciar período de gracia al iniciar sesión
             lastLoginTime = Date.now();
             gracePeriodUntil = Date.now() + 15000;
             
             const userToken = session.access_token;
             if (userToken) {
                 localStorage.setItem('session_token', userToken);
-                // Registrar sesión de forma silenciosa
                 try {
                     await db.rpc('registrar_mi_sesion', { p_token: userToken });
                     console.log('✅ Sesión registrada al iniciar sesión');
@@ -250,7 +236,6 @@ function setupInteractionListeners() {
                 }
             }
         } else if (event === 'INITIAL_SESSION' && session) {
-            // Sesión inicial al cargar la página
             const userToken = session.access_token;
             if (userToken) {
                 localStorage.setItem('session_token', userToken);
@@ -648,10 +633,7 @@ function setupInteractionListeners() {
         }
 
         try {
-            // 🕐 Iniciar período de gracia ANTES de cualquier verificación
             gracePeriodUntil = Date.now() + 15000;
-            
-            // Registrar sesión de forma silenciosa (NUNCA falla)
             await registrarSesionSilenciosa();
             
             const { data: { user }, error: userError } = await db.auth.getUser();
