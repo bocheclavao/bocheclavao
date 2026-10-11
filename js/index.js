@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-        // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (CON DIAGNÓSTICO)
+           // ============================================
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -75,90 +75,60 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // ==========================================
-                // PASO 1: ¿EL CORREO EXISTE?
-                // ==========================================
-                console.log('🔍 Paso 1: Verificando si el correo existe...');
+                // PASO 1: ¿El correo existe?
                 const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { 
                     p_email: email 
                 });
                 
-                console.log('📊 Resultado check_email_exists:', { existeData, existeError });
-                
                 if (existeError) {
-                    console.error('❌ Error en check_email_exists:', existeError);
-                    showMessage('Error al verificar el correo. Intenta de nuevo.', 'error');
+                    console.error('Error verificando correo:', existeError);
+                    showMessage('Error al verificar el correo.', 'error');
                     resetButton();
                     return;
                 }
                 
                 if (existeData !== true) {
-                    console.log('❌ Correo NO existe en la base de datos');
                     showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
                     resetButton();
                     return;
                 }
-                
-                console.log('✅ Correo SÍ existe en la base de datos');
 
-                // ==========================================
-                // PASO 2: ¿ESTÁ SUSPENDIDO?
-                // ==========================================
-                console.log('🔍 Paso 2: Verificando si está suspendido...');
+                // PASO 2: ¿Está suspendido?
                 const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
                     p_email: email, 
                     p_success: false 
                 });
                 
-                console.log('📊 Resultado check_login_attempt (pre-check):', { preCheck, preError });
-                
-                if (preError) {
-                    console.error('❌ Error en check_login_attempt:', preError);
-                }
-                
                 if (preCheck && preCheck.allowed === false) {
-                    console.log('🚫 Cuenta SUSPENDIDA');
                     const hasta = preCheck.blocked_until 
                         ? new Date(preCheck.blocked_until).toLocaleString('es-ES', {
                             day: '2-digit', month: '2-digit', year: 'numeric', 
                             hour: '2-digit', minute: '2-digit'
                           }) 
                         : 'varias horas';
-                    console.log('📅 Fecha de desbloqueo:', hasta);
                     showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     resetButton();
                     return;
                 }
 
-                // ==========================================
-                // PASO 3: INTENTAR LOGIN
-                // ==========================================
-                console.log('🔍 Paso 3: Intentando login con Supabase...');
+                // PASO 3: Intentar login
                 const { data, error: authError } = await db.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
                 if (authError) {
-                    console.log('❌ Error de autenticación:', authError.message);
-                    
-                    // ==========================================
-                    // PASO 4: REGISTRAR INTENTO FALLIDO
-                    // ==========================================
-                    console.log('🔍 Paso 4: Registrando intento fallido...');
+                    // PASO 4: Registrar intento fallido
                     const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
                         p_email: email, 
                         p_success: false 
                     });
                     
-                    console.log('📊 Resultado check_login_attempt (post-fallo):', { attemptData, rpcError });
-                    
                     if (rpcError) {
-                        console.error('❌ Error al registrar intento:', rpcError);
+                        console.error('Error registrando intento:', rpcError);
                     }
 
                     if (attemptData && attemptData.allowed === false) {
-                        console.log('🚫 Cuenta ahora SUSPENDIDA después de este intento');
                         const hasta = attemptData.blocked_until 
                             ? new Date(attemptData.blocked_until).toLocaleString('es-ES', {
                                 day: '2-digit', month: '2-digit', year: 'numeric', 
@@ -171,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             ? attemptData.attempts 
                             : 1;
                         const restantes = Math.max(0, 5 - intentos);
-                        console.log(`📊 Intentos actuales: ${intentos}, Restantes: ${restantes}`);
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
                     
@@ -179,11 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // ==========================================
-                // PASO 5: LOGIN EXITOSO
-                // ==========================================
-                console.log('✅ Login exitoso');
-                
+                // PASO 5: Login exitoso
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_success: true });
                 } catch (rpcErr) {
@@ -223,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 1500);
                 
             } catch (err) {
-                console.error('💥 Error inesperado en login:', err);
+                console.error('Error inesperado:', err);
                 showMessage('Error inesperado: ' + err.message, 'error');
                 resetButton();
             }
