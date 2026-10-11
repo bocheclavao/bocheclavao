@@ -36,12 +36,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     let currentUser = null;
     let sessionCheckActive = false;
     
-    // 🕐 PERÍODO DE GRACIA: NO verificar sesiones durante 15 segundos después del login
+    // 🕐 PERÍODO DE GRACIA: NO verificar sesiones durante 5 segundos después del login
     let gracePeriodUntil = Date.now() + 5000;
     let lastLoginTime = Date.now();
+    
+    // 🛑 Banderas de control de sesión duplicada
+    let sesionBloqueada = false;        // Detiene verificaciones cuando hay duplicado
+    let mostrandoAlertaSesion = false;  // Evita redirección automática mientras se muestra el modal
 
     // ============================================
-    // 🚀 1. MENÚS MÓVILES
+    // 🚀 1. MENÚS MÓVILES (Salvavidas)
     // ============================================
     function sacarMenusDelNavbar() {
         if (window.innerWidth <= 768) {
@@ -81,42 +85,51 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <i class="fas fa-shield-alt" style="color: #ff0000;"></i>
                 </div>
                 <h2 style="color: #ff0000; font-size: 1.4rem; margin-bottom: 15px; font-weight: 800; font-family: 'Montserrat', sans-serif;">⚠️ Sesión Duplicada Detectada</h2>
-                <p style="color: #cccccc; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; font-family: 'Montserrat', sans-serif;">Se ha iniciado sesión en otro dispositivo. Esta sesión se cerrará automáticamente por motivos de seguridad.</p>
+                <p style="color: #cccccc; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; font-family: 'Montserrat', sans-serif;">Tu cuenta fue abierta en otro dispositivo. Por seguridad, esta sesión ha sido cerrada. La otra sesión permanece activa.</p>
                 <button id="closeSessionBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;">
-                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión Ahora
+                    <i class="fas fa-check-circle"></i> Entendido, Ir al Inicio
                 </button>
             </div>
         `;
         
         document.body.appendChild(modal);
-        document.getElementById('closeSessionBtn').addEventListener('click', async () => {
-            await db.auth.signOut({ scope: 'global' });
-            localStorage.removeItem('session_token');
+        
+        // ✅ El botón SOLO redirige (la sesión YA fue cerrada al mostrar el modal)
+        document.getElementById('closeSessionBtn').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
+        
         return modal;
     }
     const duplicateModal = crearModalSesionDuplicada();
 
+    // ✅ MUESTRA ALERTA + DESCONECTA SOLO ESTE DISPOSITIVO + ESPERA AL USUARIO
     function mostrarAlertaSesionDuplicada() {
         if (!duplicateModal) return;
         if (duplicateModal.style.display === 'flex') return;
+        
+        sesionBloqueada = true;          // 🛑 Detener verificaciones
+        mostrandoAlertaSesion = true;    // 🖥️ Evitar redirección automática
         duplicateModal.style.display = 'flex';
-        setTimeout(() => {
-            if (duplicateModal.style.display === 'flex') {
-                db.auth.signOut({ scope: 'global' }).then(() => {
-                    localStorage.removeItem('session_token');
-                    window.location.href = 'index.html';
-                });
-            }
-        }, 8000);
+        
+        // 🔒 Desconectar SOLO este dispositivo (scope: 'local')
+        // El dispositivo B permanece con su sesión activa
+        db.auth.signOut({ scope: 'local' }).then(() => {
+            localStorage.removeItem('session_token');
+            console.log('🔒 Sesión local desconectada por seguridad');
+        }).catch(e => {
+            console.warn('Error al desconectar sesión local:', e.message);
+            localStorage.removeItem('session_token');
+        });
+        
+        // ❌ SIN setTimeout de auto-cierre: el modal ESPERA al usuario
     }
 
     // ============================================
-    // 🔐 3. GESTIÓN DE SESIONES (VERSIÓN MEJORADA)
+    // 🔐 3. GESTIÓN DE SESIONES
     // ============================================
     
-    // 🔑 Registrar sesión de forma silenciosa
+    // 🔑 Registrar sesión de forma silenciosa con reintentos
     async function registrarSesionSilenciosa() {
         try {
             const { data: { session } } = await db.auth.getSession();
@@ -143,97 +156,103 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-   // 🔍 Verificar sesión duplicada REAL (VERSIÓN RÁPIDA)
-async function verificarSesionActiva() {
-    // ⏱️ NO verificar durante el período de gracia (5 segundos después del login)
-    if (Date.now() < gracePeriodUntil) {
-        return;
-    }
-    
-    if (sessionCheckActive || !currentUser) return;
-    sessionCheckActive = true;
-    
-    try {
-        const localToken = localStorage.getItem('session_token');
-        if (!localToken) {
-            await registrarSesionSilenciosa();
+    // 🔍 Verificar sesión duplicada REAL (VERSIÓN RÁPIDA)
+    async function verificarSesionActiva() {
+        // 🛑 Si ya detectamos duplicado, no verificar más
+        if (sesionBloqueada) return;
+        
+        // ⏱️ NO verificar durante el período de gracia (5 segundos después del login)
+        if (Date.now() < gracePeriodUntil) {
             return;
         }
         
-        // Actualizar last_active de nuestra sesión
+        if (sessionCheckActive || !currentUser) return;
+        sessionCheckActive = true;
+        
         try {
-            await db.from('active_sessions')
-                .update({ last_active: new Date().toISOString() })
-                .eq('user_id', currentUser.id)
-                .eq('session_token', localToken);
-        } catch (e) {
-            await registrarSesionSilenciosa();
-        }
-        
-        // Buscar la sesión MÁS RECIENTE del usuario
-        const { data: sesiones, error } = await db
-            .from('active_sessions')
-            .select('session_token, last_active')
-            .eq('user_id', currentUser.id)
-            .order('last_active', { ascending: false })
-            .limit(10);
-        
-        if (error || !sesiones || sesiones.length === 0) {
-            return;
-        }
-        
-        const sesionMasReciente = sesiones[0];
-        
-        // Si la sesión más reciente NO es la mía → hay otra sesión activa más nueva
-        if (sesionMasReciente.session_token !== localToken) {
-            const otraFecha = new Date(sesionMasReciente.last_active).getTime();
-            const ahora = Date.now();
-            const segundosDiferencia = (ahora - otraFecha) / 1000;
-            
-            // Si la otra sesión se actualizó en los últimos 30 segundos → está activa AHORA
-            if (segundosDiferencia <= 30) {
-                console.warn('⚠️ Sesión duplicada detectada: otra sesión más reciente está activa');
-                mostrarAlertaSesionDuplicada();
+            const localToken = localStorage.getItem('session_token');
+            if (!localToken) {
+                await registrarSesionSilenciosa();
                 return;
             }
+            
+            // Actualizar last_active de nuestra sesión
+            try {
+                await db.from('active_sessions')
+                    .update({ last_active: new Date().toISOString() })
+                    .eq('user_id', currentUser.id)
+                    .eq('session_token', localToken);
+            } catch (e) {
+                await registrarSesionSilenciosa();
+            }
+            
+            // Buscar la sesión MÁS RECIENTE del usuario
+            const { data: sesiones, error } = await db
+                .from('active_sessions')
+                .select('session_token, last_active')
+                .eq('user_id', currentUser.id)
+                .order('last_active', { ascending: false })
+                .limit(10);
+            
+            if (error || !sesiones || sesiones.length === 0) {
+                return;
+            }
+            
+            const sesionMasReciente = sesiones[0];
+            
+            // Si la sesión más reciente NO es la mía → hay otra sesión activa más nueva
+            if (sesionMasReciente.session_token !== localToken) {
+                const otraFecha = new Date(sesionMasReciente.last_active).getTime();
+                const ahora = Date.now();
+                const segundosDiferencia = (ahora - otraFecha) / 1000;
+                
+                // Si la otra sesión se actualizó en los últimos 30 segundos → está activa AHORA
+                if (segundosDiferencia <= 30) {
+                    console.warn('⚠️ Sesión duplicada detectada: otra sesión más reciente está activa');
+                    mostrarAlertaSesionDuplicada();
+                    return;
+                }
+            }
+            
+        } catch (err) {
+            console.error('Error verificando sesión:', err);
+        } finally {
+            sessionCheckActive = false;
         }
-        
-    } catch (err) {
-        console.error('Error verificando sesión:', err);
-    } finally {
-        sessionCheckActive = false;
     }
-}
 
-  function setupInteractionListeners() {
-    let lastCheck = 0;
-    const checkOnInteraction = async () => {
-        // ⏱️ Respetar período de gracia
-        if (Date.now() < gracePeriodUntil) return;
-        
-        const now = Date.now();
-        // Mínimo 2 segundos entre checks (más rápido que antes)
-        if (now - lastCheck < 2000) return;
-        lastCheck = now;
-        await verificarSesionActiva();
-    };
-    
-    // Detectar cualquier interacción del usuario
-    document.addEventListener('click', checkOnInteraction);
-    document.addEventListener('touchstart', checkOnInteraction);
-    document.addEventListener('keypress', checkOnInteraction);
-    document.addEventListener('scroll', checkOnInteraction);
-    document.addEventListener('mousemove', checkOnInteraction);
-    
-    // 🔄 POLLING AUTOMÁTICO: Verificar cada 3 segundos aunque no haya interacción
-    setInterval(async () => {
-        if (Date.now() >= gracePeriodUntil && currentUser) {
+    function setupInteractionListeners() {
+        let lastCheck = 0;
+        const checkOnInteraction = async () => {
+            // 🛑 Detener si hay duplicado
+            if (sesionBloqueada) return;
+            // ⏱️ Respetar período de gracia
+            if (Date.now() < gracePeriodUntil) return;
+            
+            const now = Date.now();
+            // Mínimo 2 segundos entre checks (rápido)
+            if (now - lastCheck < 2000) return;
+            lastCheck = now;
             await verificarSesionActiva();
-        }
-    }, 3000);
-    
-    console.log('👀 Monitoreo de sesiones activado (polling cada 3s)');
-}
+        };
+        
+        // Detectar cualquier interacción del usuario
+        document.addEventListener('click', checkOnInteraction);
+        document.addEventListener('touchstart', checkOnInteraction);
+        document.addEventListener('keypress', checkOnInteraction);
+        document.addEventListener('scroll', checkOnInteraction);
+        document.addEventListener('mousemove', checkOnInteraction);
+        
+        // 🔄 POLLING AUTOMÁTICO: Verificar cada 3 segundos aunque no haya interacción
+        setInterval(async () => {
+            if (sesionBloqueada) return; // 🛑 Detener si hay duplicado
+            if (Date.now() >= gracePeriodUntil && currentUser) {
+                await verificarSesionActiva();
+            }
+        }, 3000);
+        
+        console.log('👀 Monitoreo de sesiones activado (polling cada 3s)');
+    }
 
     // ============================================
     // 🔐 4. AUTH STATE CHANGE
@@ -267,6 +286,9 @@ async function verificarSesionActiva() {
             }
         } else if (event === 'SIGNED_OUT' || !session) {
             localStorage.removeItem('session_token');
+            // 🖥️ Si estamos mostrando la alerta de sesión duplicada, NO redirigir
+            // (el usuario debe hacer clic en el botón del modal primero)
+            if (mostrandoAlertaSesion) return;
             if (!window.location.pathname.includes('index.html')) {
                 window.location.href = 'index.html';
             }
@@ -653,7 +675,10 @@ async function verificarSesionActiva() {
         }
 
         try {
+            // 🕐 Iniciar período de gracia ANTES de cualquier verificación
             gracePeriodUntil = Date.now() + 5000;
+            
+            // Registrar sesión de forma silenciosa (NUNCA falla)
             await registrarSesionSilenciosa();
             
             const { data: { user }, error: userError } = await db.auth.getUser();
@@ -669,7 +694,7 @@ async function verificarSesionActiva() {
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
             
-            console.log('✅ Dashboard cargado. Período de gracia activo por 15 segundos.');
+            console.log('✅ Dashboard cargado. Período de gracia activo por 5 segundos.');
         } catch (err) {
             console.error('Error al obtener usuario:', err);
             loadingState.style.display = 'none';
@@ -684,7 +709,7 @@ async function verificarSesionActiva() {
 });
 
 // ============================================
-// 🚪 CERRAR SESIÓN
+// 🚪 CERRAR SESIÓN (fuera del DOMContentLoaded)
 // ============================================
 async function cerrarSesion() {
     const db = window.supabaseClient;
