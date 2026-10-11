@@ -322,7 +322,7 @@ if (passwordForm) {
             
             // Redirigir al login después de 2.5 segundos
             setTimeout(() => {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
             }, 2500);
             
         } catch (err) {
