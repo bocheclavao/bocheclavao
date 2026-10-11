@@ -30,8 +30,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     let estadoKyc = null;
     let saldoBC = 0;
 
-    db.auth.onAuthStateChange((event, session) => {
+       db.auth.onAuthStateChange((event, session) => {
+        // Si la sesión se cierra (ya sea manualmente o porque otro dispositivo la expulsó)
         if (event === 'SIGNED_OUT' || !session) {
+            // Guardamos un mensaje temporal para mostrarlo en el login
+            sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
+            sessionStorage.setItem('auth_type', 'info');
+            
+            window.location.href = 'index.html'; // Redirige al login
+        }
+        
+        // Si el token falla al renovarse (otra señal de que fue expulsado)
+        if (event === 'TOKEN_REFRESHED' && !session) {
+            sessionStorage.setItem('auth_message', 'Tu sesión ha expirado o fue cerrada desde otro lugar.');
+            sessionStorage.setItem('auth_type', 'info');
             window.location.href = 'index.html';
         }
     });
