@@ -29,18 +29,147 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     let estadoKyc = null;
     let saldoBC = 0;
+    let currentUser = null;
+    let sessionCheckInterval = null;
 
-       db.auth.onAuthStateChange((event, session) => {
-        // Si la sesión se cierra (ya sea manualmente o porque otro dispositivo la expulsó)
+    // 🚨 CREAR MODAL DE ALERTA DE SESIÓN DUPLICADA
+    function crearModalSesionDuplicada() {
+        const modal = document.createElement('div');
+        modal.id = 'duplicateSessionModal';
+        modal.style.cssText = `
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        modal.innerHTML = `
+            <style>
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            </style>
+            <div style="
+                background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+                border: 2px solid #ff0000;
+                border-radius: 16px;
+                padding: 40px;
+                max-width: 450px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(255, 0, 0, 0.3);
+                animation: slideUp 0.4s ease;
+            ">
+                <div style="
+                    width: 80px; height: 80px;
+                    background: rgba(255, 0, 0, 0.1);
+                    border: 2px solid #ff0000;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    margin: 0 auto 20px;
+                    font-size: 2.5rem;
+                    animation: pulse 2s infinite;
+                ">
+                    <i class="fas fa-shield-alt" style="color: #ff0000;"></i>
+                </div>
+                <h2 style="color: #ff0000; font-size: 1.5rem; margin-bottom: 15px; font-weight: 800;">
+                    ⚠️ Sesión Duplicada Detectada
+                </h2>
+                <p style="color: #cccccc; font-size: 1rem; line-height: 1.6; margin-bottom: 25px;">
+                    Se ha iniciado sesión en otro dispositivo. Esta sesión se cerrará automáticamente por motivos de seguridad.
+                </p>
+                <button id="closeSessionBtn" style="
+                    width: 100%;
+                    padding: 14px;
+                    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+                    color: #fff;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    font-family: 'Montserrat', sans-serif;
+                ">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión Ahora
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Cerrar sesión al hacer clic en el botón
+        document.getElementById('closeSessionBtn').addEventListener('click', async () => {
+            await db.auth.signOut({ scope: 'global' });
+            window.location.href = 'index.html';
+        });
+        
+        return modal;
+    }
+
+    const duplicateModal = crearModalSesionDuplicada();
+
+    // 🚨 FUNCIÓN PARA MOSTRAR EL MODAL Y CERRAR SESIÓN
+    function mostrarAlertaSesionDuplicada() {
+        if (duplicateModal.style.display === 'flex') return; // Ya está mostrando
+        
+        duplicateModal.style.display = 'flex';
+        
+        // Auto-cerrar después de 10 segundos si no hace clic
+        setTimeout(() => {
+            if (duplicateModal.style.display === 'flex') {
+                db.auth.signOut({ scope: 'global' }).then(() => {
+                    window.location.href = 'index.html';
+                });
+            }
+        }, 10000);
+    }
+
+    //  LISTENER DE REALTIME PARA DETECTAR NUEVA SESIÓN
+    async function setupSessionListener() {
+        if (!currentUser) return;
+        
+        const channel = db.channel(`session_${currentUser.id}`)
+            .on('broadcast', { event: 'new_session' }, (payload) => {
+                console.log('🚨 Nueva sesión detectada:', payload);
+                mostrarAlertaSesionDuplicada();
+            })
+            .subscribe();
+        
+        return channel;
+    }
+
+    // 🚨 LISTENER DE CLICS PARA VERIFICAR SESIÓN
+    function setupClickListener() {
+        let lastCheck = 0;
+        
+        document.addEventListener('click', async (e) => {
+            // No verificar si el modal ya está abierto
+            if (duplicateModal.style.display === 'flex') return;
+            
+            // Verificar cada 3 segundos máximo (debounce)
+            const now = Date.now();
+            if (now - lastCheck < 3000) return;
+            lastCheck = now;
+            
+            // Verificar si la sesión sigue siendo válida
+            const { data: { session } } = await db.auth.getSession();
+            if (!session) {
+                mostrarAlertaSesionDuplicada();
+            }
+        });
+    }
+
+    db.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
-            // Guardamos un mensaje temporal para mostrarlo en el login
             sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
             sessionStorage.setItem('auth_type', 'info');
-            
-            window.location.href = 'index.html'; // Redirige al login
+            window.location.href = 'index.html';
         }
         
-        // Si el token falla al renovarse (otra señal de que fue expulsado)
         if (event === 'TOKEN_REFRESHED' && !session) {
             sessionStorage.setItem('auth_message', 'Tu sesión ha expirado o fue cerrada desde otro lugar.');
             sessionStorage.setItem('auth_type', 'info');
@@ -101,7 +230,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function verificarSiEsAdmin(userId, userEmail) {
         try {
-            console.log('🔍 Verificando si es admin:', userEmail);
             const { data, error } = await db
                 .from('admin_roles')
                 .select('es_admin, activo')
@@ -110,11 +238,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('activo', true)
                 .maybeSingle(); 
 
-            if (error || !data) {
-                console.log('❌ No es admin o no está en admin_roles');
-                return false;
-            }
-            console.log('✅ Es administrador verificado');
+            if (error || !data) return false;
             return true;
         } catch (err) {
             console.error('Error verificando admin:', err);
@@ -359,10 +483,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { data: { user }, error: userError } = await db.auth.getUser();
             if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
 
+            currentUser = user; // Guardar usuario actual para el listener
             const perfil = await cargarOCrearPerfil(user);
             estadoKyc = perfil?.estado_kyc || null;
             mostrarDatos(user, perfil);
             await cargarStreamEnVivo();
+            
+            // 🚨 ACTIVAR LISTENERS DE SESIÓN DUPLICADA
+            await setupSessionListener();
+            setupClickListener();
             
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
