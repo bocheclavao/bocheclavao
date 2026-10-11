@@ -36,8 +36,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     let currentUser = null;
     let sessionCheckActive = false;
 
-    // 🚀 1. EL SALVAVIDAS: SACAR MENÚS DE LA BARRA EN MÓVILES
-    // Esto evita que el backdrop-filter (blur) del navbar atrape y oculte los menús
+    // ============================================
+    // 🚀 1. MENÚS MÓVILES (Salvavidas)
+    // ============================================
     function sacarMenusDelNavbar() {
         if (window.innerWidth <= 768) {
             if (dropdownMenu && dropdownMenu.parentElement !== document.body) {
@@ -51,7 +52,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     sacarMenusDelNavbar();
     window.addEventListener('resize', sacarMenusDelNavbar);
 
+    // ============================================
     // 🚨 2. MODAL DE SESIÓN DUPLICADA
+    // ============================================
     function crearModalSesionDuplicada() {
         const existing = document.getElementById('duplicateSessionModal');
         if (existing) existing.remove();
@@ -91,20 +94,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     const duplicateModal = crearModalSesionDuplicada();
 
-    async function verificarSesionActiva() {
-        if (sessionCheckActive || !currentUser) return;
-        sessionCheckActive = true;
-        try {
-            const localToken = localStorage.getItem('session_token');
-            if (!localToken) { mostrarAlertaSesionDuplicada(); return; }
-            const { data, error } = await db.from('active_sessions').select('session_token').eq('user_id', currentUser.id).single();
-            if (error || !data || data.session_token !== localToken) { mostrarAlertaSesionDuplicada(); return; }
-            await db.from('active_sessions').update({ last_active: new Date().toISOString() }).eq('user_id', currentUser.id);
-        } catch (err) { console.error('Error verificando sesión:', err); } 
-        finally { sessionCheckActive = false; }
-    }
-
+    // ✅ FUNCIÓN FALTANTE: mostrar alerta
     function mostrarAlertaSesionDuplicada() {
+        if (!duplicateModal) return;
         if (duplicateModal.style.display === 'flex') return;
         duplicateModal.style.display = 'flex';
         setTimeout(() => {
@@ -115,6 +107,101 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
         }, 8000);
+    }
+
+    // ============================================
+    // 🔐 3. GESTIÓN DE SESIONES
+    // ============================================
+    async function verificarSesionActiva() {
+        if (sessionCheckActive || !currentUser) return;
+        sessionCheckActive = true;
+        
+        try {
+            const localToken = localStorage.getItem('session_token');
+            if (!localToken) {
+                console.warn('⚠️ No hay token local - reintentando registro');
+                const { data: { session } } = await db.auth.getSession();
+                if (session) {
+                    const newToken = session.access_token;
+                    localStorage.setItem('session_token', newToken);
+                    try {
+                        await db.rpc('registrar_mi_sesion', { p_token: newToken });
+                    } catch (e) {
+                        console.warn('No se pudo re-registrar sesión');
+                    }
+                }
+                return;
+            }
+            
+            const { data: sesiones, error } = await db
+                .from('active_sessions')
+                .select('session_token, last_active')
+                .eq('user_id', currentUser.id)
+                .order('last_active', { ascending: false });
+            
+            if (error) {
+                console.warn('Error consultando sesiones (continuando):', error.message);
+                return;
+            }
+            
+            if (!sesiones || sesiones.length === 0) {
+                console.log('📝 Primera sesión - registrando...');
+                try {
+                    await db.rpc('registrar_mi_sesion', { p_token: localToken });
+                } catch (e) {
+                    console.warn('No se pudo registrar primera sesión');
+                }
+                return;
+            }
+            
+            const miSesion = sesiones.find(s => s.session_token === localToken);
+            if (miSesion) {
+                await db.from('active_sessions')
+                    .update({ last_active: new Date().toISOString() })
+                    .eq('user_id', currentUser.id)
+                    .eq('session_token', localToken);
+                return;
+            }
+            
+            if (sesiones.length > 3 && !miSesion) {
+                console.warn('⚠️ Posible sesión duplicada detectada');
+                mostrarAlertaSesionDuplicada();
+                return;
+            }
+            
+            console.log('📝 Registrando sesión actual...');
+            try {
+                await db.rpc('registrar_mi_sesion', { p_token: localToken });
+            } catch (e) {
+                console.warn('No se pudo registrar sesión');
+            }
+            
+        } catch (err) {
+            console.error('Error verificando sesión (no expulsando):', err);
+        } finally {
+            sessionCheckActive = false;
+        }
+    }
+
+    async function asegurarSesionUnica() {
+        try {
+            const { data: { session } } = await db.auth.getSession();
+            if (!session) return;
+            
+            const userToken = session.access_token;
+            if (!userToken) return;
+            
+            localStorage.setItem('session_token', userToken);
+            
+            try {
+                await db.rpc('registrar_mi_sesion', { p_token: userToken });
+                console.log('✅ Sesión registrada correctamente');
+            } catch (rpcError) {
+                console.warn('⚠️ No se pudo registrar sesión (continuando):', rpcError.message);
+            }
+        } catch (err) {
+            console.error('Error en asegurarSesionUnica:', err);
+        }
     }
 
     function setupInteractionListeners() {
@@ -131,39 +218,79 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.addEventListener('keypress', checkOnInteraction);
     }
 
-    db.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
+    // ============================================
+    // 🔐 4. AUTH STATE CHANGE
+    // ============================================
+    db.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth event:', event);
+        
+        if (event === 'SIGNED_IN' && session) {
+            const userToken = session.access_token;
+            if (userToken) {
+                localStorage.setItem('session_token', userToken);
+                try {
+                    await db.rpc('registrar_mi_sesion', { p_token: userToken });
+                    console.log('✅ Sesión registrada al iniciar sesión');
+                } catch (e) {
+                    console.warn('No se pudo registrar sesión al iniciar:', e.message);
+                }
+            }
+        } else if (event === 'SIGNED_OUT' || !session) {
             localStorage.removeItem('session_token');
-            sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
-            sessionStorage.setItem('auth_type', 'info');
-            window.location.href = 'index.html';
+            if (!window.location.pathname.includes('index.html')) {
+                window.location.href = 'index.html';
+            }
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+            const newToken = session.access_token;
+            if (newToken) {
+                localStorage.setItem('session_token', newToken);
+            }
         }
     });
 
-    async function asegurarSesionUnica() {
-        const { data: { session } } = await db.auth.getSession();
-        if (session) await db.auth.signOut({ scope: 'others' });
+    // ============================================
+    // 👤 5. FUNCIONES DE PERFIL
+    // ============================================
+    function generarIdUnico() { 
+        return 'BC-' + Math.floor(10000000 + Math.random() * 90000000).toString(); 
     }
-
-    function generarIdUnico() { return 'BC-' + Math.floor(10000000 + Math.random() * 90000000).toString(); }
 
     async function cargarOCrearPerfil(user) {
         try {
             const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
             if (perfil) return perfil;
             if (error && error.code === 'PGRST116') {
-                const nuevoPerfil = { id: user.id, user_id: generarIdUnico(), nombre: user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario', email: user.email, avatar_url: user.user_metadata?.avatar_url || null, saldo_bc: 0, estado_kyc: null };
+                const nuevoPerfil = { 
+                    id: user.id, 
+                    user_id: generarIdUnico(), 
+                    nombre: user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario', 
+                    email: user.email, 
+                    avatar_url: user.user_metadata?.avatar_url || null, 
+                    saldo_bc: 0, 
+                    estado_kyc: null 
+                };
                 const { data: creado, error: insertError } = await db.from('perfiles').insert(nuevoPerfil).select().single();
-                if (insertError) { console.error('Error al crear perfil:', insertError); return null; }
+                if (insertError) { 
+                    console.error('Error al crear perfil:', insertError); 
+                    return null; 
+                }
                 return creado;
             }
             return null;
-        } catch (err) { console.error('Error en cargarOCrearPerfil:', err); return null; }
+        } catch (err) { 
+            console.error('Error en cargarOCrearPerfil:', err); 
+            return null; 
+        }
     }
 
     async function verificarSiEsAdmin(userId) {
         try {
-            const { data, error } = await db.from('admin_roles').select('es_admin, activo').eq('id', userId).eq('es_admin', true).eq('activo', true).maybeSingle();
+            const { data, error } = await db.from('admin_roles')
+                .select('es_admin, activo')
+                .eq('id', userId)
+                .eq('es_admin', true)
+                .eq('activo', true)
+                .maybeSingle();
             if (error || !data) return false;
             return true;
         } catch (err) { return false; }
@@ -181,7 +308,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         else dropdownMenu.appendChild(adminItem);
     }
 
-    // ✅ 3. LÓGICA DE MENÚS MÓVILES (A prueba de blur y scroll)
+    // ============================================
+    // 📱 6. LÓGICA DE MENÚS MÓVILES
+    // ============================================
     window.cerrarPanelesMovil = function() {
         if (dropdownMenu) {
             dropdownMenu.classList.remove('show');
@@ -199,7 +328,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (menuToggle) menuToggle.classList.remove('active');
         if (notificationBtn) notificationBtn.classList.remove('active');
 
-        // Liberar scroll
         document.body.classList.remove('menu-open');
         document.body.style.position = '';
         document.body.style.top = '';
@@ -220,23 +348,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.dataset.scrollPos = scrollY;
     }
 
-    // ✅ FORZAR VISIBILIDAD (Truco nuclear para móviles)
     function forzarVisibilidadMenu(elemento) {
         if (!elemento) return;
         
-        // Limpiar estilos inline que puedan estar bloqueando
         elemento.style.transform = '';
         elemento.style.opacity = '';
         elemento.style.visibility = '';
         elemento.style.display = '';
         
-        // Forzar reflow (recálculo del navegador)
         void elemento.offsetHeight;
         
-        // Añadir clase show
         elemento.classList.add('show');
         
-        // Backup inline por si el CSS no aplica
         setTimeout(() => {
             elemento.style.transform = 'translateY(0) translateZ(0)';
             elemento.style.opacity = '1';
@@ -289,7 +412,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    // Asignar eventos directamente desde JS (Evita problemas con el HTML)
     if (notificationBtn) {
         notificationBtn.onclick = null;
         notificationBtn.addEventListener('click', toggleNotifications);
@@ -299,7 +421,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         menuToggle.addEventListener('click', toggleMenu);
     }
     
-    // Asignar evento a los panel-close-btn (barras superiores de los menús móviles)
     document.querySelectorAll('.panel-close-btn').forEach(btn => {
         btn.addEventListener('click', window.cerrarPanelesMovil);
     });
@@ -309,7 +430,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         mobileOverlay.addEventListener('touchstart', window.cerrarPanelesMovil);
     }
 
-    // Cerrar menús al hacer clic fuera (Solo en Desktop)
     document.addEventListener('click', function(event) {
         if (window.innerWidth > 768) {
             const menuContainer = document.querySelector('.user-menu-container');
@@ -325,12 +445,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // ============================================
+    // 🔗 7. NAVEGACIÓN
+    // ============================================
     window.irAPerfil = function() { window.location.href = 'perfil.html'; };
     window.irABilletera = function() { window.location.href = 'billetera.html'; };
     window.irAApuestas = function() { alert('Mis apuestas estará disponible próximamente'); };
     window.irASoporte = function() { alert('Soporte estará disponible próximamente'); };
     window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
 
+    // ============================================
+    // 📺 8. STREAM EN VIVO
+    // ============================================
     async function cargarStreamEnVivo() {
         try {
             const { data: streamConfig, error } = await db.from('config_stream_vivo').select('*').eq('activo', true).single();
@@ -344,19 +470,27 @@ document.addEventListener('DOMContentLoaded', async function() {
             const liveDescription = document.getElementById('liveDescription');
 
             if (error || !streamConfig || !streamConfig.activo) {
-                liveSection.classList.remove('active'); videoPlaceholder.style.display = 'flex';
-                liveVideo.style.display = 'none'; liveIframe.style.display = 'none';
-                liveInfo.style.display = 'none'; liveBadgeContainer.innerHTML = ''; return;
+                liveSection.classList.remove('active'); 
+                videoPlaceholder.style.display = 'flex';
+                liveVideo.style.display = 'none'; 
+                liveIframe.style.display = 'none';
+                liveInfo.style.display = 'none'; 
+                liveBadgeContainer.innerHTML = ''; 
+                return;
             }
 
-            liveSection.classList.add('active'); videoPlaceholder.style.display = 'none';
-            liveInfo.style.display = 'block'; liveTitle.textContent = streamConfig.titulo || 'Transmisión en Vivo';
+            liveSection.classList.add('active'); 
+            videoPlaceholder.style.display = 'none';
+            liveInfo.style.display = 'block'; 
+            liveTitle.textContent = streamConfig.titulo || 'Transmisión en Vivo';
             liveDescription.textContent = streamConfig.descripcion || 'Evento en vivo';
             liveBadgeContainer.innerHTML = `<div class="live-badge"><div class="live-dot"></div> EN VIVO</div>${streamConfig.espectadores ? `<div class="live-viewers"><i class="fas fa-eye"></i> ${streamConfig.espectadores} espectadores</div>` : ''}`;
-            liveVideo.style.display = 'none'; liveIframe.style.display = 'none';
+            liveVideo.style.display = 'none'; 
+            liveIframe.style.display = 'none';
 
             if (streamConfig.url_stream.includes('youtube.com') || streamConfig.url_stream.includes('youtu.be')) {
-                liveIframe.style.display = 'block'; let embedUrl = streamConfig.url_stream;
+                liveIframe.style.display = 'block'; 
+                let embedUrl = streamConfig.url_stream;
                 if (embedUrl.includes('/live/') || embedUrl.includes('/watch?v=')) {
                     const videoId = embedUrl.split('/live/')[1]?.split('?')[0] || embedUrl.split('v=')[1]?.split('&')[0];
                     if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
@@ -365,40 +499,74 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
                 liveVideo.style.display = 'block';
                 if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                    const hls = new Hls(); hls.loadSource(streamConfig.url_stream); hls.attachMedia(liveVideo);
-                    hls.on(Hls.Events.MANIFEST_PARSED, function() { liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); });
+                    const hls = new Hls(); 
+                    hls.loadSource(streamConfig.url_stream); 
+                    hls.attachMedia(liveVideo);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() { 
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); 
+                    });
                 } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
                     liveVideo.src = streamConfig.url_stream;
-                    liveVideo.addEventListener('loadedmetadata', function() { liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); });
+                    liveVideo.addEventListener('loadedmetadata', function() { 
+                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); 
+                    });
                 }
             } else {
-                liveIframe.style.display = 'block'; liveIframe.src = streamConfig.url_stream;
+                liveIframe.style.display = 'block'; 
+                liveIframe.src = streamConfig.url_stream;
             }
-        } catch (err) { console.error('Error cargando stream en vivo:', err); }
+        } catch (err) { 
+            console.error('Error cargando stream en vivo:', err); 
+        }
     }
 
+    // ============================================
+    // 🛡️ 9. KYC Y AVATAR
+    // ============================================
     function actualizarBannerKYC(estado) {
         if (estado === 'verificado') {
-            kycBanner.style.display = 'none'; cardBochador.classList.remove('disabled'); cardPatrocinador.classList.remove('disabled'); return;
+            kycBanner.style.display = 'none'; 
+            cardBochador.classList.remove('disabled'); 
+            cardPatrocinador.classList.remove('disabled'); 
+            return;
         }
         kycBanner.style.display = 'flex';
         if (estado === null || estado === undefined || estado === '') {
-            kycBanner.classList.remove('verified', 'rejected'); kycBanner.style.borderColor = '#FFD700';
-            kycTitle.textContent = '⚠️ Verificación KYC Pendiente'; kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC).';
-            kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora'; kycBtn.style.pointerEvents = 'auto'; kycBtn.style.opacity = '1'; kycBtn.style.background = '';
+            kycBanner.classList.remove('verified', 'rejected'); 
+            kycBanner.style.borderColor = '#FFD700';
+            kycTitle.textContent = '⚠️ Verificación KYC Pendiente'; 
+            kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC).';
+            kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora'; 
+            kycBtn.style.pointerEvents = 'auto'; 
+            kycBtn.style.opacity = '1'; 
+            kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            cardBochador.classList.add('disabled'); cardPatrocinador.classList.add('disabled');
+            cardBochador.classList.add('disabled'); 
+            cardPatrocinador.classList.add('disabled');
         } else if (estado === 'pendiente' || estado === 'revision') {
-            kycBanner.classList.remove('verified', 'rejected'); kycBanner.style.borderColor = '#FFA500';
-            kycTitle.textContent = '⏳ Verificación KYC en Revisión'; kycMessage.textContent = 'Tus documentos están siendo revisados.';
-            kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión'; kycBtn.style.pointerEvents = 'none'; kycBtn.style.opacity = '0.6'; kycBtn.style.background = '#666';
-            kycBtn.onclick = null; cardBochador.classList.add('disabled'); cardPatrocinador.classList.add('disabled');
+            kycBanner.classList.remove('verified', 'rejected'); 
+            kycBanner.style.borderColor = '#FFA500';
+            kycTitle.textContent = '⏳ Verificación KYC en Revisión'; 
+            kycMessage.textContent = 'Tus documentos están siendo revisados.';
+            kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión'; 
+            kycBtn.style.pointerEvents = 'none'; 
+            kycBtn.style.opacity = '0.6'; 
+            kycBtn.style.background = '#666';
+            kycBtn.onclick = null; 
+            cardBochador.classList.add('disabled'); 
+            cardPatrocinador.classList.add('disabled');
         } else if (estado === 'rechazado') {
-            kycBanner.classList.add('rejected'); kycBanner.classList.remove('verified');
-            kycTitle.textContent = '❌ Verificación KYC Rechazada'; kycMessage.textContent = 'Tus documentos no fueron aprobados. Vuelve a enviarla.';
-            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar'; kycBtn.style.pointerEvents = 'auto'; kycBtn.style.opacity = '1'; kycBtn.style.background = '';
+            kycBanner.classList.add('rejected'); 
+            kycBanner.classList.remove('verified');
+            kycTitle.textContent = '❌ Verificación KYC Rechazada'; 
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Vuelve a enviarla.';
+            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar'; 
+            kycBtn.style.pointerEvents = 'auto'; 
+            kycBtn.style.opacity = '1'; 
+            kycBtn.style.background = '';
             kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            cardBochador.classList.add('disabled'); cardPatrocinador.classList.add('disabled');
+            cardBochador.classList.add('disabled'); 
+            cardPatrocinador.classList.add('disabled');
         }
     }
 
@@ -419,38 +587,60 @@ document.addEventListener('DOMContentLoaded', async function() {
         const estado = perfil?.estado_kyc || null;
         saldoBC = perfil?.saldo_bc || 0;
 
-        userNameDisplay.textContent = nombre; userEmailDisplay.textContent = email;
+        userNameDisplay.textContent = nombre; 
+        userEmailDisplay.textContent = email;
+        
         if (estado === 'verificado') {
             userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Verificado</span>`;
-        } else { userIdDisplay.textContent = `ID: ${userId}`; }
+        } else { 
+            userIdDisplay.textContent = `ID: ${userId}`; 
+        }
         
-        dropdownUserName.textContent = nombre; dropdownUserEmail.textContent = email;
+        dropdownUserName.textContent = nombre; 
+        dropdownUserEmail.textContent = email;
         balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
 
-        if (avatarUrl) { avatarImage.src = avatarUrl; avatarImage.style.display = 'block'; avatarPlaceholder.style.display = 'none'; } 
-        else { avatarPlaceholder.textContent = nombre.charAt(0).toUpperCase(); avatarPlaceholder.style.display = 'flex'; avatarImage.style.display = 'none'; }
+        if (avatarUrl) { 
+            avatarImage.src = avatarUrl; 
+            avatarImage.style.display = 'block'; 
+            avatarPlaceholder.style.display = 'none'; 
+        } else { 
+            avatarPlaceholder.textContent = nombre.charAt(0).toUpperCase(); 
+            avatarPlaceholder.style.display = 'flex'; 
+            avatarImage.style.display = 'none'; 
+        }
 
         mostrarAvatarNavbar(nombre, avatarUrl);
         actualizarBannerKYC(estado);
 
-        verificarSiEsAdmin(user.id).then(esAdmin => { if (esAdmin) agregarBotonAdmin(); });
+        verificarSiEsAdmin(user.id).then(esAdmin => { 
+            if (esAdmin) agregarBotonAdmin(); 
+        });
     }
 
     window.seleccionarRol = function(rol) {
         if (estadoKyc !== 'verificado') {
             alert('Debes completar y ser aprobado en la verificación KYC antes de poder participar.');
-            window.location.href = 'perfil.html'; return;
+            window.location.href = 'perfil.html'; 
+            return;
         }
         if (rol === 'bochador') window.location.href = 'dashboard-bochador.html';
         else if (rol === 'patrocinador') window.location.href = 'dashboard-patrocinador.html';
     };
 
+    // ============================================
+    // 🔒 10. PROTEGER RUTA (CORREGIDO - con try/catch bien formado)
+    // ============================================
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
-        if (!session || error) { window.location.href = 'index.html'; return; }
+        if (!session || error) { 
+            window.location.href = 'index.html'; 
+            return; 
+        }
 
         try {
             await asegurarSesionUnica();
+            
             const { data: { user }, error: userError } = await db.auth.getUser();
             if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
 
@@ -467,13 +657,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.error('Error al obtener usuario:', err);
             loadingState.style.display = 'none';
             errorState.style.display = 'block';
-            setTimeout(() => { window.location.href = 'index.html'; }, 3000);
+            setTimeout(() => { 
+                window.location.href = 'index.html'; 
+            }, 3000);
         }
     }
 
     protegerRuta();
 });
 
+// ============================================
+// 🚪 CERRAR SESIÓN (fuera del DOMContentLoaded)
+// ============================================
 async function cerrarSesion() {
     const db = window.supabaseClient;
     if (!db) return;
