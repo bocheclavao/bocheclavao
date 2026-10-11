@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.addEventListener('resize', sacarMenusDelNavbar);
 
     // ============================================
-    // 🚨 2. MODAL DE SESIÓN DUPLICADA (ORIGINAL)
+    // 🚨 2. MODAL DE SESIÓN DUPLICADA
     // ============================================
     function crearModalSesionDuplicada() {
         const existing = document.getElementById('duplicateSessionModal');
@@ -98,7 +98,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (duplicateModal.style.display === 'flex') return;
         duplicateModal.style.display = 'flex';
         
-        // Auto-cerrar después de 8 segundos
         setTimeout(() => {
             if (duplicateModal.style.display === 'flex') {
                 db.auth.signOut({ scope: 'global' }).then(() => {
@@ -110,10 +109,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🔐 3. GESTIÓN DE SESIONES (SIMPLE Y ROBUSTA)
+    // 🔐 3. GESTIÓN DE SESIONES
     // ============================================
-    
-    // Guardar mi token en BD (upsert - 1 fila por usuario)
     async function registrarMiSesion() {
         try {
             const { data: { session } } = await db.auth.getSession();
@@ -129,40 +126,32 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // ⚡ Verificación simple: mi token local vs token en BD
     async function verificarSesionActiva() {
         if (sessionCheckActive || !currentUser) return;
         sessionCheckActive = true;
         
         try {
             const miToken = localStorage.getItem('session_token');
-            
-            // Si no hay token local → registrarme y continuar (usuario nuevo)
             if (!miToken) {
                 await registrarMiSesion();
                 return;
             }
 
-            // Leer mi token actual de la BD (solo 1 fila por usuario)
             const { data, error } = await db
                 .from('active_sessions')
                 .select('session_token')
                 .eq('user_id', currentUser.id)
                 .maybeSingle();
             
-            // Si no hay fila en BD (usuario recién registrado) → crearla
             if (error || !data) {
                 await registrarMiSesion();
                 return;
             }
 
-            // ✅ LÓGICA ORIGINAL: comparar tokens
             if (data.session_token !== miToken) {
-                // El token de BD es diferente → OTRO dispositivo inició sesión más recientemente
                 console.warn('⚠️ Sesión duplicada detectada');
                 mostrarAlertaSesionDuplicada();
             } else {
-                // Mi sesión sigue siendo la activa → refrescar last_active
                 try {
                     await db.from('active_sessions')
                         .update({ last_active: new Date().toISOString() })
@@ -192,7 +181,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     db.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session) {
-            // Nuevo login → registrar como la sesión activa
             registrarMiSesion();
         } else if (event === 'SIGNED_OUT' || !session) {
             localStorage.removeItem('session_token');
@@ -559,17 +547,51 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     // ============================================
-    // 🔒 9. PROTEGER RUTA
+    // 🔒 9. PROTEGER RUTA (🛡️ CORREGIDO Y BLINDADO)
     // ============================================
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
-        if (!session || error) { 
+        
+        // 1. Verificar si hay sesión válida
+        if (!session || error || !session.user) { 
             window.location.href = 'index.html'; 
             return; 
         }
 
         try {
-            // ✅ REGISTRAR MI SESIÓN PRIMERO (esto evita el falso positivo del usuario nuevo)
+            // 🛡️ NUEVO: VERIFICAR SUSPENSIÓN DE CUENTA (Anti-bypass de Google)
+            // Esto se ejecuta DESPUÉS de que Google devuelve el email, pero ANTES de cargar el dashboard
+            const userEmail = session.user.email;
+            const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
+                p_email: userEmail,
+                p_success: true // Usamos true porque ya está autenticado, pero queremos saber si está bloqueado
+            });
+
+            // 2. Si la cuenta está bloqueada, expulsar inmediatamente
+            if (checkData && checkData.allowed === false) {
+                console.warn(`🚫 Acceso denegado en Dashboard: Cuenta suspendida (${userEmail})`);
+                
+                // Cerrar sesión forzosamente en todos los dispositivos
+                await db.auth.signOut({ scope: 'global' });
+                localStorage.removeItem('session_token');
+                
+                // Calcular mensaje de tiempo restante
+                const hasta = checkData.blocked_until 
+                    ? new Date(checkData.blocked_until).toLocaleString('es-ES', { 
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                      }) 
+                    : 'varias horas';
+                
+                // Guardar mensaje para que index.html lo muestre
+                sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida por seguridad hasta: ${hasta}.`);
+                sessionStorage.setItem('auth_type', 'error');
+                
+                // Redirigir al login y DETENER la ejecución
+                window.location.href = 'index.html';
+                return; 
+            }
+
+            // ✅ SI LLEGA AQUÍ, el usuario NO está suspendido. Continuar carga normal.
             await registrarMiSesion();
             
             const { data: { user }, error: userError } = await db.auth.getUser();
@@ -578,14 +600,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             currentUser = user;
             const perfil = await cargarOCrearPerfil(user);
             estadoKyc = perfil?.estado_kyc || null;
+            
             mostrarDatos(user, perfil);
             await cargarStreamEnVivo();
             setupInteractionListeners();
             
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
+            
         } catch (err) {
-            console.error('Error al obtener usuario:', err);
+            console.error('Error crítico en la guardia de seguridad:', err);
             loadingState.style.display = 'none';
             errorState.style.display = 'block';
             setTimeout(() => { window.location.href = 'index.html'; }, 3000);
