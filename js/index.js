@@ -276,11 +276,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+      // ============================================
+    // 🛡️ VERIFICAR SESIÓN ACTIVA Y SUSPENSIÓN AL CARGAR
+    // ============================================
     async function checkSession() {
         try {
             const { data: { session } } = await db.auth.getSession();
-            if (session) {
-                const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) ? APP_CONFIG.REDIRECT_AFTER_LOGIN : 'dashboard.html';
+            
+            if (session && session.user) {
+                // Verificar si esta sesión pertenece a una cuenta suspendida
+                const { data: checkData } = await db.rpc('check_login_attempt', {
+                    p_email: session.user.email,
+                    p_success: true
+                });
+                
+                if (checkData && checkData.allowed === false) {
+                    // Cuenta suspendida: cerrar sesión y mostrar mensaje
+                    await db.auth.signOut();
+                    const hasta = checkData.blocked_until 
+                        ? new Date(checkData.blocked_until).toLocaleString('es-ES') 
+                        : 'varias horas';
+                    
+                    sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida hasta: ${hasta}.`);
+                    sessionStorage.setItem('auth_type', 'error');
+                    return; // No redirigir al dashboard, quedarse en login para mostrar el error
+                }
+
+                // Si no está suspendida, redirigir normalmente
+                const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
+                    ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
+                    : 'dashboard.html';
                 window.location.href = redirectUrl;
             }
         } catch (err) {
@@ -288,13 +313,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     checkSession();
-
-    const logoutReason = sessionStorage.getItem('auth_message');
-    const logoutType = sessionStorage.getItem('auth_type') || 'info';
-    
-    if (logoutReason) {
-        showMessage(logoutReason, logoutType);
-        sessionStorage.removeItem('auth_message');
-        sessionStorage.removeItem('auth_type');
-    }
-});
