@@ -1,23 +1,19 @@
 // ============================================
-// 🔔 SISTEMA DE NOTIFICACIONES + CARRUSEL + MENÚ MÓVIL
+//  SISTEMA DE NOTIFICACIONES + MENÚ MÓVIL
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    //  Inicializar carrusel infinito
+    // Carrusel infinito
     const track = document.getElementById('eventsCarouselTrack');
     if (track) {
         const slides = track.innerHTML;
         track.innerHTML = slides + slides; 
     }
     
-    // 🔔 Cargar notificaciones
     cargarNotificaciones();
-    
-    // Configurar cierre al tocar fuera (Overlay)
-    setupMobileCloseListeners();
+    setupMobileListeners();
 });
 
-// Notificaciones de ejemplo
 const notificacionesEjemplo = [
     { id: 1, tipo: 'win', titulo: '¡Ganaste el Torneo Regional!', mensaje: 'El evento "Copa Norte 2024" ha finalizado. Quedaste en 1er lugar y ganaste +50 BC.', tiempo: 'Hace 5 minutos', leida: false },
     { id: 2, tipo: 'lose', titulo: 'Evento finalizado - Desafío Semanal', mensaje: 'No clasificaste al Desafío Semanal. ¡Sigue practicando para la próxima!', tiempo: 'Hace 2 horas', leida: false },
@@ -32,19 +28,18 @@ function cargarNotificaciones() {
     const list = document.getElementById('notificationList');
     const badge = document.getElementById('notificationBadge');
     
-    const notificacionesMostrar = notificaciones.slice(0, 5);
+    const mostrar = notificaciones.slice(0, 5);
     const noLeidas = notificaciones.filter(n => !n.leida).length;
     
     badge.textContent = noLeidas;
-    if (noLeidas > 0) badge.classList.remove('hidden');
-    else badge.classList.add('hidden');
+    badge.classList.toggle('hidden', noLeidas === 0);
     
-    if (notificacionesMostrar.length === 0) {
+    if (mostrar.length === 0) {
         list.innerHTML = `<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>No tienes notificaciones</p></div>`;
         return;
     }
     
-    list.innerHTML = notificacionesMostrar.map(n => `
+    list.innerHTML = mostrar.map(n => `
         <div class="notification-item ${n.leida ? '' : 'unread'}" onclick="marcarLeida(${n.id})">
             <div class="notification-icon ${n.tipo}">
                 <i class="fas fa-${n.tipo === 'win' ? 'trophy' : n.tipo === 'lose' ? 'times' : 'info'}"></i>
@@ -58,128 +53,113 @@ function cargarNotificaciones() {
     `).join('');
 }
 
-// Función global para cerrar paneles en móvil
-window.cerrarPanelesMovil = function() {
+// Función centralizada para cerrar todo
+function cerrarTodo() {
     const overlay = document.getElementById('mobileOverlay');
-    const notifDropdown = document.getElementById('notificationDropdown');
-    const userDropdown = document.getElementById('dropdownMenu');
+    const notif = document.getElementById('notificationDropdown');
+    const user = document.getElementById('dropdownMenu');
     
-    if (overlay) overlay.style.display = 'none';
-    if (notifDropdown) notifDropdown.classList.remove('show');
-    if (userDropdown) userDropdown.classList.remove('show');
-};
+    if (overlay) overlay.classList.remove('active');
+    if (notif) notif.classList.remove('show');
+    if (user) user.classList.remove('show');
+}
 
-// Toggle Notificaciones (Adaptado para móvil)
+// Toggle Notificaciones
 window.toggleNotifications = function(e) {
-    if(e) e.stopPropagation(); // Evitar que el clic se propague
+    if (e) e.stopPropagation();
     
-    const dropdown = document.getElementById('notificationDropdown');
+    const notif = document.getElementById('notificationDropdown');
+    const user = document.getElementById('dropdownMenu');
     const overlay = document.getElementById('mobileOverlay');
-    const userDropdown = document.getElementById('dropdownMenu');
+    const isMobile = window.innerWidth <= 768;
     
-    // Si estamos en móvil (menos de 768px)
-    if (window.innerWidth <= 768) {
-        if (dropdown.classList.contains('show')) {
-            window.cerrarPanelesMovil();
+    if (isMobile) {
+        // En móvil: comportamiento Bottom Sheet
+        if (notif.classList.contains('show')) {
+            cerrarTodo();
         } else {
-            // Cerrar el menú de usuario si está abierto
-            userDropdown.classList.remove('show');
-            
-            // Abrir notificaciones y mostrar overlay
-            dropdown.classList.add('show');
-            if (overlay) overlay.style.display = 'block';
+            user.classList.remove('show'); // Cerrar otro si está abierto
+            notif.classList.add('show');
+            if (overlay) overlay.classList.add('active');
         }
     } else {
-        // Comportamiento de escritorio (dropdown normal)
-        const isShowing = dropdown.classList.contains('show');
+        // En escritorio: dropdown normal
+        const isOpen = notif.classList.contains('show');
+        user.classList.remove('show');
+        document.getElementById('menuToggle')?.classList.remove('active');
         
-        // Cerrar menú de usuario
-        userDropdown.classList.remove('show');
-        document.getElementById('menuToggle').classList.remove('active');
-        
-        if (!isShowing) {
-            dropdown.classList.add('show');
-            document.getElementById('notificationBtn').classList.add('active');
-        } else {
-            dropdown.classList.remove('show');
-            document.getElementById('notificationBtn').classList.remove('active');
-        }
+        notif.classList.toggle('show', !isOpen);
+        document.getElementById('notificationBtn')?.classList.toggle('active', !isOpen);
     }
 };
 
-// Toggle Menú de Usuario (Adaptado para móvil)
+// Toggle Menú Usuario
 window.toggleMenu = function(e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     
-    const dropdown = document.getElementById('dropdownMenu');
+    const user = document.getElementById('dropdownMenu');
+    const notif = document.getElementById('notificationDropdown');
     const overlay = document.getElementById('mobileOverlay');
-    const notifDropdown = document.getElementById('notificationDropdown');
+    const isMobile = window.innerWidth <= 768;
     
-    if (window.innerWidth <= 768) {
-        if (dropdown.classList.contains('show')) {
-            window.cerrarPanelesMovil();
+    if (isMobile) {
+        if (user.classList.contains('show')) {
+            cerrarTodo();
         } else {
-            // Cerrar notificaciones si están abiertas
-            notifDropdown.classList.remove('show');
-            
-            // Abrir menú y mostrar overlay
-            dropdown.classList.add('show');
-            if (overlay) overlay.style.display = 'block';
+            notif.classList.remove('show');
+            user.classList.add('show');
+            if (overlay) overlay.classList.add('active');
         }
     } else {
-        // Comportamiento de escritorio
-        const isShowing = dropdown.classList.contains('show');
+        const isOpen = user.classList.contains('show');
+        notif.classList.remove('show');
+        document.getElementById('notificationBtn')?.classList.remove('active');
         
-        // Cerrar notificaciones
-        notifDropdown.classList.remove('show');
-        document.getElementById('notificationBtn').classList.remove('active');
-        
-        if (!isShowing) {
-            dropdown.classList.add('show');
-            document.getElementById('menuToggle').classList.add('active');
-        } else {
-            dropdown.classList.remove('show');
-            document.getElementById('menuToggle').classList.remove('active');
-        }
+        user.classList.toggle('show', !isOpen);
+        document.getElementById('menuToggle')?.classList.toggle('active', !isOpen);
     }
 };
+
+// Configurar listeners globales
+function setupMobileListeners() {
+    // Cerrar al tocar el overlay
+    const overlay = document.getElementById('mobileOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', cerrarTodo);
+    }
+    
+    // Cerrar al tocar fuera de los menús (solo en móvil)
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth > 768) return;
+        
+        const notif = document.getElementById('notificationDropdown');
+        const user = document.getElementById('dropdownMenu');
+        const btnNotif = document.getElementById('notificationBtn');
+        const btnMenu = document.getElementById('menuToggle');
+        
+        const clickedInsideNotif = notif?.contains(e.target);
+        const clickedInsideUser = user?.contains(e.target);
+        const clickedBtnNotif = btnNotif?.contains(e.target);
+        const clickedBtnMenu = btnMenu?.contains(e.target);
+        
+        // Si no tocó ningún menú ni sus botones, cerrar todo
+        if (!clickedInsideNotif && !clickedInsideUser && !clickedBtnNotif && !clickedBtnMenu) {
+            cerrarTodo();
+        }
+    });
+}
 
 window.marcarLeida = function(id) {
-    const notif = notificaciones.find(n => n.id === id);
-    if (notif) {
-        notif.leida = true;
-        cargarNotificaciones();
-    }
+    const n = notificaciones.find(x => x.id === id);
+    if (n) { n.leida = true; cargarNotificaciones(); }
 };
 
-window.marcarTodasLeidas = function(event) {
-    event.stopPropagation();
+window.marcarTodasLeidas = function(e) {
+    e.stopPropagation();
     notificaciones.forEach(n => n.leida = true);
     cargarNotificaciones();
 };
 
 window.verMasNotificaciones = function() {
-    alert(' El módulo "Mis Apuestas" estará disponible próximamente.');
+    alert('🚧 El módulo "Mis Apuestas" estará disponible próximamente.');
 };
-
-// Configurar listeners para cerrar al tocar fuera
-function setupMobileCloseListeners() {
-    const overlay = document.getElementById('mobileOverlay');
-    if (overlay) {
-        overlay.addEventListener('click', window.cerrarPanelesMovil);
-    }
-    
-    // También cerrar al hacer scroll (opcional, mejora UX en móvil)
-    let scrollTimeout;
-    document.addEventListener('scroll', () => {
-        if (window.innerWidth <= 768) {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                // Solo cerrar si el usuario scrollea mucho hacia abajo
-                if (window.scrollY > 100) {
-                    window.cerrarPanelesMovil();
-                }
-            }, 500);
-        }
-    }, { passive: true });
-}
