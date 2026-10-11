@@ -55,14 +55,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (LÓGICA CORREGIDA)
+        // ============================================
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (CON DIAGNÓSTICO)
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Normalizar email a minúsculas SIEMPRE
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
@@ -77,70 +76,89 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 // ==========================================
-                // PASO 1: ¿EL CORREO EXISTE EN EL SISTEMA?
+                // PASO 1: ¿EL CORREO EXISTE?
                 // ==========================================
-                let correoExiste = false;
-                try {
-                    const { data: existe, error: existeError } = await db.rpc('check_email_exists', { 
-                        p_email: email 
-                    });
-                    if (!existeError) {
-                        correoExiste = existe === true;
-                    }
-                } catch (err) {
-                    console.warn('No se pudo verificar existencia del correo:', err.message);
+                console.log('🔍 Paso 1: Verificando si el correo existe...');
+                const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { 
+                    p_email: email 
+                });
+                
+                console.log('📊 Resultado check_email_exists:', { existeData, existeError });
+                
+                if (existeError) {
+                    console.error('❌ Error en check_email_exists:', existeError);
+                    showMessage('Error al verificar el correo. Intenta de nuevo.', 'error');
+                    resetButton();
+                    return;
                 }
-
-                // Si el correo NO existe → mensaje específico SIN contar intento
-                if (!correoExiste) {
+                
+                if (existeData !== true) {
+                    console.log('❌ Correo NO existe en la base de datos');
                     showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
                     resetButton();
                     return;
                 }
+                
+                console.log('✅ Correo SÍ existe en la base de datos');
 
                 // ==========================================
-                // PASO 2: ¿ESTÁ SUSPENDIDO? (ANTES de intentar login)
+                // PASO 2: ¿ESTÁ SUSPENDIDO?
                 // ==========================================
+                console.log('🔍 Paso 2: Verificando si está suspendido...');
                 const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
                     p_email: email, 
                     p_success: false 
                 });
                 
-                if (!preError && preCheck && preCheck.allowed === false) {
+                console.log('📊 Resultado check_login_attempt (pre-check):', { preCheck, preError });
+                
+                if (preError) {
+                    console.error('❌ Error en check_login_attempt:', preError);
+                }
+                
+                if (preCheck && preCheck.allowed === false) {
+                    console.log('🚫 Cuenta SUSPENDIDA');
                     const hasta = preCheck.blocked_until 
                         ? new Date(preCheck.blocked_until).toLocaleString('es-ES', {
                             day: '2-digit', month: '2-digit', year: 'numeric', 
                             hour: '2-digit', minute: '2-digit'
                           }) 
                         : 'varias horas';
+                    console.log('📅 Fecha de desbloqueo:', hasta);
                     showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     resetButton();
                     return;
                 }
 
                 // ==========================================
-                // PASO 3: INTENTAR LOGIN CON SUPABASE
+                // PASO 3: INTENTAR LOGIN
                 // ==========================================
+                console.log('🔍 Paso 3: Intentando login con Supabase...');
                 const { data, error: authError } = await db.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
                 if (authError) {
+                    console.log('❌ Error de autenticación:', authError.message);
+                    
                     // ==========================================
-                    // PASO 4: CONTRASEÑA INCORRECTA → REGISTRAR INTENTO
+                    // PASO 4: REGISTRAR INTENTO FALLIDO
                     // ==========================================
+                    console.log('🔍 Paso 4: Registrando intento fallido...');
                     const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
                         p_email: email, 
                         p_success: false 
                     });
                     
+                    console.log('📊 Resultado check_login_attempt (post-fallo):', { attemptData, rpcError });
+                    
                     if (rpcError) {
-                        console.error('Error al registrar intento:', rpcError);
+                        console.error('❌ Error al registrar intento:', rpcError);
                     }
 
-                    // Verificar si quedó suspendido DESPUÉS de este intento
                     if (attemptData && attemptData.allowed === false) {
+                        console.log('🚫 Cuenta ahora SUSPENDIDA después de este intento');
                         const hasta = attemptData.blocked_until 
                             ? new Date(attemptData.blocked_until).toLocaleString('es-ES', {
                                 day: '2-digit', month: '2-digit', year: 'numeric', 
@@ -149,8 +167,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             : 'varias horas';
                         showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     } else {
-                        const intentos = (attemptData && attemptData.attempts) ? attemptData.attempts : 1;
+                        const intentos = (attemptData && attemptData.attempts !== undefined) 
+                            ? attemptData.attempts 
+                            : 1;
                         const restantes = Math.max(0, 5 - intentos);
+                        console.log(`📊 Intentos actuales: ${intentos}, Restantes: ${restantes}`);
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
                     
@@ -159,8 +180,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // ==========================================
-                // PASO 5: LOGIN EXITOSO → RESETEAR CONTADOR
+                // PASO 5: LOGIN EXITOSO
                 // ==========================================
+                console.log('✅ Login exitoso');
+                
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_success: true });
                 } catch (rpcErr) {
@@ -200,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 1500);
                 
             } catch (err) {
-                console.error('Error inesperado en login:', err);
+                console.error('💥 Error inesperado en login:', err);
                 showMessage('Error inesperado: ' + err.message, 'error');
                 resetButton();
             }
