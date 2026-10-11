@@ -291,18 +291,88 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    window.toggleMenu = function() {
-        dropdownMenu.classList.toggle('show');
-        menuToggle.classList.toggle('active');
-    };
+    // ✅ NUEVA LÓGICA DE MENÚS MÓVILES (Reemplaza la anterior)
 
-    document.addEventListener('click', function(event) {
-        const menuContainer = document.querySelector('.user-menu-container');
-        if (!menuContainer.contains(event.target)) {
-            dropdownMenu.classList.remove('show');
-            menuToggle.classList.remove('active');
-        }
-    });
+// 1. Función maestra para cerrar TODO
+window.cerrarPanelesMovil = function() {
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const menuToggle = document.getElementById('menuToggle');
+    const notificationBtn = document.getElementById('notificationBtn');
+
+    if (dropdownMenu) dropdownMenu.classList.remove('show');
+    if (notificationDropdown) notificationDropdown.classList.remove('show');
+    if (mobileOverlay) mobileOverlay.classList.remove('active');
+    if (menuToggle) menuToggle.classList.remove('active');
+    if (notificationBtn) notificationBtn.classList.remove('active');
+
+    // Restaurar el scroll del fondo
+    document.body.classList.remove('menu-open');
+};
+
+// 2. Toggle del Menú de Usuario
+window.toggleMenu = function(event) {
+    if (event) event.stopPropagation(); // Evita que el clic cierre el menú inmediatamente
+
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const menuToggle = document.getElementById('menuToggle');
+
+    // Si abrimos este, cerramos el de notificaciones por si acaso
+    if (notificationDropdown && notificationDropdown.classList.contains('show')) {
+        notificationDropdown.classList.remove('show');
+    }
+
+    const isShowing = dropdownMenu.classList.contains('show');
+    
+    if (isShowing) {
+        cerrarPanelesMovil();
+    } else {
+        dropdownMenu.classList.add('show');
+        if (menuToggle) menuToggle.classList.add('active');
+        if (mobileOverlay) mobileOverlay.classList.add('active');
+        document.body.classList.add('menu-open'); // 🔒 Bloquea scroll de fondo
+    }
+};
+
+// 3. Toggle del Menú de Notificaciones
+window.toggleNotifications = function(event) {
+    if (event) event.stopPropagation();
+
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const notificationBtn = document.getElementById('notificationBtn');
+
+    // Si abrimos este, cerramos el de usuario por si acaso
+    if (dropdownMenu && dropdownMenu.classList.contains('show')) {
+        dropdownMenu.classList.remove('show');
+    }
+
+    const isShowing = notificationDropdown.classList.contains('show');
+
+    if (isShowing) {
+        cerrarPanelesMovil();
+    } else {
+        notificationDropdown.classList.add('show');
+        if (notificationBtn) notificationBtn.classList.add('active');
+        if (mobileOverlay) mobileOverlay.classList.add('active');
+        document.body.classList.add('menu-open'); // 🔒 Bloquea scroll de fondo
+        
+        // Aquí puedes llamar a tu función de cargar notificaciones si es necesario
+        // if (typeof cargarNotificaciones === 'function') cargarNotificaciones();
+    }
+};
+
+// 4. Evento para cerrar al hacer clic en el fondo oscuro (Overlay)
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    if (mobileOverlay) {
+        mobileOverlay.addEventListener('click', window.cerrarPanelesMovil);
+    }
+});
 
     window.irAPerfil = function() { window.location.href = 'perfil.html'; };
     window.irABilletera = function() { window.location.href = 'billetera.html'; };
