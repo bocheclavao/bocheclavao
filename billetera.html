@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boche Clava'o - Billetera</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../img/moneda.png">
+    
+    <style>
+        /* ============================================
+           ESTILOS BASE (Heredados del Dashboard)
+           ============================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #000000;
+            background-image: radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 25%),
+                              radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.06) 0%, transparent 25%);
+            min-height: 100vh; color: #ffffff; display: flex; flex-direction: column;
+        }
+
+        /* Navbar simplificado para Billetera */
+        .navbar {
+            background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid #222; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+        .navbar-logo { max-width: 60px; height: auto; }
+        .navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
+        
+        .btn-volver {
+            background: transparent; border: 1px solid #444; color: #ccc;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-family: 'Montserrat', sans-serif; font-weight: 600;
+            display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
+        }
+        .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
+
+        .main-content { flex: 1; padding: 30px 20px; max-width: 800px; margin: 0 auto; width: 100%; }
+
+        /* Tarjeta de Saldo Principal */
+        .balance-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 1px solid #FFD700; border-radius: 16px; padding: 30px;
+            text-align: center; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.1);
+        }
+        .balance-card h2 { color: #999; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+        .balance-card .amount { font-size: 3rem; font-weight: 900; color: #FFD700; margin-bottom: 5px; }
+        .balance-card .user-name { color: #666; font-size: 0.9rem; }
+
+        /* Pestañas (Tabs) */
+        .wallet-tabs {
+            display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #222; padding-bottom: 10px;
+        }
+        .tab-btn {
+            flex: 1; background: transparent; border: none; color: #666;
+            padding: 12px; font-family: 'Montserrat', sans-serif; font-weight: 700;
+            font-size: 0.95rem; cursor: pointer; transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0; position: relative;
+        }
+        .tab-btn:hover { color: #ccc; }
+        .tab-btn.active { color: #FFD700; background: rgba(255, 215, 0, 0.05); }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: -11px; left: 0; width: 100%; height: 3px; background: #FFD700;
+        }
+        .tab-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+        /* Contenido de las Pestañas */
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Formularios */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 14px; background: #111; border: 1px solid #333;
+            border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; }
+        
+        .btn-primary {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000; border: none; border-radius: 8px; font-size: 1rem; font-weight: 800;
+            cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+        /* Alerta de KYC */
+        .kyc-warning {
+            background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; border-radius: 8px;
+            padding: 20px; text-align: center; color: #FFA500; margin-bottom: 20px;
+        }
+        .kyc-warning i { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .kyc-warning p { font-size: 0.9rem; margin-bottom: 15px; }
+        .btn-kyc-link {
+            display: inline-block; padding: 10px 20px; background: #FFA500; color: #000;
+            text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 0.85rem;
+        }
+
+        /* Tabla de Historial */
+        .transaction-table {
+            width: 100%; border-collapse: collapse; background: #0a0a0a; border-radius: 8px; overflow: hidden;
+        }
+        .transaction-table th, .transaction-table td {
+            padding: 15px; text-align: left; border-bottom: 1px solid #222; font-size: 0.9rem;
+        }
+        .transaction-table th { background: #111; color: #FFD700; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; }
+        .transaction-table tr:hover { background: rgba(255, 215, 0, 0.03); }
+        
+        .status-badge {
+            padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        }
+        .status-badge.completado { background: rgba(0, 255, 0, 0.15); color: #00ff00; }
+        .status-badge.pendiente { background: rgba(255, 165, 0, 0.15); color: #FFA500; }
+        .status-badge.rechazado { background: rgba(255, 0, 0, 0.15); color: #ff4444; }
+        
+        .amount-positive { color: #00ff00; font-weight: 700; }
+        .amount-negative { color: #ff4444; font-weight: 700; }
+
+        /* Mensajes */
+        .message {
+            margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center;
+            display: none; font-size: 0.85rem; font-weight: 600;
+        }
+        .message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
+        .message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
+
+        /* Footer (Mismo del dashboard) */
+        .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
+        .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
+        .footer-text span { color: #FFD700; font-weight: 600; }
+
+        @media (max-width: 600px) {
+            .balance-card .amount { font-size: 2.2rem; }
+            .transaction-table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <a href="dashboard.html" class="navbar-brand">
+            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
+            <span class="navbar-title">Boche Clava'o</span>
+        </a>
+        <button class="btn-volver" onclick="window.location.href='dashboard.html'">
+            <i class="fas fa-arrow-left"></i> Volver
+        </button>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-content">
+        
+        <!-- Tarjeta de Saldo -->
+        <div class="balance-card">
+            <h2>Saldo Disponible</h2>
+            <div class="amount" id="walletBalance">0.00 BC</div>
+            <div class="user-name" id="walletUserName">Cargando usuario...</div>
+        </div>
+
+        <!-- Pestañas -->
+        <div class="wallet-tabs">
+            <button class="tab-btn active" data-tab="depositar" onclick="cambiarPestana('depositar')">
+                <i class="fas fa-plus-circle"></i> Depositar
+            </button>
+            <button class="tab-btn" id="tabRetirar" data-tab="retirar" onclick="cambiarPestana('retirar')">
+                <i class="fas fa-minus-circle"></i> Retirar
+            </button>
+            <button class="tab-btn" data-tab="historial" onclick="cambiarPestana('historial')">
+                <i class="fas fa-history"></i> Historial
+            </button>
+        </div>
+
+        <!-- PESTAÑA: DEPOSITAR -->
+        <div id="tab-depositar" class="tab-content active">
+            <div style="background: rgba(255, 215, 0, 0.05); border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 0.85rem; color: #ccc;">
+                <i class="fas fa-info-circle" style="color: #FFD700; margin-right: 8px;"></i>
+                Realiza tu Pago Móvil y reporta la transacción. El saldo se acreditará en unos minutos tras la validación.
+            </div>
+            <form id="formDeposito">
+                <div class="form-group">
+                    <label>Monto a Depositar (BC)</label>
+                    <input type="number" id="depMonto" step="0.01" min="1" required placeholder="Ej: 50.00">
+                </div>
+                <div class="form-group">
+                    <label>Banco Emisor</label>
+                    <select id="depBanco" required>
+                        <option value="">Selecciona tu banco</option>
+                        <option value="Banesco">Banesco</option>
+                        <option value="Mercantil">Mercantil</option>
+                        <option value="Provincial">Provincial</option>
+                        <option value="Venezuela">Banco de Venezuela</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono del Pago Móvil</label>
+                    <input type="tel" id="depTelefono" required placeholder="Ej: 0414-1234567">
+                </div>
+                <div class="form-group">
+                    <label>Cédula del Titular</label>
+                    <input type="text" id="depCedula" required placeholder="Ej: V-12345678">
+                </div>
+                <div class="form-group">
+                    <label>Número de Referencia</label>
+                    <input type="text" id="depReferencia" required placeholder="Últimos 6 dígitos">
+                </div>
+                <button type="submit" class="btn-primary" id="btnDepositar">
+                    <i class="fas fa-paper-plane"></i> Reportar Depósito
+                </button>
+                <div id="msgDeposito" class="message"></div>
+            </form>
+        </div>
+
+        <!-- PESTAÑA: RETIRAR -->
+        <div id="tab-retirar" class="tab-content">
+            <!-- Este bloque se muestra SOLO si NO está verificado -->
+            <div id="kycBloqueoRetiro" class="kyc-warning" style="display: none;">
+                <i class="fas fa-lock"></i>
+                <h3>Retiros Bloqueados</h3>
+                <p>Por seguridad, debes completar y ser aprobado en la verificación de identidad (KYC) antes de poder retirar fondos.</p>
+                <a href="perfil.html" class="btn-kyc-link">Completar Verificación KYC</a>
+            </div>
+
+            <!-- Este formulario se muestra SOLO si ESTÁ verificado -->
+            <form id="formRetiro" style="display: none;">
+                <div style="background: rgba(0, 255, 0, 0.05); border: 1px solid #00ff00; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 0.85rem; color: #ccc;">
+                    <i class="fas fa-check-circle" style="color: #00ff00; margin-right: 8px;"></i>
+                    Tu cuenta está verificada. Los retiros se procesan en un plazo de 24 a 48 horas hábiles.
+                </div>
+                <div class="form-group">
+                    <label>Monto a Retirar (BC)</label>
+                    <input type="number" id="retMonto" step="0.01" min="1" required placeholder="Ej: 20.00">
+                    <small style="color: #666; font-size: 0.75rem;">Saldo disponible: <span id="saldoDisponibleRetiro">0.00</span> BC</small>
+                </div>
+                <div class="form-group">
+                    <label>Banco de Destino</label>
+                    <select id="retBanco" required>
+                        <option value="">Selecciona tu banco</option>
+                        <option value="Banesco">Banesco</option>
+                        <option value="Mercantil">Mercantil</option>
+                        <option value="Provincial">Provincial</option>
+                        <option value="Venezuela">Banco de Venezuela</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono asociado a la cuenta</label>
+                    <input type="tel" id="retTelefono" required placeholder="Ej: 0414-1234567">
+                </div>
+                <button type="submit" class="btn-primary" id="btnRetirar" style="background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); color: #fff;">
+                    <i class="fas fa-money-bill-wave"></i> Solicitar Retiro
+                </button>
+                <div id="msgRetiro" class="message"></div>
+            </form>
+        </div>
+
+        <!-- PESTAÑA: HISTORIAL -->
+        <div id="tab-historial" class="tab-content">
+            <div style="overflow-x: auto;">
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historialBody">
+                        <!-- Se llena con JS -->
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #666; padding: 30px;">
+                                <i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                                No hay transacciones registradas aún.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <p class="footer-text">
+                Copyright © todos los derechos reservados<br>
+                Desarrollado professional <span>G/P</span> 2026 - 2027<br>
+                Versión <span>0.1 beta experimental</span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/billetera.js"></script>
+</body>
+</html>
