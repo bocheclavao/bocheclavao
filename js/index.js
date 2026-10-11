@@ -55,13 +55,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA
+       // ============================================
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (CORREGIDO)
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value.trim();
+            
+            // Forzamos minúsculas para evitar errores de coincidencia
+            const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
             if (!email || !password) {
@@ -74,51 +76,78 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                try {
-                    const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                    if (!preError && preCheck && preCheck.allowed === false) {
-                        const hasta = preCheck.blocked_until ? new Date(preCheck.blocked_until).toLocaleString('es-ES') : 'varias horas';
-                        showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
-                        resetButton();
-                        return;
-                    }
-                    await db.from('login_attempts').delete().eq('email', email.toLowerCase()).eq('success', false);
-                } catch (preCheckErr) {
-                    console.warn('No se pudo verificar bloqueo previo:', preCheckErr.message);
+                // 1️⃣ VERIFICAR SI EL CORREO EXISTE EN LA BASE DE DATOS
+                const { data: perfilExiste, error: perfilError } = await db
+                    .from('perfiles')
+                    .select('id')
+                    .eq('email', email)
+                    .maybeSingle();
+
+                if (!perfilExiste) {
+                    showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
+                    resetButton();
+                    return; // Detenemos la ejecución aquí
                 }
 
-                const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
+                // 2️⃣ VERIFICAR SI YA ESTÁ BLOQUEADO ANTES DE INTENTAR
+                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
+                    p_email: email, 
+                    p_success: false 
+                });
+                
+                if (!preError && preCheck && preCheck.allowed === false) {
+                    const hasta = preCheck.blocked_until 
+                        ? new Date(preCheck.blocked_until).toLocaleString('es-ES') 
+                        : 'varias horas';
+                    showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
+                    resetButton();
+                    return;
+                }
+
+                // 3️⃣ INTENTAR LOGIN CON SUPABASE
+                const { data, error: authError } = await db.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
                 
                 if (authError) {
-                    let mensajeError = authError.message;
-                    if (authError.message.includes('Invalid login credentials')) mensajeError = 'Correo o contraseña incorrectos.';
-                    else if (authError.message.includes('Email not confirmed')) mensajeError = 'Debes confirmar tu correo antes de iniciar sesión.';
-                    else if (authError.message.includes('For security purposes')) {
-                        const match = authError.message.match(/after (\d+) seconds?/);
-                        mensajeError = `⏱️ Por seguridad, espera ${match ? match[1] : '60'} segundos antes de intentar de nuevo.`;
-                    } else if (authError.message.includes('rate limit')) {
-                        mensajeError = 'Demasiados intentos. Por favor, espera un momento.';
+                    // 4️⃣ REGISTRAR EL INTENTO FALLIDO Y OBTENER EL CONTEO ACTUALIZADO
+                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
+                        p_email: email, 
+                        p_success: false 
+                    });
+                    
+                    if (rpcError) {
+                        console.error('Error al registrar intento en RPC:', rpcError);
+                    }
+
+                    // 5️⃣ MOSTRAR MENSAJE PRECISO SEGÚN EL ESTADO
+                    if (attemptData && attemptData.allowed === false) {
+                        const hasta = attemptData.blocked_until 
+                            ? new Date(attemptData.blocked_until).toLocaleString('es-ES') 
+                            : 'varias horas';
+                        showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
+                    } else {
+                        // Usamos el valor real de la BD. Si es null, asumimos 1.
+                        const intentos = (attemptData && attemptData.attempts) ? attemptData.attempts : 1;
+                        const restantes = Math.max(0, 5 - intentos);
+                        
+                        // Como ya sabemos que el correo SÍ existe (paso 1), el error es solo la contraseña
+                        showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
                     
-                    try {
-                        const { data: attemptData } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                        if (attemptData && attemptData.allowed === false) {
-                            const hasta = attemptData.blocked_until ? new Date(attemptData.blocked_until).toLocaleString('es-ES') : 'varias horas';
-                            showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
-                        } else {
-                            const intentos = attemptData ? attemptData.attempts : 1;
-                            const restantes = Math.max(0, 5 - intentos);
-                            showMessage(`${mensajeError} Te quedan ${restantes} intento(s).`, 'error');
-                        }
-                    } catch (rpcErr) {
-                        showMessage(mensajeError, 'error');
-                    }
                     resetButton();
                     return;
                 }
                 
-                try { await db.rpc('check_login_attempt', { p_email: email, p_success: true }); } catch (rpcErr) {}
+                // 6️⃣ LOGIN EXITOSO: RESETEAR CONTADOR DE INTENTOS
+                try {
+                    await db.rpc('check_login_attempt', { p_email: email, p_success: true });
+                } catch (rpcErr) {
+                    console.warn('No se pudo resetear contador:', rpcErr.message);
+                }
 
+                // 7️⃣ VERIFICAR EMAIL CONFIRMADO
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
                     showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
@@ -126,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
+                // 8️⃣ REGISTRAR SESIÓN ACTIVA
                 if (data.user) {
                     try {
                         const sessionToken = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -141,15 +171,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
 
+                // 9️⃣ CERRAR OTRAS SESIONES
                 try { await db.auth.signOut({ scope: 'others' }); } catch (e) {}
                 
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 setTimeout(() => {
-                    const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) ? APP_CONFIG.REDIRECT_AFTER_LOGIN : 'dashboard.html';
+                    const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
+                        ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
+                        : 'dashboard.html';
                     window.location.href = redirectUrl;
                 }, 1500);
                 
             } catch (err) {
+                console.error('Error inesperado en login:', err);
                 showMessage('Error inesperado: ' + err.message, 'error');
                 resetButton();
             }
