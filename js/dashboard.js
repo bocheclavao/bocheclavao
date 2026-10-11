@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     
@@ -35,9 +36,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     let saldoBC = 0;
     let currentUser = null;
     let sessionCheckActive = false;
+    
+    // 🕐 PERÍODO DE GRACIA: NO verificar sesiones durante 15 segundos después del login
+    let gracePeriodUntil = Date.now() + 15000;
+    let lastLoginTime = Date.now();
 
     // ============================================
-    // 🚀 1. MENÚS MÓVILES (Salvavidas)
+    // 🚀 1. MENÚS MÓVILES
     // ============================================
     function sacarMenusDelNavbar() {
         if (window.innerWidth <= 768) {
@@ -94,7 +99,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     const duplicateModal = crearModalSesionDuplicada();
 
-    // ✅ FUNCIÓN FALTANTE: mostrar alerta
     function mostrarAlertaSesionDuplicada() {
         if (!duplicateModal) return;
         if (duplicateModal.style.display === 'flex') return;
@@ -110,71 +114,86 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🔐 3. GESTIÓN DE SESIONES
+    // 🔐 3. GESTIÓN DE SESIONES (CORREGIDO)
     // ============================================
+    
+    // 🔑 Registrar sesión de forma silenciosa (NUNCA falla/expulsa)
+    async function registrarSesionSilenciosa() {
+        try {
+            const { data: { session } } = await db.auth.getSession();
+            if (!session || !session.access_token) return;
+            
+            const token = session.access_token;
+            localStorage.setItem('session_token', token);
+            
+            // Intentar registrar, pero NO fallar si hay error
+            try {
+                await db.rpc('registrar_mi_sesion', { p_token: token });
+                console.log('✅ Sesión registrada');
+            } catch (e) {
+                console.warn('⚠️ No se pudo registrar sesión (continuando):', e.message);
+            }
+        } catch (e) {
+            console.warn('Error silencioso:', e.message);
+        }
+    }
+
+    // 🔍 Verificar sesión duplicada REAL (solo si hay múltiples sesiones activas recientes)
     async function verificarSesionActiva() {
+        // ⏱️ NO verificar durante el período de gracia (15 segundos después del login)
+        if (Date.now() < gracePeriodUntil) {
+            console.log('⏳ Período de gracia activo, saltando verificación');
+            return;
+        }
+        
         if (sessionCheckActive || !currentUser) return;
         sessionCheckActive = true;
         
         try {
             const localToken = localStorage.getItem('session_token');
             if (!localToken) {
-                console.warn('⚠️ No hay token local - reintentando registro');
-                const { data: { session } } = await db.auth.getSession();
-                if (session) {
-                    const newToken = session.access_token;
-                    localStorage.setItem('session_token', newToken);
-                    try {
-                        await db.rpc('registrar_mi_sesion', { p_token: newToken });
-                    } catch (e) {
-                        console.warn('No se pudo re-registrar sesión');
-                    }
-                }
+                // Si no hay token, intentar regenerarlo
+                await registrarSesionSilenciosa();
                 return;
             }
             
-            const { data: sesiones, error } = await db
-                .from('active_sessions')
-                .select('session_token, last_active')
-                .eq('user_id', currentUser.id)
-                .order('last_active', { ascending: false });
-            
-            if (error) {
-                console.warn('Error consultando sesiones (continuando):', error.message);
-                return;
-            }
-            
-            if (!sesiones || sesiones.length === 0) {
-                console.log('📝 Primera sesión - registrando...');
-                try {
-                    await db.rpc('registrar_mi_sesion', { p_token: localToken });
-                } catch (e) {
-                    console.warn('No se pudo registrar primera sesión');
-                }
-                return;
-            }
-            
-            const miSesion = sesiones.find(s => s.session_token === localToken);
-            if (miSesion) {
+            // Actualizar last_active de nuestra sesión (silencioso)
+            try {
                 await db.from('active_sessions')
                     .update({ last_active: new Date().toISOString() })
                     .eq('user_id', currentUser.id)
                     .eq('session_token', localToken);
-                return;
-            }
-            
-            if (sesiones.length > 3 && !miSesion) {
-                console.warn('⚠️ Posible sesión duplicada detectada');
-                mostrarAlertaSesionDuplicada();
-                return;
-            }
-            
-            console.log('📝 Registrando sesión actual...');
-            try {
-                await db.rpc('registrar_mi_sesion', { p_token: localToken });
             } catch (e) {
-                console.warn('No se pudo registrar sesión');
+                // Si falla, intentar registrar la sesión
+                await registrarSesionSilenciosa();
             }
+            
+            // 🎯 SOLO considerar "duplicada" si hay 3+ sesiones activas en los últimos 5 minutos
+            const cincoMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+            const { data: sesionesRecientes, error } = await db
+                .from('active_sessions')
+                .select('session_token, last_active')
+                .eq('user_id', currentUser.id)
+                .gte('last_active', cincoMinAgo)
+                .order('last_active', { ascending: false });
+            
+            if (error || !sesionesRecientes) {
+                console.warn('Error consultando sesiones, ignorando');
+                return;
+            }
+            
+            // Solo alertar si hay MUCHAS sesiones activas simultáneas
+            const sesionesUnicas = new Set(sesionesRecientes.map(s => s.session_token));
+            
+            if (sesionesUnicas.size >= 3) {
+                // Verificar que nuestra sesión esté entre las activas
+                const miSesionEsta = sesionesUnicas.has(localToken);
+                if (!miSesionEsta) {
+                    console.warn('⚠️ Posible sesión duplicada REAL detectada (' + sesionesUnicas.size + ' sesiones activas)');
+                    mostrarAlertaSesionDuplicada();
+                }
+            }
+            // Si hay 1 o 2 sesiones → TODO OK, no alertar
             
         } catch (err) {
             console.error('Error verificando sesión (no expulsando):', err);
@@ -183,56 +202,53 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    async function asegurarSesionUnica() {
-        try {
-            const { data: { session } } = await db.auth.getSession();
-            if (!session) return;
-            
-            const userToken = session.access_token;
-            if (!userToken) return;
-            
-            localStorage.setItem('session_token', userToken);
-            
-            try {
-                await db.rpc('registrar_mi_sesion', { p_token: userToken });
-                console.log('✅ Sesión registrada correctamente');
-            } catch (rpcError) {
-                console.warn('⚠️ No se pudo registrar sesión (continuando):', rpcError.message);
-            }
-        } catch (err) {
-            console.error('Error en asegurarSesionUnica:', err);
-        }
-    }
-
     function setupInteractionListeners() {
         let lastCheck = 0;
         const checkOnInteraction = async () => {
+            // ⏱️ Respetar período de gracia
+            if (Date.now() < gracePeriodUntil) return;
+            
             const now = Date.now();
-            if (now - lastCheck < 2000) return;
+            if (now - lastCheck < 5000) return; // Mínimo 5 segundos entre checks
             lastCheck = now;
             await verificarSesionActiva();
         };
         document.addEventListener('click', checkOnInteraction);
         document.addEventListener('touchstart', checkOnInteraction);
-        document.addEventListener('scroll', checkOnInteraction);
         document.addEventListener('keypress', checkOnInteraction);
     }
 
     // ============================================
-    // 🔐 4. AUTH STATE CHANGE
+    // 🔐 4. AUTH STATE CHANGE (simplificado)
     // ============================================
     db.auth.onAuthStateChange(async (event, session) => {
         console.log('🔐 Auth event:', event);
         
         if (event === 'SIGNED_IN' && session) {
+            // 🕐 Reiniciar período de gracia al iniciar sesión
+            lastLoginTime = Date.now();
+            gracePeriodUntil = Date.now() + 15000;
+            
+            const userToken = session.access_token;
+            if (userToken) {
+                localStorage.setItem('session_token', userToken);
+                // Registrar sesión de forma silenciosa
+                try {
+                    await db.rpc('registrar_mi_sesion', { p_token: userToken });
+                    console.log('✅ Sesión registrada al iniciar sesión');
+                } catch (e) {
+                    console.warn('No se pudo registrar sesión (continuando):', e.message);
+                }
+            }
+        } else if (event === 'INITIAL_SESSION' && session) {
+            // Sesión inicial al cargar la página
             const userToken = session.access_token;
             if (userToken) {
                 localStorage.setItem('session_token', userToken);
                 try {
                     await db.rpc('registrar_mi_sesion', { p_token: userToken });
-                    console.log('✅ Sesión registrada al iniciar sesión');
                 } catch (e) {
-                    console.warn('No se pudo registrar sesión al iniciar:', e.message);
+                    console.warn('No se pudo registrar sesión inicial');
                 }
             }
         } else if (event === 'SIGNED_OUT' || !session) {
@@ -309,7 +325,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 📱 6. LÓGICA DE MENÚS MÓVILES
+    // 📱 6. MENÚS MÓVILES
     // ============================================
     window.cerrarPanelesMovil = function() {
         if (dropdownMenu) {
@@ -350,16 +366,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     function forzarVisibilidadMenu(elemento) {
         if (!elemento) return;
-        
         elemento.style.transform = '';
         elemento.style.opacity = '';
         elemento.style.visibility = '';
         elemento.style.display = '';
-        
         void elemento.offsetHeight;
-        
         elemento.classList.add('show');
-        
         setTimeout(() => {
             elemento.style.transform = 'translateY(0) translateZ(0)';
             elemento.style.opacity = '1';
@@ -369,17 +381,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     window.toggleMenu = function(event) {
-        if (event) { 
-            event.preventDefault(); 
-            event.stopPropagation(); 
-        }
-
+        if (event) { event.preventDefault(); event.stopPropagation(); }
         if (notificationDropdown && notificationDropdown.classList.contains('show')) {
             notificationDropdown.classList.remove('show');
         }
-
         const isShowing = dropdownMenu.classList.contains('show');
-        
         if (isShowing) {
             cerrarPanelesMovil();
         } else {
@@ -391,17 +397,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     window.toggleNotifications = function(event) {
-        if (event) { 
-            event.preventDefault(); 
-            event.stopPropagation(); 
-        }
-
+        if (event) { event.preventDefault(); event.stopPropagation(); }
         if (dropdownMenu && dropdownMenu.classList.contains('show')) {
             dropdownMenu.classList.remove('show');
         }
-
         const isShowing = notificationDropdown.classList.contains('show');
-
         if (isShowing) {
             cerrarPanelesMovil();
         } else {
@@ -629,7 +629,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     // ============================================
-    // 🔒 10. PROTEGER RUTA (CORREGIDO - con try/catch bien formado)
+    // 🔒 10. PROTEGER RUTA
     // ============================================
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
@@ -639,7 +639,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         try {
-            await asegurarSesionUnica();
+            // 🕐 Iniciar período de gracia ANTES de cualquier verificación
+            gracePeriodUntil = Date.now() + 15000;
+            
+            // Registrar sesión de forma silenciosa (NUNCA falla)
+            await registrarSesionSilenciosa();
             
             const { data: { user }, error: userError } = await db.auth.getUser();
             if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
@@ -653,6 +657,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
+            
+            console.log('✅ Dashboard cargado. Período de gracia activo por 15 segundos.');
         } catch (err) {
             console.error('Error al obtener usuario:', err);
             loadingState.style.display = 'none';
@@ -667,7 +673,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // ============================================
-// 🚪 CERRAR SESIÓN (fuera del DOMContentLoaded)
+// 🚪 CERRAR SESIÓN
 // ============================================
 async function cerrarSesion() {
     const db = window.supabaseClient;
