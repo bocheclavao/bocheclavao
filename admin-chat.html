@@ -3,231 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Chat - Boche Clava'o</title>
+    <title>Chat de Soporte - Boche Clava'o</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Montserrat', sans-serif; background: #000; color: #fff; height: 100vh; display: flex; }
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            background: #000000; 
+            min-height: 100vh; 
+            color: #ffffff; 
+            padding: 20px;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 25%);
+        }
         
-        /* Sidebar: Lista de usuarios */
+        .back-link { 
+            display: inline-flex; align-items: center; gap: 8px;
+            margin-bottom: 20px; color: #FFD700; text-decoration: none; 
+            padding: 10px 20px; border: 1px solid #FFD700; border-radius: 8px;
+            font-weight: 600; transition: all 0.3s;
+        }
+        .back-link:hover { background: #FFD700; color: #000; transform: translateX(-5px); }
+        
+        .module-header { 
+            text-align: center; margin-bottom: 25px; padding: 25px; 
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); 
+            border-radius: 12px; border: 1px solid #FFD700;
+            max-width: 1400px; margin: 0 auto 25px;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.1);
+        }
+        .module-header h1 { 
+            color: #FFD700; font-size: 1.8rem; margin-bottom: 8px;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+        }
+        .module-header p { color: #999; font-size: 0.95rem; }
+        
+        /* ========== ESTADÍSTICAS ========== */
+        .stats-bar { 
+            display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; 
+            flex-wrap: wrap; max-width: 1400px; margin-left: auto; margin-right: auto;
+        }
+        .stat-box { 
+            background: #0a0a0a; border: 1px solid #222; padding: 15px; border-radius: 8px; 
+            text-align: center; min-width: 140px; flex: 1; max-width: 200px; transition: all 0.3s;
+        }
+        .stat-box:hover { border-color: #FFD700; transform: translateY(-3px); }
+        .stat-box .number { font-size: 1.6rem; font-weight: 800; color: #FFD700; }
+        .stat-box .label { color: #999; font-size: 0.8rem; margin-top: 5px; }
+        .stat-box.unread { border-color: #ff0000; }
+        .stat-box.unread .number { color: #ff0000; }
+        
+        /* ========== BARRA DE HERRAMIENTAS ========== */
+        .chat-toolbar {
+            max-width: 1400px; margin: 0 auto 15px;
+            display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+        }
+        .chat-search {
+            flex: 1; min-width: 220px; padding: 12px 16px; background: #111;
+            border: 1px solid #333; border-radius: 8px; color: #fff;
+            font-family: 'Montserrat', sans-serif; font-size: 0.95rem;
+        }
+        .chat-search:focus { outline: none; border-color: #FFD700; }
+        .btn { 
+            padding: 12px 18px; border: none; border-radius: 8px; font-weight: 700; 
+            cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s; 
+            display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-view { background: #333; color: #fff; }
+        .btn-view:hover { background: #444; }
+        .btn-send { 
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; 
+            width: 50px; height: 50px; border-radius: 50%; padding: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .btn-send:hover { transform: scale(1.1); }
+        
+        /* ========== LAYOUT DEL CHAT ========== */
+        .chat-layout {
+            display: grid; grid-template-columns: 340px 1fr; gap: 15px;
+            max-width: 1400px; margin: 0 auto;
+            height: calc(100vh - 320px); min-height: 500px;
+        }
+        
+        /* Sidebar de conversaciones */
         .chat-sidebar {
-            width: 350px; background: #0a0a0a; border-right: 1px solid #222;
-            display: flex; flex-direction: column;
+            background: #0a0a0a; border: 1px solid #222; border-radius: 12px;
+            overflow-y: auto; display: flex; flex-direction: column;
         }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid #222; }
-        .sidebar-header h2 { color: #FFD700; font-size: 1.2rem; }
-        .user-list { flex: 1; overflow-y: auto; }
-        .user-item {
-            padding: 15px 20px; border-bottom: 1px solid #1a1a1a; cursor: pointer;
-            transition: background 0.2s; display: flex; justify-content: space-between; align-items: center;
-        }
-        .user-item:hover, .user-item.active { background: rgba(255, 215, 0, 0.1); }
-        .user-item .name { font-weight: 600; color: #fff; font-size: 0.9rem; }
-        .user-item .preview { color: #888; font-size: 0.8rem; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-        .user-item .time { font-size: 0.7rem; color: #666; }
-        .user-item .unread-dot { width: 10px; height: 10px; background: #ff0000; border-radius: 50%; display: none; }
-        .user-item.has-unread .unread-dot { display: block; }
-        .user-item.has-unread .name { color: #FFD700; }
-
-        /* Área principal de chat */
-        .chat-main { flex: 1; display: flex; flex-direction: column; background: #050505; }
-        .chat-main-header {
-            padding: 15px 25px; border-bottom: 1px solid #222; background: #0a0a0a;
-            display: flex; align-items: center; gap: 15px;
-        }
-        .chat-main-header h3 { color: #FFD700; font-size: 1rem; }
-        .chat-main-header span { color: #888; font-size: 0.8rem; }
+        .chat-sidebar::-webkit-scrollbar { width: 6px; }
+        .chat-sidebar::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
         
-        .main-messages { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
-        .main-msg { max-width: 70%; padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.4; }
-        .main-msg.from-user { align-self: flex-start; background: #1a1a1a; border: 1px solid #333; color: #fff; border-bottom-left-radius: 4px; }
-        .main-msg.from-admin { align-self: flex-end; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border-bottom-right-radius: 4px; }
-        .main-msg .time { font-size: 0.65rem; opacity: 0.7; margin-top: 5px; text-align: right; }
-
-        .main-input-area {
-            padding: 20px; border-top: 1px solid #222; background: #0a0a0a;
-            display: flex; gap: 10px;
+        .chat-user-item {
+            padding: 15px; border-bottom: 1px solid #222; cursor: pointer;
+            transition: all 0.2s; display: flex; align-items: center; gap: 12px;
         }
-        .main-input-area input {
-            flex: 1; background: #111; border: 1px solid #333; border-radius: 8px;
-            padding: 12px 15px; color: #fff; font-family: 'Montserrat', sans-serif; outline: none;
+        .chat-user-item:hover { background: rgba(255, 215, 0, 0.05); }
+        .chat-user-item.active { background: rgba(255, 215, 0, 0.1); border-left: 3px solid #FFD700; }
+        
+        .chat-user-avatar {
+            width: 45px; height: 45px; border-radius: 50%;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; color: #000; flex-shrink: 0; font-size: 1.1rem;
+            overflow: hidden;
         }
-        .main-input-area input:focus { border-color: #FFD700; }
-        .main-send-btn {
-            background: #FFD700; color: #000; border: none; padding: 0 25px;
-            border-radius: 8px; cursor: pointer; font-weight: 700; font-family: 'Montserrat', sans-serif;
-            transition: transform 0.2s;
+        .chat-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .chat-user-info { flex: 1; min-width: 0; }
+        .chat-user-name { font-weight: 700; color: #fff; margin-bottom: 3px; font-size: 0.95rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-user-last { font-size: 0.8rem; color: #999;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-user-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+        .chat-user-time { font-size: 0.7rem; color: #666; }
+        
+        .chat-user-badge {
+            background: #ff0000; color: #fff; font-size: 0.7rem; font-weight: 800;
+            min-width: 20px; height: 20px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 6px; flex-shrink: 0;
         }
-        .main-send-btn:hover { transform: scale(1.05); }
-        .no-chat-selected { flex: 1; display: flex; align-items: center; justify-content: center; color: #666; font-size: 1.2rem; }
+        
+        /* Panel principal */
+        .chat-main {
+            background: #0a0a0a; border: 1px solid #222; border-radius: 12px;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        
+        .chat-header-main {
+            padding: 15px 20px; border-bottom: 1px solid #222;
+            display: flex; align-items: center; gap: 15px; background: #111;
+        }
+        .chat-header-info { flex: 1; min-width: 0; }
+        .chat-header-name { font-weight: 700; color: #fff; font-size: 1.05rem; }
+        .chat-header-sub { font-size: 0.8rem; color: #999; margin-top: 2px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .kyc-mini { padding: 2px 8px; border-radius: 10px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+        .kyc-mini.verified { background: rgba(0,255,0,0.15); color: #00ff00; }
+        .kyc-mini.pending { background: rgba(255,165,0,0.15); color: #FFA500; }
+        .kyc-mini.rejected { background: rgba(255,0,0,0.15); color: #ff4444; }
+        .kyc-mini.none { background: rgba(128,128,128,0.15); color: #888; }
+        
+        .chat-messages-main {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 12px; background: #050505;
+        }
+        .chat-messages-main::-webkit-scrollbar { width: 6px; }
+        .chat-messages-main::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        
+        .msg {
+            max-width: 70%; padding: 12px 16px; border-radius: 12px;
+            font-size: 0.9rem; line-height: 1.5; word-wrap: break-word; position: relative;
+        }
+        .msg.user { align-self: flex-start; background: #1a1a1a; color: #fff; border: 1px solid #333; border-bottom-left-radius: 4px; }
+        .msg.admin { align-self: flex-end; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border-bottom-right-radius: 4px; }
+        .msg-time { font-size: 0.68rem; opacity: 0.7; margin-top: 5px; display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
+        .msg-sender { font-size: 0.7rem; font-weight: 700; margin-bottom: 4px; opacity: 0.8; }
+        
+        .chat-input-area {
+            padding: 15px; border-top: 1px solid #222; background: #0a0a0a;
+        }
+        .quick-reply-row { margin-bottom: 10px; }
+        .quick-reply-row select {
+            width: 100%; padding: 10px; background: #111; border: 1px solid #333;
+            border-radius: 8px; color: #999; font-family: 'Montserrat', sans-serif; font-size: 0.85rem;
+        }
+        .quick-reply-row select:focus { outline: none; border-color: #FFD700; }
+        .chat-input-row { display: flex; gap: 10px; align-items: center; }
+        .chat-input-row input {
+            flex: 1; background: #111; border: 1px solid #333; border-radius: 25px;
+            padding: 13px 20px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.95rem;
+        }
+        .chat-input-row input:focus { outline: none; border-color: #FFD700; }
+        
+        .empty-chat {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; color: #666; gap: 15px;
+        }
+        .empty-chat i { font-size: 4rem; color: #333; }
+        
+        .loading-mini { text-align: center; color: #666; padding: 30px; }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 900px) {
+            .chat-layout { grid-template-columns: 1fr; height: auto; }
+            .chat-sidebar { max-height: 300px; }
+            .chat-messages-main { min-height: 350px; }
+            .module-header h1 { font-size: 1.3rem; flex-direction: column; }
+            .msg { max-width: 85%; }
+        }
     </style>
 </head>
 <body>
-    <div class="chat-sidebar">
-        <div class="sidebar-header">
-            <h2><i class="fas fa-headset"></i> Soporte Usuarios</h2>
-        </div>
-        <div class="user-list" id="userList">
-            <div style="padding: 20px; text-align: center; color: #666;">Cargando chats...</div>
-        </div>
+    <a href="admin.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> Volver al Panel
+    </a>
+
+    <div class="module-header">
+        <h1><i class="fas fa-comments"></i> Chat de Soporte</h1>
+        <p>Atiende las consultas de los usuarios en tiempo real</p>
     </div>
 
-    <div class="chat-main" id="chatMain">
-        <div class="no-chat-selected">Selecciona un usuario para chatear</div>
+    <!-- ========== ESTADÍSTICAS ========== -->
+    <div id="statsBar" class="stats-bar"></div>
+
+    <!-- ========== BARRA DE HERRAMIENTAS ========== -->
+    <div class="chat-toolbar">
+        <input type="text" id="chatSearch" class="chat-search" placeholder="🔍 Buscar por nombre, email o ID...">
+        <button class="btn btn-view" id="btnMarkAllRead">
+            <i class="fas fa-check-double"></i> Marcar todo leído
+        </button>
+        <button class="btn btn-view" id="btnRefreshChat">
+            <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+    </div>
+
+    <!-- ========== LAYOUT DEL CHAT ========== -->
+    <div class="chat-layout">
+        <div class="chat-sidebar" id="conversationsList">
+            <div class="loading-mini"><i class="fas fa-circle-notch fa-spin"></i> Cargando conversaciones...</div>
+        </div>
+        
+        <div class="chat-main" id="chatMain">
+            <div class="empty-chat">
+                <i class="fas fa-comments"></i>
+                <p>Selecciona una conversación para comenzar</p>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
-    <script>
-        const db = window.supabaseClient;
-        let currentChatUserId = null;
-        let adminId = null;
-
-        async function init() {
-            const { data: { user } } = await db.auth.getUser();
-            if (!user) { window.location.href = 'login.html'; return; }
-            adminId = user.id;
-            loadUserList();
-            setupRealtime();
-        }
-
-        async function loadUserList() {
-            // Obtenemos los últimos mensajes agrupados por usuario
-            const { data, error } = await db
-                .from('chat_messages')
-                .select(`sender_id, message, created_at, is_read, perfiles!chat_messages_sender_id_fkey (nombre, email)`)
-                .eq('receiver_id', adminId)
-                .order('created_at', { ascending: false });
-
-            if (error) return;
-
-            // Agrupar por usuario (manteniendo el último mensaje)
-            const chats = {};
-            data.forEach(msg => {
-                if (!chats[msg.sender_id]) {
-                    chats[msg.sender_id] = {
-                        nombre: msg.perfiles?.nombre || 'Usuario',
-                        email: msg.perfiles?.email || 'Sin email',
-                        ultimoMensaje: msg.message,
-                        hora: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                        noLeido: !msg.is_read,
-                        userId: msg.sender_id
-                    };
-                }
-            });
-
-            const userListEl = document.getElementById('userList');
-            userListEl.innerHTML = '';
-            
-            Object.values(chats).forEach(chat => {
-                const div = document.createElement('div');
-                div.className = `user-item ${chat.noLeido ? 'has-unread' : ''}`;
-                div.onclick = () => openChat(chat.userId, chat.nombre);
-                div.innerHTML = `
-                    <div>
-                        <div class="name">${chat.nombre}</div>
-                        <div class="preview">${chat.ultimoMensaje}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="time">${chat.hora}</div>
-                        <div class="unread-dot"></div>
-                    </div>
-                `;
-                userListEl.appendChild(div);
-            });
-        }
-
-        async function openChat(userId, nombre) {
-            currentChatUserId = userId;
-            
-            // Marcar como leídos los mensajes de este usuario
-            await db.from('chat_messages')
-                .update({ is_read: true })
-                .eq('sender_id', userId)
-                .eq('receiver_id', adminId)
-                .eq('is_read', false);
-
-            loadUserList(); // Refrescar lista para quitar punto rojo
-
-            const chatMain = document.getElementById('chatMain');
-            chatMain.innerHTML = `
-                <div class="chat-main-header">
-                    <div style="width: 40px; height: 40px; background: #FFD700; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 800;">${nombre.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <h3>${nombre}</h3>
-                        <span>En línea</span>
-                    </div>
-                </div>
-                <div class="main-messages" id="mainMessages"></div>
-                <div class="main-input-area">
-                    <input type="text" id="adminChatInput" placeholder="Escribe una respuesta..." onkeypress="if(event.key==='Enter') sendAdminMessage()">
-                    <button class="main-send-btn" onclick="sendAdminMessage()">Enviar</button>
-                </div>
-            `;
-
-            loadChatHistory(userId);
-        }
-
-        async function loadChatHistory(userId) {
-            const { data } = await db
-                .from('chat_messages')
-                .select('*')
-                .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-                .order('created_at', { ascending: true });
-
-            const container = document.getElementById('mainMessages');
-            container.innerHTML = '';
-            
-            data.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = `main-msg ${msg.sender_id === adminId ? 'from-admin' : 'from-user'}`;
-                const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                div.innerHTML = `${msg.message}<div class="time">${time}</div>`;
-                container.appendChild(div);
-            });
-            container.scrollTop = container.scrollHeight;
-        }
-
-        window.sendAdminMessage = async function() {
-            const input = document.getElementById('adminChatInput');
-            const text = input.value.trim();
-            if (!text || !currentChatUserId) return;
-
-            await db.from('chat_messages').insert({
-                sender_id: adminId,
-                receiver_id: currentChatUserId,
-                message: text,
-                is_read: false
-            });
-
-            input.value = '';
-            loadChatHistory(currentChatUserId);
-        };
-
-        function setupRealtime() {
-            db.channel('admin_chat_all')
-                .on('postgres_changes', 
-                    { event: 'INSERT', schema: 'public', table: 'chat_messages' }, 
-                    (payload) => {
-                        const msg = payload.new;
-                        // Si es un mensaje nuevo para el admin, recargar lista
-                        if (msg.receiver_id === adminId) {
-                            loadUserList();
-                            if (currentChatUserId === msg.sender_id) {
-                                loadChatHistory(currentChatUserId);
-                            }
-                        }
-                        // Si es una respuesta del admin, actualizar historial si está abierto ese chat
-                        if (msg.sender_id === adminId && currentChatUserId === msg.receiver_id) {
-                            loadChatHistory(currentChatUserId);
-                        }
-                    }
-                )
-                .subscribe();
-        }
-
-        init();
-    </script>
+    <script src="../js/config.js"></script>
+    <script src="../js/admin-chat.js"></script>
 </body>
 </html>
