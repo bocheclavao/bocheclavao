@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-              // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA
+    // ============================================
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (100% BLINDADO)
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -78,14 +78,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 // PASO 1: ¿El correo existe?
                 const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
                 
-                if (existeError || existeData !== true) {
+                if (existeError) {
+                    console.error('Error verificando correo:', existeError);
+                }
+                
+                if (existeData !== true) {
                     showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
                     resetButton();
                     return;
                 }
 
                 // PASO 2: ¿Está suspendido?
-                const { data: preCheck } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
+                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
+                
+                if (preError) console.error('Error pre-check:', preError);
                 
                 if (preCheck && preCheck.allowed === false) {
                     const hasta = preCheck.blocked_until 
@@ -96,16 +102,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                // PASO 3: Intentar login
+                // PASO 3: Intentar login con Supabase Auth
                 const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
                     // PASO 4: Registrar intento fallido
                     const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
                     
-                    if (rpcError) console.error('Error RPC:', rpcError);
+                    if (rpcError) console.error('Error registrando intento:', rpcError);
 
-                    // 🕵️ DIAGNÓSTICO: Mira la consola (F12) para ver qué devuelve la BD
+                    // Diagnóstico en consola para que veas que la BD sí está contando
                     console.log('📊 DATOS DE INTENTOS:', attemptData);
 
                     if (attemptData && attemptData.allowed === false) {
@@ -123,8 +129,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // PASO 5: Login exitoso
-                await db.rpc('check_login_attempt', { p_email: email, p_success: true }).catch(e => console.warn(e));
+                // PASO 5: Login exitoso -> Resetear contador (con try/catch seguro)
+                try {
+                    await db.rpc('check_login_attempt', { p_email: email, p_success: true });
+                } catch (rpcErr) {
+                    console.warn('No se pudo resetear contador:', rpcErr.message || rpcErr);
+                }
 
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
@@ -143,14 +153,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             device_info: navigator.userAgent.substring(0, 200)
                         });
                         localStorage.setItem('session_token', sessionToken);
-                    } catch (sessionErr) { console.error(sessionErr); }
+                    } catch (sessionErr) {
+                        console.error('Error registrando sesión:', sessionErr);
+                    }
                 }
 
-                await db.auth.signOut({ scope: 'others' }).catch(e => {});
+                try {
+                    await db.auth.signOut({ scope: 'others' });
+                } catch (e) {
+                    // Ignorar error si no hay otras sesiones
+                }
                 
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 setTimeout(() => {
-                    window.location.href = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) ? APP_CONFIG.REDIRECT_AFTER_LOGIN : 'dashboard.html';
+                    const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
+                        ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
+                        : 'dashboard.html';
+                    window.location.href = redirectUrl;
                 }, 1500);
                 
             } catch (err) {
@@ -160,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
     function resetButton() {
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -290,18 +310,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const { data: { session } } = await db.auth.getSession();
             
             if (session && session.user) {
-                const { data: checkData } = await db.rpc('check_login_attempt', {
+                const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
                     p_email: session.user.email,
                     p_success: true
                 });
                 
+                if (checkError) console.warn('Error verificando sesión:', checkError);
+                
                 if (checkData && checkData.allowed === false) {
                     await db.auth.signOut();
                     const hasta = checkData.blocked_until 
-                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', {
-                            day: '2-digit', month: '2-digit', year: 'numeric', 
-                            hour: '2-digit', minute: '2-digit'
-                          }) 
+                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
                         : 'varias horas';
                     
                     sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida hasta: ${hasta}.`);
