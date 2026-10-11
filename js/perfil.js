@@ -19,8 +19,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     let trackingAnimationId = null;
     let edadValida = false;
     let currentUserId = null;
-    let tempAvatarData = null; // Foto de perfil temporal antes de guardar
-    let perfilBloqueado = false; // Indica si los campos KYC están bloqueados
+    let tempAvatarData = null;
+    let perfilBloqueado = false;
 
     // 🌍 LISTA COMPLETA DE PAÍSES
     const countries = [
@@ -244,31 +244,32 @@ document.addEventListener('DOMContentLoaded', async function() {
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = 'Selecciona un país...';
-        phoneSelect.appendChild(defaultOption.cloneNode(true));
-        nationalitySelect.appendChild(defaultOption.cloneNode(true));
-        countrySelect.appendChild(defaultOption.cloneNode(true));
+        if (phoneSelect) phoneSelect.appendChild(defaultOption.cloneNode(true));
+        if (nationalitySelect) nationalitySelect.appendChild(defaultOption.cloneNode(true));
+        if (countrySelect) countrySelect.appendChild(defaultOption.cloneNode(true));
 
         countries.forEach(country => {
             const phoneOption = document.createElement('option');
             phoneOption.value = country.phone;
             phoneOption.textContent = `${country.flag} ${country.name} (${country.phone})`;
-            phoneSelect.appendChild(phoneOption);
+            if (phoneSelect) phoneSelect.appendChild(phoneOption);
 
             const natOption = document.createElement('option');
             natOption.value = country.name;
             natOption.textContent = `${country.flag} ${country.name}`;
-            nationalitySelect.appendChild(natOption);
+            if (nationalitySelect) nationalitySelect.appendChild(natOption);
 
             const countryOption = document.createElement('option');
             countryOption.value = country.name;
             countryOption.textContent = `${country.flag} ${country.name}`;
-            countrySelect.appendChild(countryOption);
+            if (countrySelect) countrySelect.appendChild(countryOption);
         });
     }
 
-    // ========== VALIDAR EDAD ==========
     function validarEdad(fechaNacimiento) {
         const edadDiv = document.getElementById('edadValidationMsg');
+        if (!edadDiv) return false;
+        
         const hoy = new Date();
         const fechaNac = new Date(fechaNacimiento);
         
@@ -307,7 +308,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         fechaNacimientoInput.addEventListener('change', function() {
             if (this.value) validarEdad(this.value);
             else {
-                document.getElementById('edadValidationMsg').className = 'validation-message';
+                const edadDiv = document.getElementById('edadValidationMsg');
+                if (edadDiv) edadDiv.className = 'validation-message';
                 edadValida = false;
             }
         });
@@ -334,7 +336,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // ========== BLOQUEAR/DESBLOQUEAR CAMPOS ==========
     function bloquearCampos(bloquear) {
         perfilBloqueado = bloquear;
         const camposABloquear = [
@@ -348,12 +349,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (el) el.disabled = bloquear;
         });
         
-        // Bloquear botones de cámara del KYC
         document.querySelectorAll('[data-camera-btn]').forEach(btn => {
             btn.disabled = bloquear;
         });
         
-        // Secciones bloqueadas visualmente
         const sections = ['sectionPersonal', 'sectionDireccion', 'sectionKyc'];
         sections.forEach(id => {
             const sec = document.getElementById(id);
@@ -371,7 +370,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // ========== CARGAR PERFIL ==========
     async function cargarPerfil() {
         try {
             const { data: { user } } = await db.auth.getUser();
@@ -381,9 +379,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
             if (error) { console.error('Error al cargar perfil:', error); return; }
 
-            document.getElementById('profileName').textContent = perfil.nombre || 'Usuario';
-            document.getElementById('profileId').textContent = `ID: ${perfil.user_id}`;
-            document.getElementById('profileEmail').textContent = perfil.email;
+            const profileName = document.getElementById('profileName');
+            const profileId = document.getElementById('profileId');
+            const profileEmail = document.getElementById('profileEmail');
+            
+            if (profileName) profileName.textContent = perfil.nombre || 'Usuario';
+            if (profileId) profileId.textContent = `ID: ${perfil.user_id}`;
+            if (profileEmail) profileEmail.textContent = perfil.email;
             
             mostrarAvatar(perfil.avatar_url, perfil.nombre);
 
@@ -391,155 +393,188 @@ document.addEventListener('DOMContentLoaded', async function() {
             const estado = perfil.estado_kyc;
 
             if (!estado || estado === '') {
-                kycStatus.className = 'kyc-status pending';
-                kycStatus.innerHTML = '<i class="fas fa-id-card"></i> Verificación KYC Pendiente - Completa tus datos';
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Guardar Perfil y Enviar KYC';
-                submitBtn.style.background = '';
-                bloquearCampos(false); // Editable para llenar KYC por primera vez
+                if (kycStatus) {
+                    kycStatus.className = 'kyc-status pending';
+                    kycStatus.innerHTML = '<i class="fas fa-id-card"></i> Verificación KYC Pendiente - Completa tus datos';
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Guardar Perfil y Enviar KYC';
+                    submitBtn.style.background = '';
+                }
+                bloquearCampos(false);
             } else if (estado === 'verificado') {
-                kycStatus.className = 'kyc-status verified';
-                kycStatus.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Ya Verificado';
-                submitBtn.style.background = '#00ff00';
-                bloquearCampos(true); // 🔒 BLOQUEADO
+                if (kycStatus) {
+                    kycStatus.className = 'kyc-status verified';
+                    kycStatus.innerHTML = '<i class="fas fa-check-circle"></i> KYC Verificado';
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> KYC Ya Verificado';
+                    submitBtn.style.background = '#00ff00';
+                }
+                bloquearCampos(true);
             } else if (estado === 'rechazado') {
-                kycStatus.className = 'kyc-status rejected';
-                kycStatus.innerHTML = '<i class="fas fa-times-circle"></i> KYC Rechazado - Puede Reenviar';
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Reenviar Documentos';
-                submitBtn.style.background = '';
-                bloquearCampos(false); // Editable para reenviar
+                if (kycStatus) {
+                    kycStatus.className = 'kyc-status rejected';
+                    kycStatus.innerHTML = '<i class="fas fa-times-circle"></i> KYC Rechazado - Puede Reenviar';
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Reenviar Documentos';
+                    submitBtn.style.background = '';
+                }
+                bloquearCampos(false);
                 showMessage('⚠️ Tu KYC fue rechazado. Por favor, corrige la información y reenvía.', 'error');
             } else if (estado === 'pendiente' || estado === 'revision') {
-                kycStatus.className = 'kyc-status reviewing';
-                kycStatus.innerHTML = '<i class="fas fa-hourglass-half"></i> KYC en Revisión por Administrador';
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión';
-                submitBtn.style.background = '#666';
-                bloquearCampos(true); // 🔒 BLOQUEADO
+                if (kycStatus) {
+                    kycStatus.className = 'kyc-status reviewing';
+                    kycStatus.innerHTML = '<i class="fas fa-hourglass-half"></i> KYC en Revisión por Administrador';
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión';
+                    submitBtn.style.background = '#666';
+                }
+                bloquearCampos(true);
                 showMessage('⏳ Tus documentos están siendo revisados. Espera la aprobación.', 'info');
             }
 
-            document.getElementById('nombre').value = perfil.nombre || '';
-            document.getElementById('telefono').value = perfil.telefono ? perfil.telefono.split(' ').slice(1).join(' ') : '';
-            document.getElementById('phoneCountry').value = perfil.telefono ? perfil.telefono.split(' ')[0] : '';
-            document.getElementById('fechaNacimiento').value = perfil.fecha_nacimiento || '';
-            document.getElementById('nacionalidad').value = perfil.nacionalidad || '';
-            document.getElementById('direccion').value = perfil.direccion || '';
-            document.getElementById('ciudad').value = perfil.ciudad || '';
-            document.getElementById('estadoProvincia').value = perfil.estado_provincia || '';
-            document.getElementById('pais').value = perfil.pais || '';
-            document.getElementById('codigoPostal').value = perfil.codigo_postal || '';
-            document.getElementById('tipoDocumento').value = perfil.tipo_documento || '';
-            document.getElementById('numeroDocumento').value = perfil.numero_documento || '';
+            const campos = [
+                { id: 'nombre', value: perfil.nombre || '' },
+                { id: 'telefono', value: perfil.telefono ? perfil.telefono.split(' ').slice(1).join(' ') : '' },
+                { id: 'phoneCountry', value: perfil.telefono ? perfil.telefono.split(' ')[0] : '' },
+                { id: 'fechaNacimiento', value: perfil.fecha_nacimiento || '' },
+                { id: 'nacionalidad', value: perfil.nacionalidad || '' },
+                { id: 'direccion', value: perfil.direccion || '' },
+                { id: 'ciudad', value: perfil.ciudad || '' },
+                { id: 'estadoProvincia', value: perfil.estado_provincia || '' },
+                { id: 'pais', value: perfil.pais || '' },
+                { id: 'codigoPostal', value: perfil.codigo_postal || '' },
+                { id: 'tipoDocumento', value: perfil.tipo_documento || '' },
+                { id: 'numeroDocumento', value: perfil.numero_documento || '' }
+            ];
+
+            campos.forEach(campo => {
+                const el = document.getElementById(campo.id);
+                if (el) el.value = campo.value;
+            });
 
             if (perfil.fecha_nacimiento) validarEdad(perfil.fecha_nacimiento);
 
-            if (perfil.documento_frontal_url) {
-                document.getElementById('docFrontalUrl').value = perfil.documento_frontal_url;
-                document.getElementById('docFrontPreview').innerHTML = `<img src="${perfil.documento_frontal_url}" alt="Doc Frente">`;
-            }
-            if (perfil.documento_trasero_url) {
-                document.getElementById('docTraseroUrl').value = perfil.documento_trasero_url;
-                document.getElementById('docBackPreview').innerHTML = `<img src="${perfil.documento_trasero_url}" alt="Doc Reverso">`;
-            }
-            if (perfil.selfie_url) {
-                document.getElementById('selfieUrl').value = perfil.selfie_url;
-                document.getElementById('selfiePreview').innerHTML = `<img src="${perfil.selfie_url}" alt="Selfie">`;
-            }
+            const previews = [
+                { id: 'docFrontalUrl', url: perfil.documento_frontal_url, preview: 'docFrontPreview', alt: 'Doc Frente' },
+                { id: 'docTraseroUrl', url: perfil.documento_trasero_url, preview: 'docBackPreview', alt: 'Doc Reverso' },
+                { id: 'selfieUrl', url: perfil.selfie_url, preview: 'selfiePreview', alt: 'Selfie' }
+            ];
 
-            loadingState.style.display = 'none';
-            contentState.style.display = 'block';
+            previews.forEach(p => {
+                if (p.url) {
+                    const inputEl = document.getElementById(p.id);
+                    const previewEl = document.getElementById(p.preview);
+                    if (inputEl) inputEl.value = p.url;
+                    if (previewEl) previewEl.innerHTML = `<img src="${p.url}" alt="${p.alt}">`;
+                }
+            });
+
+            if (loadingState) loadingState.style.display = 'none';
+            if (contentState) contentState.style.display = 'block';
 
         } catch (err) {
             console.error('Error:', err);
         }
     }
 
-    // ========== MOSTRAR AVATAR ==========
     function mostrarAvatar(avatarUrl, nombre) {
         const avatarInitial = document.getElementById('avatarInitial');
         const avatarImage = document.getElementById('avatarImage');
         if (avatarUrl) {
-            avatarImage.src = avatarUrl;
-            avatarImage.style.display = 'block';
-            avatarInitial.style.display = 'none';
+            if (avatarImage) {
+                avatarImage.src = avatarUrl;
+                avatarImage.style.display = 'block';
+            }
+            if (avatarInitial) avatarInitial.style.display = 'none';
         } else {
-            avatarInitial.textContent = (nombre || 'U').charAt(0).toUpperCase();
-            avatarInitial.style.display = 'flex';
-            avatarImage.style.display = 'none';
+            if (avatarInitial) {
+                avatarInitial.textContent = (nombre || 'U').charAt(0).toUpperCase();
+                avatarInitial.style.display = 'flex';
+            }
+            if (avatarImage) avatarImage.style.display = 'none';
         }
     }
 
-    // ============================================
-    // 📷 CAMBIAR FOTO DE PERFIL
-    // ============================================
+    // ========== EVENT LISTENERS DEL AVATAR ==========
     const avatarOptionsModal = document.getElementById('avatarOptionsModal');
     const avatarFileInput = document.getElementById('avatarFileInput');
     const avatarPreviewTemp = document.getElementById('avatarPreviewTemp');
+    const avatarWrapper = document.getElementById('avatarWrapper');
+    const btnAvatarCamera = document.getElementById('btnAvatarCamera');
+    const btnAvatarGallery = document.getElementById('btnAvatarGallery');
+    const btnAvatarCancel = document.getElementById('btnAvatarCancel');
 
-    // Abrir modal de opciones al hacer clic en el avatar
-    document.getElementById('avatarWrapper').addEventListener('click', () => {
-        tempAvatarData = null;
-        avatarPreviewTemp.style.display = 'none';
-        avatarOptionsModal.classList.add('show');
-    });
+    if (avatarWrapper) {
+        avatarWrapper.addEventListener('click', () => {
+            tempAvatarData = null;
+            if (avatarPreviewTemp) avatarPreviewTemp.style.display = 'none';
+            if (avatarOptionsModal) avatarOptionsModal.classList.add('show');
+        });
+    }
 
-    // Opción: Tomar foto con cámara
-    document.getElementById('btnAvatarCamera').addEventListener('click', () => {
-        avatarOptionsModal.classList.remove('show');
-        openCamera('avatar');
-    });
+    if (btnAvatarCamera) {
+        btnAvatarCamera.addEventListener('click', () => {
+            if (avatarOptionsModal) avatarOptionsModal.classList.remove('show');
+            openCamera('avatar');
+        });
+    }
 
-    // Opción: Elegir de galería
-    document.getElementById('btnAvatarGallery').addEventListener('click', () => {
-        avatarOptionsModal.classList.remove('show');
-        avatarFileInput.click();
-    });
+    if (btnAvatarGallery) {
+        btnAvatarGallery.addEventListener('click', () => {
+            if (avatarOptionsModal) avatarOptionsModal.classList.remove('show');
+            if (avatarFileInput) avatarFileInput.click();
+        });
+    }
 
-    // Opción: Cancelar
-    document.getElementById('btnAvatarCancel').addEventListener('click', () => {
-        avatarOptionsModal.classList.remove('show');
-    });
+    if (btnAvatarCancel) {
+        btnAvatarCancel.addEventListener('click', () => {
+            if (avatarOptionsModal) avatarOptionsModal.classList.remove('show');
+        });
+    }
 
-    // Cerrar modal de opciones al tocar fondo
-    avatarOptionsModal.addEventListener('click', (e) => {
-        if (e.target === avatarOptionsModal) avatarOptionsModal.classList.remove('show');
-    });
+    if (avatarOptionsModal) {
+        avatarOptionsModal.addEventListener('click', (e) => {
+            if (e.target === avatarOptionsModal) avatarOptionsModal.classList.remove('show');
+        });
+    }
 
-    // Procesar archivo seleccionado desde galería
-    avatarFileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        if (!file.type.startsWith('image/')) {
-            showProfileMessage('⚠️ El archivo debe ser una imagen.', 'error');
-            return;
-        }
-        
-        if (file.size > 10 * 1024 * 1024) {
-            showProfileMessage('⚠️ La imagen es demasiado grande. Máximo 10MB.', 'error');
-            return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            redimensionarImagen(event.target.result, 300, 300, (dataResized) => {
-                tempAvatarData = dataResized;
-                // Mostrar preview y aplicar directamente
-                mostrarAvatar(tempAvatarData, document.getElementById('nombre').value);
-                showProfileMessage('📷 Foto seleccionada. Pulsa "Guardar Cambios" para aplicarla.', 'info');
-            });
-        };
-        reader.readAsDataURL(file);
-        
-        // Resetear input para poder seleccionar la misma imagen de nuevo
-        avatarFileInput.value = '';
-    });
+    if (avatarFileInput) {
+        avatarFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showProfileMessage('⚠️ El archivo debe ser una imagen.', 'error');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                showProfileMessage('⚠️ La imagen es demasiado grande. Máximo 10MB.', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                redimensionarImagen(event.target.result, 300, 300, (dataResized) => {
+                    tempAvatarData = dataResized;
+                    const nombreInput = document.getElementById('nombre');
+                    mostrarAvatar(tempAvatarData, nombreInput ? nombreInput.value : '');
+                    showProfileMessage('📷 Foto seleccionada. Pulsa "Guardar Cambios" para aplicarla.', 'info');
+                });
+            };
+            reader.readAsDataURL(file);
+            avatarFileInput.value = '';
+        });
+    }
 
-    // ========== REDIMENSIONAR IMAGEN ==========
     function redimensionarImagen(dataUrl, maxWidth, maxHeight, callback) {
         const img = new Image();
         img.onload = function() {
@@ -562,64 +597,61 @@ document.addEventListener('DOMContentLoaded', async function() {
         img.src = dataUrl;
     }
 
-    // ============================================
-    // 💾 GUARDAR CAMBIOS DE PERFIL (Nombre + Avatar)
-    // ============================================
-    btnSaveProfile.addEventListener('click', async () => {
-        const nuevoNombre = document.getElementById('nombre').value.trim();
-        
-        if (!nuevoNombre) {
-            showProfileMessage('⚠️ El nombre no puede estar vacío.', 'error');
-            return;
-        }
-        
-        if (nuevoNombre.length < 2) {
-            showProfileMessage('⚠️ El nombre debe tener al menos 2 caracteres.', 'error');
-            return;
-        }
-        
-        if (!tempAvatarData && nuevoNombre === document.getElementById('profileName').textContent) {
-            showProfileMessage('⚠️ No hay cambios para guardar.', 'info');
-            return;
-        }
-        
-        btnSaveProfile.disabled = true;
-        btnSaveProfile.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
-        
-        try {
-            const datosActualizar = { 
-                nombre: nuevoNombre,
-                ultima_actualizacion: new Date().toISOString()
-            };
+    if (btnSaveProfile) {
+        btnSaveProfile.addEventListener('click', async () => {
+            const nombreInput = document.getElementById('nombre');
+            const nuevoNombre = nombreInput ? nombreInput.value.trim() : '';
             
-            if (tempAvatarData) {
-                datosActualizar.avatar_url = tempAvatarData;
+            if (!nuevoNombre) {
+                showProfileMessage('⚠️ El nombre no puede estar vacío.', 'error');
+                return;
             }
             
-            const { error } = await db.from('perfiles').update(datosActualizar).eq('id', currentUserId);
+            if (nuevoNombre.length < 2) {
+                showProfileMessage('⚠️ El nombre debe tener al menos 2 caracteres.', 'error');
+                return;
+            }
             
-            if (error) {
-                showProfileMessage('❌ Error al guardar: ' + error.message, 'error');
-            } else {
-                // Actualizar la interfaz
-                document.getElementById('profileName').textContent = nuevoNombre;
+            const profileNameEl = document.getElementById('profileName');
+            if (!tempAvatarData && profileNameEl && nuevoNombre === profileNameEl.textContent) {
+                showProfileMessage('⚠️ No hay cambios para guardar.', 'info');
+                return;
+            }
+            
+            btnSaveProfile.disabled = true;
+            btnSaveProfile.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
+            
+            try {
+                const datosActualizar = { 
+                    nombre: nuevoNombre,
+                    ultima_actualizacion: new Date().toISOString()
+                };
+                
                 if (tempAvatarData) {
-                    mostrarAvatar(tempAvatarData, nuevoNombre);
-                    tempAvatarData = null;
+                    datosActualizar.avatar_url = tempAvatarData;
                 }
-                showProfileMessage('✅ ¡Perfil actualizado correctamente!', 'success');
+                
+                const { error } = await db.from('perfiles').update(datosActualizar).eq('id', currentUserId);
+                
+                if (error) {
+                    showProfileMessage('❌ Error al guardar: ' + error.message, 'error');
+                } else {
+                    if (profileNameEl) profileNameEl.textContent = nuevoNombre;
+                    if (tempAvatarData) {
+                        mostrarAvatar(tempAvatarData, nuevoNombre);
+                        tempAvatarData = null;
+                    }
+                    showProfileMessage('✅ ¡Perfil actualizado correctamente!', 'success');
+                }
+            } catch (err) {
+                showProfileMessage('❌ Error inesperado: ' + err.message, 'error');
+            } finally {
+                btnSaveProfile.disabled = false;
+                btnSaveProfile.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios de Perfil';
             }
-        } catch (err) {
-            showProfileMessage('❌ Error inesperado: ' + err.message, 'error');
-        } finally {
-            btnSaveProfile.disabled = false;
-            btnSaveProfile.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios de Perfil';
-        }
-    });
+        });
+    }
 
-    // ============================================
-    // 📹 CÁMARA (Reutilizada para avatar y KYC)
-    // ============================================
     const cameraModal = document.getElementById('cameraModal');
     const modalVideo = document.getElementById('modalVideo');
     const modalCaptureBtn = document.getElementById('modalCaptureBtn');
@@ -635,12 +667,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             'selfie': 'Selfie con rastreo facial (IA)',
             'avatar': 'Foto de perfil'
         };
-        title.textContent = titles[type] || 'Cámara';
-        errorMsg.style.display = 'none';
-        modalCaptureBtn.disabled = true;
-        modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Iniciando cámara...';
-        modalCaptureBtn.style.background = '';
-        modalCaptureBtn.style.color = '';
+        if (title) title.textContent = titles[type] || 'Cámara';
+        if (errorMsg) errorMsg.style.display = 'none';
+        if (modalCaptureBtn) {
+            modalCaptureBtn.disabled = true;
+            modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Iniciando cámara...';
+            modalCaptureBtn.style.background = '';
+            modalCaptureBtn.style.color = '';
+        }
 
         try {
             currentStream = await navigator.mediaDevices.getUserMedia({
@@ -650,20 +684,24 @@ document.addEventListener('DOMContentLoaded', async function() {
                     height: { ideal: 480 }
                 }
             });
-            modalVideo.srcObject = currentStream;
-            cameraModal.classList.add('show');
+            if (modalVideo) modalVideo.srcObject = currentStream;
+            if (cameraModal) cameraModal.classList.add('show');
 
-            modalVideo.onloadeddata = () => {
-                if (type === 'selfie' && faceApiLoaded) {
-                    startFaceTracking(modalVideo);
-                } else {
-                    modalCaptureBtn.disabled = false;
-                    modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Capturar';
-                }
-            };
+            if (modalVideo) {
+                modalVideo.onloadeddata = () => {
+                    if (type === 'selfie' && faceApiLoaded) {
+                        startFaceTracking(modalVideo);
+                    } else {
+                        if (modalCaptureBtn) {
+                            modalCaptureBtn.disabled = false;
+                            modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Capturar';
+                        }
+                    }
+                };
+            }
         } catch (err) {
             console.error('Error al abrir cámara:', err);
-            errorMsg.style.display = 'block';
+            if (errorMsg) errorMsg.style.display = 'block';
             showMessage('No se pudo acceder a la cámara. Verifica los permisos.', 'error');
         }
     };
@@ -673,33 +711,41 @@ document.addEventListener('DOMContentLoaded', async function() {
         const statusDiv = document.getElementById('faceDetectionStatus');
 
         const detect = async () => {
-            if (!currentStream || !cameraModal.classList.contains('show')) return;
+            if (!currentStream || !cameraModal || !cameraModal.classList.contains('show')) return;
             if (video.readyState < 2) { trackingAnimationId = requestAnimationFrame(detect); return; }
 
             try {
                 const displaySize = { width: video.clientWidth || video.videoWidth, height: video.clientHeight || video.videoHeight };
-                faceapi.matchDimensions(canvas, displaySize);
+                if (canvas) faceapi.matchDimensions(canvas, displaySize);
                 const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.3 });
                 const detection = await faceapi.detectSingleFace(video, options);
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const ctx = canvas ? canvas.getContext('2d') : null;
+                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 if (detection) {
                     const resized = faceapi.resizeResults(detection, displaySize);
-                    faceapi.draw.drawDetections(canvas, resized);
-                    statusDiv.className = 'face-detection-status success';
-                    statusDiv.textContent = '✅ Rostro humano detectado. ¡Listo para capturar!';
-                    modalCaptureBtn.disabled = false;
-                    modalCaptureBtn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Capturar Selfie!';
-                    modalCaptureBtn.style.background = '#00ff00';
-                    modalCaptureBtn.style.color = '#000';
+                    if (canvas) faceapi.draw.drawDetections(canvas, resized);
+                    if (statusDiv) {
+                        statusDiv.className = 'face-detection-status success';
+                        statusDiv.textContent = '✅ Rostro humano detectado. ¡Listo para capturar!';
+                    }
+                    if (modalCaptureBtn) {
+                        modalCaptureBtn.disabled = false;
+                        modalCaptureBtn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Capturar Selfie!';
+                        modalCaptureBtn.style.background = '#00ff00';
+                        modalCaptureBtn.style.color = '#000';
+                    }
                 } else {
-                    statusDiv.className = 'face-detection-status detecting';
-                    statusDiv.textContent = '🔍 Buscando rostro... Centra tu cara en el cuadro.';
-                    modalCaptureBtn.disabled = true;
-                    modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Esperando rostro...';
-                    modalCaptureBtn.style.background = '';
-                    modalCaptureBtn.style.color = '';
+                    if (statusDiv) {
+                        statusDiv.className = 'face-detection-status detecting';
+                        statusDiv.textContent = '🔍 Buscando rostro... Centra tu cara en el cuadro.';
+                    }
+                    if (modalCaptureBtn) {
+                        modalCaptureBtn.disabled = true;
+                        modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Esperando rostro...';
+                        modalCaptureBtn.style.background = '';
+                        modalCaptureBtn.style.color = '';
+                    }
                 }
             } catch (err) {
                 console.error('⚠️ Error en detección facial:', err);
@@ -712,56 +758,61 @@ document.addEventListener('DOMContentLoaded', async function() {
     function closeCamera() {
         if (trackingAnimationId) { cancelAnimationFrame(trackingAnimationId); trackingAnimationId = null; }
         const canvas = document.getElementById('faceCanvas');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
-        modalVideo.srcObject = null;
-        cameraModal.classList.remove('show');
+        if (modalVideo) modalVideo.srcObject = null;
+        if (cameraModal) cameraModal.classList.remove('show');
     }
 
-    document.getElementById('btnCloseCamera').addEventListener('click', closeCamera);
+    const btnCloseCamera = document.getElementById('btnCloseCamera');
+    if (btnCloseCamera) {
+        btnCloseCamera.addEventListener('click', closeCamera);
+    }
 
-    // ========== CAPTURAR FOTO ==========
-    modalCaptureBtn.addEventListener('click', function() {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = modalVideo.videoWidth;
-        canvas.height = modalVideo.videoHeight;
-        ctx.drawImage(modalVideo, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    if (modalCaptureBtn) {
+        modalCaptureBtn.addEventListener('click', function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = modalVideo.videoWidth;
+            canvas.height = modalVideo.videoHeight;
+            ctx.drawImage(modalVideo, 0, 0);
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
-        if (currentCameraType === 'avatar') {
-            // Redimensionar avatar a 300x300
-            redimensionarImagen(imageData, 300, 300, (dataResized) => {
-                tempAvatarData = dataResized;
-                mostrarAvatar(tempAvatarData, document.getElementById('nombre').value);
-                showProfileMessage('📷 Foto capturada. Pulsa "Guardar Cambios" para aplicarla.', 'info');
-            });
-        } else {
-            const fieldMap = {
-                'docFront': { url: 'docFrontalUrl', preview: 'docFrontPreview' },
-                'docBack': { url: 'docTraseroUrl', preview: 'docBackPreview' },
-                'selfie': { url: 'selfieUrl', preview: 'selfiePreview' }
-            };
-            const field = fieldMap[currentCameraType];
-            if (field) {
-                document.getElementById(field.url).value = imageData;
-                document.getElementById(field.preview).innerHTML = `<img src="${imageData}" alt="Captura">`;
+            if (currentCameraType === 'avatar') {
+                redimensionarImagen(imageData, 300, 300, (dataResized) => {
+                    tempAvatarData = dataResized;
+                    const nombreInput = document.getElementById('nombre');
+                    mostrarAvatar(tempAvatarData, nombreInput ? nombreInput.value : '');
+                    showProfileMessage('📷 Foto capturada. Pulsa "Guardar Cambios" para aplicarla.', 'info');
+                });
+            } else {
+                const fieldMap = {
+                    'docFront': { url: 'docFrontalUrl', preview: 'docFrontPreview' },
+                    'docBack': { url: 'docTraseroUrl', preview: 'docBackPreview' },
+                    'selfie': { url: 'selfieUrl', preview: 'selfiePreview' }
+                };
+                const field = fieldMap[currentCameraType];
+                if (field) {
+                    const inputEl = document.getElementById(field.url);
+                    const previewEl = document.getElementById(field.preview);
+                    if (inputEl) inputEl.value = imageData;
+                    if (previewEl) previewEl.innerHTML = `<img src="${imageData}" alt="Captura">`;
+                }
             }
-        }
-        closeCamera();
-    });
-
-    // Botones de cámara del KYC (usando data-attributes)
-    document.querySelectorAll('[data-camera-btn]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (!btn.disabled) openCamera(btn.dataset.cameraBtn);
+            closeCamera();
         });
-    });
+    }
 
-    // ============================================
-    // 📤 ENVIAR KYC
-    // ============================================
+    const cameraButtons = document.querySelectorAll('[data-camera-btn]');
+    if (cameraButtons && cameraButtons.length > 0) {
+        cameraButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!btn.disabled) openCamera(btn.dataset.cameraBtn);
+            });
+        });
+    }
+
     const fullProfileForm = document.getElementById('fullProfileForm');
     if (fullProfileForm) {
         fullProfileForm.addEventListener('submit', async (e) => {
@@ -774,48 +825,59 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             const { data: { user } } = await db.auth.getUser();
             
-            const docFrontal = document.getElementById('docFrontalUrl').value;
-            const docTrasero = document.getElementById('docTraseroUrl').value;
-            const selfie = document.getElementById('selfieUrl').value;
-            const fechaNacimiento = document.getElementById('fechaNacimiento').value;
+            const docFrontalEl = document.getElementById('docFrontalUrl');
+            const selfieEl = document.getElementById('selfieUrl');
+            const fechaNacimientoEl = document.getElementById('fechaNacimiento');
+            
+            const docFrontal = docFrontalEl ? docFrontalEl.value : '';
+            const selfie = selfieEl ? selfieEl.value : '';
+            const fechaNacimiento = fechaNacimientoEl ? fechaNacimientoEl.value : '';
 
             if (!fechaNacimiento) { showMessage('Por favor, selecciona tu fecha de nacimiento.', 'error'); return; }
             if (!edadValida) { showMessage('⚠️ Debes ser mayor de 18 años para registrarte.', 'error'); return; }
             if (!docFrontal) { showMessage('Por favor, toma una foto del frente de tu documento.', 'error'); return; }
             if (!selfie) { showMessage('Por favor, toma una selfie con detección facial.', 'error'); return; }
 
-            const phoneCountry = document.getElementById('phoneCountry').value;
-            const telefono = document.getElementById('telefono').value;
+            const phoneCountryEl = document.getElementById('phoneCountry');
+            const telefonoEl = document.getElementById('telefono');
+            const phoneCountry = phoneCountryEl ? phoneCountryEl.value : '';
+            const telefono = telefonoEl ? telefonoEl.value : '';
+
+            const camposForm = [
+                'nombre', 'nacionalidad', 'direccion', 'ciudad', 
+                'estadoProvincia', 'pais', 'codigoPostal', 
+                'tipoDocumento', 'numeroDocumento'
+            ];
 
             const datos = {
-                nombre: document.getElementById('nombre').value,
                 telefono: phoneCountry + ' ' + telefono,
                 fecha_nacimiento: fechaNacimiento,
-                nacionalidad: document.getElementById('nacionalidad').value,
-                direccion: document.getElementById('direccion').value,
-                ciudad: document.getElementById('ciudad').value,
-                estado_provincia: document.getElementById('estadoProvincia').value,
-                pais: document.getElementById('pais').value,
-                codigo_postal: document.getElementById('codigoPostal').value,
-                tipo_documento: document.getElementById('tipoDocumento').value,
-                numero_documento: document.getElementById('numeroDocumento').value,
                 documento_frontal_url: docFrontal,
-                documento_trasero_url: docTrasero || null,
+                documento_trasero_url: document.getElementById('docTraseroUrl') ? document.getElementById('docTraseroUrl').value || null : null,
                 selfie_url: selfie,
                 estado_kyc: 'pendiente',
                 ultima_actualizacion: new Date().toISOString()
             };
 
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Enviando a verificación...';
+            camposForm.forEach(campo => {
+                const el = document.getElementById(campo);
+                if (el) datos[campo] = el.value;
+            });
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Enviando a verificación...';
+            }
             showMessage('📤 Guardando perfil y enviando documentos...', 'info');
 
             const { error } = await db.from('perfiles').update(datos).eq('id', user.id);
 
             if (error) {
                 showMessage('Error al guardar: ' + error.message, 'error');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Guardar Perfil y Enviar KYC';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Guardar Perfil y Enviar KYC';
+                }
             } else {
                 showMessage('✅ Perfil guardado y KYC enviado. Un administrador revisará tus documentos pronto.', 'success');
                 setTimeout(() => { window.location.href = 'dashboard.html'; }, 3000);
@@ -823,7 +885,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // ========== INICIALIZAR ==========
     llenarSelectoresPaises();
     preloadFaceModels();
     cargarPerfil();
