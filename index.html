@@ -6,221 +6,383 @@
     <title>Boche Clava'o - Iniciar Sesión</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="/img/logo.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Montserrat', sans-serif;
             background: #000000;
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             color: #ffffff;
             overflow-x: hidden;
             position: relative;
         }
+
         body::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%);
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%);
             z-index: 0;
         }
+
         .line-decoration {
-            position: absolute; background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.1), transparent);
-            width: 1px; height: 100%; animation: lineMove 8s ease-in-out infinite;
+            position: absolute;
+            background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.1), transparent);
+            width: 1px; height: 100%;
+            animation: lineMove 8s ease-in-out infinite;
         }
-        .line-1 { left: 10%; animation-delay: 0s; } .line-2 { left: 30%; animation-delay: 2s; }
-        .line-3 { right: 30%; animation-delay: 4s; } .line-4 { right: 10%; animation-delay: 6s; }
-        @keyframes lineMove { 0%, 100% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 0.7; transform: translateY(-20px); } }
+        .line-1 { left: 10%; animation-delay: 0s; }
+        .line-2 { left: 30%; animation-delay: 2s; }
+        .line-3 { right: 30%; animation-delay: 4s; }
+        .line-4 { right: 10%; animation-delay: 6s; }
+
+        @keyframes lineMove {
+            0%, 100% { opacity: 0.3; transform: translateY(0); }
+            50% { opacity: 0.7; transform: translateY(-20px); }
+        }
+
         .dot {
-            position: absolute; width: 4px; height: 4px; background: #FFD700; border-radius: 50%;
-            opacity: 0.3; animation: dotFloat 6s ease-in-out infinite;
+            position: absolute;
+            width: 4px; height: 4px;
+            background: #FFD700;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: dotFloat 6s ease-in-out infinite;
         }
-        .dot-1 { top: 20%; left: 15%; animation-delay: 0s; } .dot-2 { top: 40%; right: 20%; animation-delay: 1s; }
-        .dot-3 { bottom: 30%; left: 25%; animation-delay: 2s; } .dot-4 { bottom: 20%; right: 15%; animation-delay: 3s; }
-        @keyframes dotFloat { 0%, 100% { transform: translateY(0); opacity: 0.3; } 50% { transform: translateY(-30px); opacity: 0.6; } }
+        .dot-1 { top: 20%; left: 15%; animation-delay: 0s; }
+        .dot-2 { top: 40%; right: 20%; animation-delay: 1s; }
+        .dot-3 { bottom: 30%; left: 25%; animation-delay: 2s; }
+        .dot-4 { bottom: 20%; right: 15%; animation-delay: 3s; }
 
-        .container { width: 100%; max-width: 1000px; padding: 20px; position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        .logo-container { text-align: center; margin-bottom: 40px; }
-        .logo-main { max-width: 250px; height: auto; margin-bottom: 15px; animation: logoAppear 1s ease-out; }
-        @keyframes logoAppear { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        .brand-name { font-size: 1.8rem; font-weight: 800; color: #FFD700; letter-spacing: 3px; text-transform: uppercase; }
+        @keyframes dotFloat {
+            0%, 100% { transform: translateY(0); opacity: 0.3; }
+            50% { transform: translateY(-30px); opacity: 0.6; }
+        }
 
-        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 900px; margin: 0 auto; }
-        .left-side { text-align: left; }
-        .welcome-text { font-size: 2.5rem; font-weight: 700; line-height: 1.2; margin-bottom: 20px; color: #ffffff; }
-        .welcome-text span { color: #FFD700; }
-        .description { color: #999; font-size: 1rem; line-height: 1.8; margin-bottom: 30px; }
-        .features-list { list-style: none; }
-        .features-list li { color: #cccccc; font-size: 0.95rem; margin-bottom: 15px; display: flex; align-items: center; gap: 12px; }
-        .features-list li i { color: #FFD700; font-size: 1rem; width: 20px; }
+        .container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
 
-        .right-side { display: flex; justify-content: center; }
-        .login-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; padding: 35px; width: 100%; max-width: 380px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
-        .card-title { font-size: 1.6rem; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
-        .card-subtitle { color: #666; font-size: 0.9rem; margin-bottom: 25px; }
-        .form-group { margin-bottom: 18px; position: relative; }
+        .logo-container { text-align: center; margin-bottom: 30px; }
+
+        .logo-main {
+            max-width: 130px;
+            height: auto;
+            margin-bottom: 12px;
+            animation: logoAppear 1s ease-out;
+        }
+
+        @keyframes logoAppear {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .brand-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #FFD700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .card {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 35px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .card-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .card-subtitle strong { color: #FFD700; }
+
+        .form-group { margin-bottom: 18px; }
+
         .form-group input {
-            width: 100%; padding: 14px 45px 14px 16px; background: #111; border: 1px solid #333;
-            border-radius: 8px; color: #ffffff; font-size: 1rem; font-family: 'Montserrat', sans-serif; transition: all 0.3s ease;
+            width: 100%;
+            padding: 14px 16px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+            font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease;
         }
-        .form-group input:focus { outline: none; border-color: #FFD700; background: #1a1a1a; }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #FFD700;
+            background: #1a1a1a;
+        }
         .form-group input::placeholder { color: #666; }
-        
+
+        .input-with-icon { position: relative; width: 100%; }
+        .input-with-icon input { width: 100%; padding-right: 45px; }
         .toggle-password {
-            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
-            color: #666; cursor: pointer; transition: color 0.3s; font-size: 1.1rem;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
         }
         .toggle-password:hover { color: #FFD700; }
 
-        .forgot-password { text-align: right; margin-bottom: 20px; }
-        .forgot-password a { color: #FFD700; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: color 0.3s ease; }
-        .forgot-password a:hover { color: #FFA500; text-decoration: underline; }
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 18px;
+            margin-top: -8px;
+        }
+        .forgot-password a {
+            color: #999;
+            font-size: 0.85rem;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .forgot-password a:hover { color: #FFD700; text-decoration: underline; }
 
         .btn-primary {
-            width: 100%; padding: 14px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #000; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700;
-            cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; font-family: 'Montserrat', sans-serif;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Montserrat', sans-serif;
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-        .divider { text-align: center; margin: 20px 0; color: #666; font-size: 0.85rem; position: relative; }
-        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #333; }
-        .divider::before { left: 0; } .divider::after { right: 0; }
-
-        .btn-google {
-            width: 100%; padding: 14px; background: #ffffff; color: #333; border: none; border-radius: 8px;
-            font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
-            display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Montserrat', sans-serif;
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 22px 0;
+            color: #555;
+            font-size: 0.8rem;
         }
-        .btn-google:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 255, 255, 0.1); }
-        .btn-google img { width: 20px; height: 20px; }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #222;
+        }
+        .divider span { padding: 0 12px; }
 
-        .register-link { text-align: center; margin-top: 20px; color: #666; font-size: 0.9rem; }
-        .register-link a { color: #FFD700; text-decoration: none; font-weight: 600; }
+        .google-btn {
+            width: 100%;
+            padding: 13px;
+            background: #ffffff;
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .google-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 255, 255, 0.15); }
+        .google-btn i { color: #DB4437; font-size: 1.1rem; }
+
+        .register-link {
+            text-align: center;
+            margin-top: 22px;
+            color: #999;
+            font-size: 0.9rem;
+        }
+        .register-link a {
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: 700;
+        }
         .register-link a:hover { text-decoration: underline; }
 
-        .message { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-size: 0.85rem; }
+        .back-link { text-align: center; margin-top: 18px; }
+        .back-link a {
+            color: #999;
+            text-decoration: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-block;
+            padding: 8px;
+        }
+        .back-link a:hover { color: #FFD700; text-decoration: underline; }
+
+        .success-icon { text-align: center; margin-bottom: 18px; }
+        .success-icon i {
+            font-size: 3.5rem;
+            color: #00ff00;
+            animation: bounceIn 0.6s ease;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+            font-size: 0.85rem;
+        }
         .message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
         .message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
         .message.info { background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; color: #FFD700; display: block; }
 
-        /* 🦶 FOOTER IDÉNTICO AL DASHBOARD */
-        .main-footer {
-            background: #050505; border-top: 1px solid #222;
-            padding: 40px 20px; text-align: center; width: 100%; z-index: 1; margin-top: auto;
-        }
-        .footer-content { max-width: 1200px; margin: 0 auto; }
-        .footer-text { color: #666; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.6; }
-        .footer-text span { color: #FFD700; font-weight: 600; }
-        .social-icons { display: flex; justify-content: center; gap: 20px; margin-top: 15px; }
-        .social-icons a {
-            display: flex; align-items: center; justify-content: center;
-            width: 45px; height: 45px; background: #111; border: 1px solid #333;
-            border-radius: 50%; color: #999; font-size: 1.2rem; text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .social-icons a:hover {
-            background: #FFD700; color: #000; border-color: #FFD700;
-            transform: translateY(-3px); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-        }
-
-        @media (max-width: 768px) {
-            .main-content { grid-template-columns: 1fr; gap: 30px; }
-            .left-side { display: none; }
-            .login-card { padding: 30px 25px; max-width: 100%; }
-            .logo-main { max-width: 200px; }
-        }
         @media (max-width: 480px) {
-            body { padding: 15px; align-items: flex-start; padding-top: 5vh; }
-            .container { padding: 10px; }
-            .login-card { padding: 25px 20px; }
+            body { padding: 15px; align-items: flex-start; padding-top: 6vh; }
+            .container { padding: 15px; }
+            .logo-container { margin-bottom: 22px; }
+            .logo-main { max-width: 110px; }
+            .brand-name { font-size: 1.3rem; letter-spacing: 2px; }
+            .card { padding: 25px 20px; }
+            .card-title { font-size: 1.4rem; }
+            .card-subtitle { font-size: 0.8rem; margin-bottom: 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="line-decoration line-1"></div><div class="line-decoration line-2"></div>
-    <div class="line-decoration line-3"></div><div class="line-decoration line-4"></div>
-    <div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div><div class="dot dot-4"></div>
+    <div class="line-decoration line-1"></div>
+    <div class="line-decoration line-2"></div>
+    <div class="line-decoration line-3"></div>
+    <div class="line-decoration line-4"></div>
+    <div class="dot dot-1"></div>
+    <div class="dot dot-2"></div>
+    <div class="dot dot-3"></div>
+    <div class="dot dot-4"></div>
 
     <div class="container">
         <div class="logo-container">
-            <img src="../img/logo.png" alt="Boche Clava'o" class="logo-main">
+            <img src="img/logo.png" alt="Boche Clava'o" class="logo-main">
             <h1 class="brand-name">Boche Clava'o</h1>
         </div>
 
-        <div class="main-content">
-            <div class="left-side">
-                <h2 class="welcome-text">Bienvenido a tu<br><span>plataforma</span> de confianza</h2>
-                <p class="description">Accede a tu cuenta y disfruta de todos nuestros servicios exclusivos con la seguridad que mereces.</p>
-                <ul class="features-list">
-                    <li><i class="fas fa-shield-alt"></i> Seguridad garantizada</li>
-                    <li><i class="fas fa-bolt"></i> Acceso instantáneo</li>
-                    <li><i class="fas fa-headset"></i> Soporte 24/7</li>
-                    <li><i class="fas fa-star"></i> Experiencia premium</li>
-                </ul>
-            </div>
+        <div class="card">
 
-            <div class="right-side">
-                <div class="login-card">
-                    <h2 class="card-title">Iniciar Sesión</h2>
-                    <p class="card-subtitle">Ingresa tus credenciales para continuar</p>
-                    
-                    <form id="loginForm">
-                        <div class="form-group">
-                            <input type="email" id="email" required placeholder="Correo electrónico">
-                        </div>
-                        <div class="form-group">
-                            <input type="password" id="password" required placeholder="Contraseña">
+            <!-- ========== SECCIÓN LOGIN ========== -->
+            <div id="loginSection">
+                <h2 class="card-title">Iniciar Sesión</h2>
+                <p class="card-subtitle">Bienvenido de nuevo a <strong>Boche Clava'o</strong></p>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <input type="email" id="email" required placeholder="Correo electrónico" autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon">
+                            <input type="password" id="password" required placeholder="Contraseña" autocomplete="current-password">
                             <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility()"></i>
                         </div>
-
-                        <div class="forgot-password">
-                            <a onclick="mostrarRecuperacion()" style="cursor: pointer;">¿Olvidaste tu contraseña?</a>
-                        </div>
-
-                        <button type="submit" class="btn-primary" id="submitBtn">Ingresar</button>
-                    </form>
-
-                    <div class="divider">o continúa con</div>
-
-                    <button class="btn-google" onclick="loginWithGoogle()">
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google"> Google
-                    </button>
-
-                    <div class="register-link">
-                        ¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a>
                     </div>
+                    <div class="forgot-password">
+                        <a onclick="mostrarRecuperacion()">¿Olvidaste tu contraseña?</a>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn-primary">Ingresar</button>
+                </form>
 
-                    <div id="message" class="message"></div>
+                <div class="divider"><span>o continúa con</span></div>
+
+                <button type="button" class="google-btn" onclick="loginWithGoogle()">
+                    <i class="fab fa-google"></i> Continuar con Google
+                </button>
+
+                <div class="register-link">
+                    ¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a>
                 </div>
             </div>
+
+            <!-- ========== RECUPERACIÓN PASO 1 ========== -->
+            <div id="recoveryStep1" style="display: none;">
+                <h2 class="card-title">Recuperar Contraseña</h2>
+                <p class="card-subtitle">Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña</p>
+
+                <form id="recoveryForm">
+                    <div class="form-group">
+                        <input type="email" id="recoveryEmail" required placeholder="Correo electrónico" autocomplete="email">
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i> Enviar enlace
+                    </button>
+                </form>
+
+                <div class="back-link">
+                    <a onclick="volverAlLogin()">← Volver al login</a>
+                </div>
+            </div>
+
+            <!-- ========== RECUPERACIÓN PASO 2 ========== -->
+            <div id="recoveryStep2" style="display: none;">
+                <div class="success-icon">
+                    <i class="fas fa-envelope-circle-check"></i>
+                </div>
+                <h2 class="card-title">¡Enlace enviado!</h2>
+                <p class="card-subtitle">
+                    Hemos enviado un enlace de recuperación a:<br>
+                    <strong id="recoveryEmailDisplay"></strong>
+                </p>
+                <p class="card-subtitle" style="margin-top: 12px; font-size: 0.85rem;">
+                    📧 Revisa tu bandeja de entrada y la carpeta de <strong>Spam</strong>.<br>
+                    Haz clic en el enlace del correo para crear tu nueva contraseña.
+                </p>
+                <p class="card-subtitle" style="margin-top: 12px; font-size: 0.8rem; color: #FFA500;">
+                    ⏱️ Por seguridad, puedes solicitar un nuevo enlace en <strong>60 segundos</strong>.
+                </p>
+
+                <div class="back-link">
+                    <a onclick="volverAlRecoveryStep1()"><i class="fas fa-redo"></i> Enviar a otro correo</a>
+                </div>
+                <div class="back-link">
+                    <a onclick="volverAlLogin()">← Volver al login</a>
+                </div>
+            </div>
+
+            <div id="message" class="message"></div>
         </div>
     </div>
 
-    <!-- 🦶 FOOTER IDÉNTICO AL DASHBOARD -->
-    <footer class="main-footer">
-        <div class="footer-content">
-            <p class="footer-text">
-                Copyright © todos los derechos reservados<br>
-                Desarrollado professional <span>G/P</span> 2026 - 2027<br>
-                Versión <span>0.1 beta experimental</span>
-            </p>
-            <div class="social-icons">
-                <a href="https://facebook.com" target="_blank" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="https://instagram.com" target="_blank" title="Instagram"><i class="fab fa-instagram"></i></a>
-                <a href="https://tiktok.com" target="_blank" title="TikTok"><i class="fab fa-tiktok"></i></a>
-                <a href="https://wa.me/" target="_blank" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- 📦 SCRIPTS (¡Asegúrate de que el archivo se llame index.js!) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/config.js"></script>
-    <script src="../js/index.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/index.js"></script>
 </body>
 </html>
