@@ -34,6 +34,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     const coinsModal = document.getElementById('coinsModal');
     const coinsModalBody = document.getElementById('coinsModalBody');
     const btnCerrarCoins = document.getElementById('btnCerrarCoins');
+    
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteModalBody = document.getElementById('deleteModalBody');
+    const btnCerrarDelete = document.getElementById('btnCerrarDelete');
 
     // ========== ESTADO GLOBAL ==========
     let currentPage = 1;
@@ -41,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     let totalCount = 0;
     let currentSearch = { type: 'user_id', value: '' };
     let currentFilters = { kyc: '', bloqueo: '', desde: null, hasta: null };
-    let usuariosActuales = []; // Para exportar CSV
+    let usuariosActuales = [];
 
     // ========== ESTADÍSTICAS ==========
     async function cargarEstadisticas() {
@@ -90,7 +94,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             let query = db.from('perfiles').select('*', { count: 'exact' });
             
-            // Búsqueda por texto
             if (currentSearch.value.trim()) {
                 const val = `%${currentSearch.value.trim()}%`;
                 if (currentSearch.type === 'user_id') query = query.ilike('user_id', val);
@@ -99,21 +102,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 else if (currentSearch.type === 'email') query = query.ilike('email', val);
             }
             
-            // Filtro por estado KYC
             if (currentFilters.kyc === 'null') {
                 query = query.is('estado_kyc', null);
             } else if (currentFilters.kyc) {
                 query = query.eq('estado_kyc', currentFilters.kyc);
             }
             
-            // Filtro por bloqueo
             if (currentFilters.bloqueo === 'activos') {
                 query = query.or('bloqueado.is.null,bloqueado.eq.false');
             } else if (currentFilters.bloqueo === 'bloqueados') {
                 query = query.eq('bloqueado', true);
             }
             
-            // Filtro por fechas
             if (currentFilters.desde) {
                 query = query.gte('fecha_registro', currentFilters.desde + 'T00:00:00');
             }
@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 query = query.lte('fecha_registro', currentFilters.hasta + 'T23:59:59');
             }
             
-            // Paginación
             const from = (currentPage - 1) * itemsPerPage;
             const to = from + itemsPerPage - 1;
             
@@ -140,7 +139,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             totalCount = count || 0;
             usuariosActuales = usuarios || [];
             
-            // Info de resultados
             const totalPages = Math.ceil(totalCount / itemsPerPage);
             if (totalCount > 0) {
                 resultsInfo.style.display = 'flex';
@@ -156,7 +154,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return; 
             }
             
-            // Renderizar tabla
             tableContainer.style.display = 'block';
             usuarios.forEach(u => {
                 usersTableBody.appendChild(crearFilaUsuario(u));
@@ -179,7 +176,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     function crearFilaUsuario(u) {
         const tr = document.createElement('tr');
         
-        // Determinar estado
         let statusClass = 'status-none', statusText = 'SIN KYC';
         if (u.estado_kyc === 'verificado') { statusClass = 'status-verified'; statusText = 'VERIFICADO'; }
         else if (u.estado_kyc === 'rechazado') { statusClass = 'status-rejected'; statusText = 'RECHAZADO'; }
@@ -208,18 +204,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <button class="action-btn view" data-action="view" data-id="${u.id}" title="Ver perfil">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="action-btn coins" data-action="coins" data-id="${u.id}" data-nombre="${u.nombre || 'Usuario'}" data-saldo="${u.saldo_bc || 0}" title="Agregar monedas">
+                    <button class="action-btn coins" data-action="coins" data-id="${u.id}" data-nombre="${(u.nombre || 'Usuario').replace(/"/g, '&quot;')}" data-saldo="${u.saldo_bc || 0}" title="Agregar monedas">
                         <i class="fas fa-coins"></i>
                     </button>
                     ${u.bloqueado 
                         ? `<button class="action-btn unblock" data-action="unblock" data-id="${u.id}" title="Desbloquear"><i class="fas fa-unlock"></i></button>`
                         : `<button class="action-btn block" data-action="block" data-id="${u.id}" title="Bloquear"><i class="fas fa-lock"></i></button>`
                     }
+                    <button class="action-btn delete" data-action="delete" data-id="${u.id}" data-nombre="${(u.nombre || 'Usuario').replace(/"/g, '&quot;')}" data-email="${u.email || ''}" data-userid="${u.user_id || ''}" title="Eliminar usuario">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 </div>
             </td>
         `;
         
-        // Eventos de la fila
         tr.addEventListener('click', (e) => {
             if (!e.target.closest('.action-btn')) {
                 verPerfilUsuario(u.id);
@@ -245,6 +243,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 toggleBloqueo(u.id, bloquear);
             });
         }
+        
+        tr.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            abrirModalEliminar(btn.dataset.id, btn.dataset.nombre, btn.dataset.email, btn.dataset.userid);
+        });
         
         return tr;
     }
@@ -329,23 +333,63 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (e.key === 'Enter') aplicarBusqueda();
     });
 
-    // ========== EXPORTAR CSV ==========
+    // ========== 📊 EXPORTAR A EXCEL (.xlsx) ==========
     btnExportar.addEventListener('click', () => {
         if (usuariosActuales.length === 0) {
-            alert('No hay usuarios para exportar.');
+            alert('⚠️ No hay usuarios para exportar.');
             return;
         }
         
-        let csv = 'ID,Nombre,Email,Estado KYC,Saldo BC,Bloqueado,Fecha Registro\n';
-        usuariosActuales.forEach(u => {
-            csv += `"${u.user_id || ''}","${u.nombre || ''}","${u.email || ''}","${u.estado_kyc || 'Sin KYC'}",${u.saldo_bc || 0},${u.bloqueado ? 'Sí' : 'No'},"${u.fecha_registro || ''}"\n`;
+        // Preparar datos con nombres de columnas en español
+        const datosExcel = usuariosActuales.map(u => {
+            let estadoKyc = 'Sin KYC';
+            if (u.estado_kyc === 'verificado') estadoKyc = 'Verificado';
+            else if (u.estado_kyc === 'pendiente') estadoKyc = 'Pendiente';
+            else if (u.estado_kyc === 'rechazado') estadoKyc = 'Rechazado';
+            
+            return {
+                'ID': u.user_id || '',
+                'Nombre': u.nombre || '',
+                'Email': u.email || '',
+                'Teléfono': u.telefono || '',
+                'Estado KYC': estadoKyc,
+                'Cuenta Bloqueada': u.bloqueado ? 'Sí' : 'No',
+                'Saldo BC': u.saldo_bc || 0,
+                'Tipo Documento': u.tipo_documento || '',
+                'Número Documento': u.numero_documento || '',
+                'Nacionalidad': u.nacionalidad || '',
+                'País': u.pais || '',
+                'Ciudad': u.ciudad || '',
+                'Fecha Registro': u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString('es-ES') : ''
+            };
         });
         
-        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `usuarios_boche_${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
+        // Crear libro de Excel
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(datosExcel);
+        
+        // Ajustar anchos de columnas
+        ws['!cols'] = [
+            { wch: 15 },  // ID
+            { wch: 25 },  // Nombre
+            { wch: 30 },  // Email
+            { wch: 18 },  // Teléfono
+            { wch: 15 },  // Estado KYC
+            { wch: 16 },  // Bloqueada
+            { wch: 12 },  // Saldo BC
+            { wch: 16 },  // Tipo Doc
+            { wch: 18 },  // Número Doc
+            { wch: 18 },  // Nacionalidad
+            { wch: 18 },  // País
+            { wch: 18 },  // Ciudad
+            { wch: 16 }   // Fecha Registro
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
+        
+        // Descargar archivo
+        const fecha = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `Usuarios_BocheClavao_${fecha}.xlsx`);
     });
 
     // ========== VER PERFIL DE USUARIO ==========
@@ -423,13 +467,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                         ? `<button class="btn btn-unblock" data-action="unblock-modal" data-id="${perfil.id}"><i class="fas fa-unlock"></i> Desbloquear</button>`
                         : `<button class="btn btn-block" data-action="block-modal" data-id="${perfil.id}"><i class="fas fa-lock"></i> Bloquear</button>`
                     }
-                    <button class="btn btn-coins" data-action="coins-modal" data-id="${perfil.id}" data-nombre="${perfil.nombre || 'Usuario'}" data-saldo="${perfil.saldo_bc || 0}">
+                    <button class="btn btn-coins" data-action="coins-modal" data-id="${perfil.id}" data-nombre="${(perfil.nombre || 'Usuario').replace(/"/g, '&quot;')}" data-saldo="${perfil.saldo_bc || 0}">
                         <i class="fas fa-coins"></i> Agregar BC
+                    </button>
+                    <button class="btn btn-delete" data-action="delete-modal" data-id="${perfil.id}" data-nombre="${(perfil.nombre || 'Usuario').replace(/"/g, '&quot;')}" data-email="${perfil.email || ''}" data-userid="${perfil.user_id || ''}">
+                        <i class="fas fa-trash-alt"></i> Eliminar Usuario
                     </button>
                 </div>
             `;
             
-            // Eventos del modal
             modalBody.querySelectorAll('[data-action="open-image"]').forEach(img => {
                 img.addEventListener('click', () => window.open(img.src, '_blank'));
             });
@@ -447,6 +493,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 coinsModalBtn.addEventListener('click', () => {
                     userModal.classList.remove('show');
                     abrirModalMonedas(coinsModalBtn.dataset.id, coinsModalBtn.dataset.nombre, parseFloat(coinsModalBtn.dataset.saldo));
+                });
+            }
+            
+            const deleteModalBtn = modalBody.querySelector('[data-action="delete-modal"]');
+            if (deleteModalBtn) {
+                deleteModalBtn.addEventListener('click', () => {
+                    userModal.classList.remove('show');
+                    abrirModalEliminar(deleteModalBtn.dataset.id, deleteModalBtn.dataset.nombre, deleteModalBtn.dataset.email, deleteModalBtn.dataset.userid);
                 });
             }
             
@@ -548,6 +602,103 @@ document.addEventListener('DOMContentLoaded', async function() {
             coinsModal.classList.remove('show'); 
             await cargarEstadisticas();
             await cargarUsuarios(); 
+        }
+    }
+
+    // ========== 🗑️ MODAL DE ELIMINACIÓN ==========
+    function abrirModalEliminar(userId, nombre, email, userPublicId) {
+        deleteModalBody.innerHTML = `
+            <div class="danger-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>¡ACCIÓN IRREVERSIBLE!</h3>
+                <p>Esta acción eliminará <strong>PERMANENTEMENTE</strong> al usuario y todos sus datos del sistema, incluyendo:</p>
+                <p style="margin-top: 10px; font-size: 0.85rem;">
+                    • Perfil y documentos KYC<br>
+                    • Mensajes de chat<br>
+                    • Sesiones activas<br>
+                    • Historial completo<br>
+                    • Credenciales de acceso
+                </p>
+            </div>
+            
+            <div class="delete-user-info">
+                <p>Usuario: <strong>${nombre}</strong></p>
+                <p>Email: <strong>${email || '---'}</strong></p>
+                <p>ID: <strong>${userPublicId || userId}</strong></p>
+            </div>
+            
+            <div class="form-group">
+                <label style="color: #ff4444;">Escribe "<strong>ELIMINAR</strong>" para confirmar:</label>
+                <input type="text" id="confirmDeleteInput" class="confirm-input" placeholder="ELIMINAR" autocomplete="off">
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-delete" style="flex: 1; justify-content: center;" id="btnConfirmarEliminar" disabled>
+                    <i class="fas fa-trash-alt"></i> Eliminar Permanentemente
+                </button>
+                <button class="btn btn-clear" style="flex: 1; justify-content: center;" id="btnCancelarEliminar">
+                    Cancelar
+                </button>
+            </div>
+        `;
+        deleteModal.classList.add('show');
+        
+        const confirmInput = document.getElementById('confirmDeleteInput');
+        const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+        
+        // Habilitar botón solo cuando escriba "ELIMINAR"
+        confirmInput.addEventListener('input', () => {
+            btnConfirmar.disabled = confirmInput.value.trim() !== 'ELIMINAR';
+        });
+        
+        btnConfirmar.addEventListener('click', () => {
+            eliminarUsuario(userId, nombre);
+        });
+        
+        document.getElementById('btnCancelarEliminar').addEventListener('click', () => {
+            deleteModal.classList.remove('show');
+        });
+    }
+
+    btnCerrarDelete.addEventListener('click', () => deleteModal.classList.remove('show'));
+    deleteModal.addEventListener('click', (e) => {
+        if (e.target === deleteModal) deleteModal.classList.remove('show');
+    });
+
+    // ========== 🗑️ ELIMINAR USUARIO ==========
+    async function eliminarUsuario(userId, nombre) {
+        const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Eliminando...';
+        
+        try {
+            // Llamar a la función RPC de Supabase
+            const { data, error } = await db.rpc('eliminar_usuario_completamente', {
+                user_id: userId
+            });
+            
+            if (error) {
+                alert('❌ Error al eliminar: ' + error.message);
+                btnConfirmar.disabled = false;
+                btnConfirmar.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar Permanentemente';
+                return;
+            }
+            
+            if (data && data.success) {
+                alert(`✅ Usuario "${nombre}" eliminado completamente del sistema sin dejar rastro.`);
+                deleteModal.classList.remove('show');
+                await cargarEstadisticas();
+                await cargarUsuarios();
+            } else {
+                alert('❌ ' + (data?.message || 'No se pudo eliminar el usuario.'));
+                btnConfirmar.disabled = false;
+                btnConfirmar.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar Permanentemente';
+            }
+        } catch (err) {
+            console.error('Error eliminando usuario:', err);
+            alert('❌ Error inesperado: ' + err.message);
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar Permanentemente';
         }
     }
 
