@@ -220,39 +220,41 @@
         .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
         .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
         .footer-text span { color: #FFD700; font-weight: 600; }
-        /* Animaciones para la pantalla de éxito */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulseSuccess { 
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); } 
-    70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(0, 255, 0, 0); } 
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } 
-}
 
-/* Vista de Éxito Profesional */
-.success-view {
-    text-align: center; padding: 40px 20px; animation: fadeIn 0.5s ease;
-}
-.success-icon-container {
-    width: 90px; height: 90px; background: rgba(0, 255, 0, 0.1); 
-    border: 2px solid #00ff00; border-radius: 50%; 
-    display: flex; align-items: center; justify-content: center; 
-    margin: 0 auto 25px; font-size: 2.5rem; animation: pulseSuccess 2s infinite;
-}
-.success-view h2 { color: #00ff00; font-size: 1.6rem; margin-bottom: 15px; font-weight: 800; }
-.success-view p { color: #ccc; font-size: 1rem; line-height: 1.6; margin-bottom: 20px; max-width: 500px; margin-left: auto; margin-right: auto; }
-.success-info-box {
-    background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; border-radius: 8px;
-    padding: 20px; margin-bottom: 30px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;
-}
-.success-info-box p { margin: 0; font-size: 0.9rem; }
-.success-info-box p + p { margin-top: 10px; color: #aaa; font-size: 0.85rem; }
-.success-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
-.btn-secondary {
-    padding: 12px 30px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;
-    font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease;
-    font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 8px;
-}
-.btn-secondary:hover { background: #333; border-color: #666; transform: translateY(-2px); }
+        /* ==========================================
+           ANIMACIONES Y VISTA DE ÉXITO
+           ========================================== */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseSuccess { 
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); } 
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(0, 255, 0, 0); } 
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } 
+        }
+
+        .success-view {
+            text-align: center; padding: 40px 20px; animation: fadeIn 0.5s ease;
+        }
+        .success-icon-container {
+            width: 90px; height: 90px; background: rgba(0, 255, 0, 0.1); 
+            border: 2px solid #00ff00; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            margin: 0 auto 25px; font-size: 2.5rem; animation: pulseSuccess 2s infinite;
+        }
+        .success-view h2 { color: #00ff00; font-size: 1.6rem; margin-bottom: 15px; font-weight: 800; }
+        .success-view p { color: #ccc; font-size: 1rem; line-height: 1.6; margin-bottom: 20px; max-width: 500px; margin-left: auto; margin-right: auto; }
+        .success-info-box {
+            background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; border-radius: 8px;
+            padding: 20px; margin-bottom: 30px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;
+        }
+        .success-info-box p { margin: 0; font-size: 0.9rem; }
+        .success-info-box p + p { margin-top: 10px; color: #aaa; font-size: 0.85rem; }
+        .success-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .btn-secondary {
+            padding: 12px 30px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-secondary:hover { background: #333; border-color: #666; transform: translateY(-2px); }
     </style>
 </head>
 <body>
@@ -362,7 +364,6 @@
                 <div id="msgDeposito" class="message"></div>
             </div>
         </form>
-                </form> <!-- Cierre del formulario -->
 
         <!-- ==========================================
              VISTA DE ÉXITO (Oculta por defecto)
@@ -397,8 +398,6 @@
         </div>
 
     </div> <!-- Cierre de main-content -->
-
-    </div> <!-- Cierre correcto de main-content -->
 
     <footer class="main-footer">
         <p class="footer-text">
