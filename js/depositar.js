@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
     }
+        await obtenerTasaBCV();
 
     // ==========================================
     // 3. CONFIGURACIÓN DE PAQUETES (5% OFF)
