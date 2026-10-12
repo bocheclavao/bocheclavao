@@ -355,7 +355,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 9. MANEJO DE ARCHIVO CON VISTA PREVIA (FUERA DEL SUBMIT)
+    // 9. MANEJO DE ARCHIVO CON VISTA PREVIA
     // ============================================
     const fileInput = document.getElementById('comprobanteFile');
     const fileUploadContainer = document.getElementById('fileUploadContainer');
@@ -516,19 +516,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (dbError) throw new Error('Error al guardar: ' + dbError.message);
             console.log('✅ Depósito registrado:', deposito);
 
-            // C. MENSAJE DE ÉXITO
-            mostrarMensajeExito(cantidad, metodoSeleccionado);
-            
-            formDeposito.reset();
-            resetearFileUpload(); // Usamos la función que ya creamos
-            document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-            document.getElementById('companyDataBox').style.display = 'none';
-            document.getElementById('dynamicForm').style.display = 'none';
-                        // ==========================================
+            // ==========================================
             // C. MOSTRAR VISTA DE ÉXITO PROFESIONAL
             // ==========================================
             
-            // 1. Ocultar el formulario
+            // 1. Ocultar el formulario completo
             document.getElementById('formDeposito').style.display = 'none';
             
             // 2. Actualizar el monto en la vista de éxito
@@ -544,42 +536,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.error('Error en depósito:', err);
             mostrarMensaje('❌ Error: ' + err.message, 'error');
         } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+            // Solo restauramos el botón si hubo un error, porque si fue éxito, el formulario se oculta
+            if (document.getElementById('formDeposito').style.display !== 'none') {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+            }
         }
     });
-
-    // ============================================
-    // 11. MENSAJE DE ÉXITO DETALLADO
-    // ============================================
-    function mostrarMensajeExito(cantidad, metodo) {
-        const msg = document.getElementById('msgDeposito');
-        const nombreMetodo = metodosPago[metodo].nombre;
-        
-        msg.innerHTML = `
-            <div style="text-align: center;">
-                <i class="fas fa-check-circle" style="font-size: 2.5rem; color: #00ff00; margin-bottom: 10px; display: block;"></i>
-                <h3 style="color: #00ff00; font-size: 1.1rem; margin-bottom: 10px;">¡Pago Reportado Exitosamente!</h3>
-                <p style="color: #ccc; font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;">
-                    Tu solicitud de <strong style="color: #FFD700;">${cantidad} BC</strong> vía 
-                    <strong>${nombreMetodo}</strong> ha sido enviada al sistema.
-                </p>
-                <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin-bottom: 10px;">
-                    Nuestro equipo realizará la revisión de tu pago en un plazo de <strong style="color: #fff;">15 a 30 minutos</strong> 
-                    (hasta 2 horas en horarios de alta demanda).
-                </p>
-                <p style="color: #FFD700; font-size: 0.85rem; font-weight: 600;">
-                    <i class="fas fa-clock"></i> Una vez aprobado, tus BC se acreditarán automáticamente en tu saldo.
-                </p>
-                <p style="color: #888; font-size: 0.75rem; margin-top: 10px;">
-                    Puedes revisar el estado de tu depósito en 
-                    <a href="historial.html" style="color: #FFD700; text-decoration: underline;">Historial de Transacciones</a>
-                </p>
-            </div>
-        `;
-        msg.className = 'message success';
-        msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
 
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgDeposito');
@@ -588,8 +551,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             msg.className = `message ${tipo}`;
         }
     }
-        // ============================================
-    // FUNCIÓN PARA REINICIAR Y HACER OTRO DEPÓSITO
+
+    // ============================================
+    // 11. FUNCIÓN PARA REINICIAR Y HACER OTRO DEPÓSITO
     // ============================================
     window.nuevoDeposito = function() {
         // Resetear formulario y variables
@@ -604,9 +568,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('totalUSD').textContent = '0.00';
         document.getElementById('totalVES').textContent = '0.00';
         
-        // Mostrar formulario de nuevo
+        // Mostrar formulario de nuevo y ocultar vista de éxito
         document.getElementById('formDeposito').style.display = 'block';
         document.getElementById('successView').style.display = 'none';
+        
+        // Restaurar botón por si acaso
+        const btn = document.getElementById('btnDepositar');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
         
         // Scroll al inicio
         window.scrollTo({ top: 0, behavior: 'smooth' });
