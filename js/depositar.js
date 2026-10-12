@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     let paqueteSeleccionado = null;
     let metodoSeleccionado = null;
     let userData = null;
+    const COMISION_PORCENTAJE = 0.003; // 0.30% de comisión de la plataforma
 
     // ==========================================
     // 2. OBTENER TASA BCV REAL (DESDE TU BASE DE DATOS)
@@ -20,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             console.log('🔄 Consultando tasa oficial desde tu base de datos...');
             
-            // Leemos la tasa que el script de Google actualiza automáticamente
             const { data, error } = await db
                 .from('configuracion_sistema')
                 .select('valor, fecha_actualizacion')
@@ -28,32 +28,26 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .single();
             
             if (error || !data) {
-                throw new Error('No se encontró la tasa en la base de datos. Ejecuta el SQL primero.');
+                throw new Error('No se encontró la tasa en la base de datos.');
             }
             
-            // Convertimos el texto "876,79760000" a número (reemplazando coma por punto)
             tasaBCV = parseFloat(data.valor.replace(',', '.'));
             
-            // Formateamos la fecha de tu propia base de datos para mostrarla al usuario
             const fechaObj = new Date(data.fecha_actualizacion);
             const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const fechaStr = fechaObj.toLocaleDateString('es-VE', opcionesFecha);
             
-            // Actualizamos la pantalla al instante (sin retrasos ni errores CORS)
             document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
             document.getElementById('fechaBCVDisplay').textContent = `Fecha Valor: ${fechaStr}`;
             
-            // Si el usuario ya escribió un monto, recalcular los bolívares con la nueva tasa
             if (document.getElementById('customAmount').value) {
                 document.getElementById('customAmount').dispatchEvent(new Event('input'));
             }
             
-            console.log('✅ Tasa BCV oficial cargada exitosamente desde tu BD:', tasaBCV);
+            console.log('✅ Tasa BCV oficial cargada exitosamente:', tasaBCV);
             
         } catch (error) {
             console.error('❌ Error al leer la tasa de la BD:', error);
-            
-            // FALLBACK DE EMERGENCIA: Si algo falla, usamos un valor manual para que la app no se rompa
             tasaBCV = 876.7976; 
             document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
             document.getElementById('fechaBCVDisplay').textContent = 'Tasa de respaldo (Verificar con Admin)';
@@ -64,7 +58,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Ejecutamos la función apenas carga la página
     await obtenerTasaBCV();
 
     // ==========================================
@@ -191,33 +184,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 { label: 'Moneda', value: 'USD (Dólares Americanos)' }
             ],
             camposUsuario: [
-                { 
-                    id: 'numeroTarjeta', 
-                    label: 'Número de Tarjeta', 
-                    type: 'text', 
-                    placeholder: '1234 5678 9012 3456',
-                    maxlength: 19
-                },
-                { 
-                    id: 'nombreTitular', 
-                    label: 'Nombre del Titular (como aparece en la tarjeta)', 
-                    type: 'text', 
-                    placeholder: 'JUAN PEREZ' 
-                },
-                { 
-                    id: 'fechaVencimiento', 
-                    label: 'Fecha de Vencimiento', 
-                    type: 'text', 
-                    placeholder: 'MM/AA',
-                    maxlength: 5
-                },
-                { 
-                    id: 'cvv', 
-                    label: 'CVV (3 dígitos detrás de la tarjeta)', 
-                    type: 'text', 
-                    placeholder: '123',
-                    maxlength: 4
-                }
+                { id: 'numeroTarjeta', label: 'Número de Tarjeta', type: 'text', placeholder: '1234 5678 9012 3456', maxlength: 19 },
+                { id: 'nombreTitular', label: 'Nombre del Titular', type: 'text', placeholder: 'JUAN PEREZ' },
+                { id: 'fechaVencimiento', label: 'Fecha de Vencimiento', type: 'text', placeholder: 'MM/AA', maxlength: 5 },
+                { id: 'cvv', label: 'CVV', type: 'text', placeholder: '123', maxlength: 4 }
             ],
             requiereArchivo: false
         }
@@ -369,10 +339,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         actualizarTotales(precioFinal);
     });
 
-    function actualizarTotales(precioUSD) {
+    function actualizarTotales(precioBaseUSD) {
         if (tasaBCV > 0) {
-            document.getElementById('totalUSD').textContent = precioUSD.toFixed(2);
-            document.getElementById('totalVES').textContent = (precioUSD * tasaBCV).toFixed(2);
+            // Calcular montos finales con la comisión del 0.30% incluida
+            const totalConComisionUSD = precioBaseUSD * (1 + COMISION_PORCENTAJE);
+            const totalConComisionVES = totalConComisionUSD * tasaBCV;
+            
+            document.getElementById('totalUSD').textContent = totalConComisionUSD.toFixed(2);
+            document.getElementById('totalVES').textContent = totalConComisionVES.toFixed(2);
         }
     }
 
@@ -464,8 +438,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
 
         const cantidad = parseFloat(customAmountInput.value);
-        const totalUSD = parseFloat(document.getElementById('totalUSD').textContent);
-        const totalVES = parseFloat(document.getElementById('totalVES').textContent);
+        
+        // Recalcular el precio base (con descuento de paquete si aplica) para máxima precisión
+        const paqueteMatch = paquetes.find(p => p.cantidad === cantidad);
+        const precioBaseUSD = paqueteMatch ? cantidad * (1 - paqueteMatch.descuento) : cantidad;
+        
+        // Aplicar la comisión del 0.30% al total final
+        const totalUSD = precioBaseUSD * (1 + COMISION_PORCENTAJE);
+        const totalVES = totalUSD * tasaBCV;
         
         const datosUsuario = {};
         metodosPago[metodoSeleccionado].camposUsuario.forEach(campo => {
