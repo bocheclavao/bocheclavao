@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 { id: 'txid', label: 'Hash de la Transacción (TXID)', type: 'text', placeholder: 'Pega el ID de la transacción aquí (ej: 0x1234...)' },
                 { id: 'montoEnviado', label: 'Monto exacto enviado (USDT)', type: 'number', step: '0.01', placeholder: 'Ej: 9.50' }
             ],
-            requiereArchivo: true // ✅ Ahora SÍ requiere comprobante
+            requiereArchivo: true
         },
         'zelle': {
             nombre: 'Zelle',
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             ],
             requiereArchivo: true
         },
-           'kontigo': {
+        'kontigo': {
             nombre: 'Kontigo',
             logo: '../img/kontigo.png',
             datosEmpresa: [ { label: 'Teléfono / Correo Kontigo', value: 'clavaoboche@gmail.com' } ],
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             ],
             requiereArchivo: true
         },
-            'tarjeta': {
+        'tarjeta': {
             nombre: 'Tarjeta Crédito/Débito',
             logo: '../img/tarjetas.png',
             datosEmpresa: [ 
@@ -198,7 +198,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             ],
             requiereArchivo: false
-        }
+        } // <-- ¡AQUÍ ESTABA EL ERROR! Faltaba cerrar el objeto metodosPago correctamente
+    };
 
     // ==========================================
     // 5. CARGAR DATOS DEL USUARIO
@@ -291,6 +292,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             `;
         }).join('');
+
         // Formateo automático para campos de tarjeta
         const inputNumero = document.getElementById('numeroTarjeta');
         if (inputNumero) {
@@ -319,7 +321,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
         document.getElementById('fileUploadGroup').style.display = datos.requiereArchivo ? 'block' : 'none';
         document.getElementById('dynamicForm').style.display = 'block';
         document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -353,7 +354,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-       // ============================================
+    // ============================================
     // 9. ENVÍO DEL FORMULARIO (CON GUARDADO REAL)
     // ============================================
     const formDeposito = document.getElementById('formDeposito');
@@ -519,3 +520,4 @@ document.addEventListener('DOMContentLoaded', async function() {
         msg.textContent = texto;
         msg.className = `message ${tipo}`;
     }
+});
