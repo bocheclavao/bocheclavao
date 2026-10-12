@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     options: [
                         'Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial (BBVA)', 
                         'Bicentenario', 'Bancaribe', 'Banco Exterior', 'Bancrecer', 'Banplus', 
-                        'Banco del Tesoro', 'Banco Nacional de Crédito (BNC)', 'Banco Occidental de Descuento (BOD)', 
+                        'Banco del Tesoro', 'Banco Nacional de Crédito (BNC)',
                         'Banco Plaza', 'Banco Sofitasa', 'Banco Agrícola de Venezuela', 
                         'Banco Fondo Común (BFC)', '100% Banco', 'Mi Banco', 'Banco Activo', 
                         'Bancamiga', 'Bantrab', 'Banco de la Fuerza Armada (BANFANB)', 
