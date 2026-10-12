@@ -13,55 +13,50 @@ document.addEventListener('DOMContentLoaded', async function() {
     let metodoSeleccionado = null;
     let userData = null;
 
-      async function obtenerTasaBCV() {
+    // ==========================================
+    // 2. OBTENER TASA BCV REAL (DESDE TU BASE DE DATOS)
+    // ==========================================
+    async function obtenerTasaBCV() {
         try {
-            console.log('🔄 Intentando extraer tasa directa del BCV...');
+            console.log('🔄 Consultando tasa oficial desde tu base de datos...');
             
-            // Usamos un proxy alternativo que a veces evade el bloqueo 403 del BCV
-            const urlBCV = 'https://www.bcv.org.ve/';
-            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(urlBCV);
+            // Leemos la tasa que el script de Google actualiza automáticamente
+            const { data, error } = await db
+                .from('configuracion_sistema')
+                .select('valor, fecha_actualizacion')
+                .eq('clave', 'tasa_bcv_oficial')
+                .single();
             
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('El proxy fue bloqueado o falló');
-            
-            const html = await response.text();
-            
-            // Buscamos el bloque específico del dólar en el HTML del BCV
-            // El BCV suele tener algo como: <div id="dolar"> ... <strong>876,79760000</strong>
-            const match = html.match(/id="dolar"[\s\S]*?<strong>([\d,\.]+)<\/strong>/);
-            
-            if (match && match[1]) {
-                let textoTasa = match[1]; // Ej: "876,79760000"
-                textoTasa = textoTasa.replace(',', '.'); // "876.79760000"
-                const tasa = parseFloat(textoTasa);
-                
-                if (!isNaN(tasa) && tasa > 10) {
-                    tasaBCV = tasa;
-                    
-                    const hoy = new Date();
-                    const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                    const fechaStr = hoy.toLocaleDateString('es-VE', opcionesFecha);
-                    
-                    document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
-                    document.getElementById('fechaBCVDisplay').textContent = `Fecha Valor: ${fechaStr}`;
-                    
-                    if (document.getElementById('customAmount').value) {
-                        document.getElementById('customAmount').dispatchEvent(new Event('input'));
-                    }
-                    console.log('✅ Tasa BCV extraída exitosamente de la web:', tasaBCV);
-                    return;
-                }
+            if (error || !data) {
+                throw new Error('No se encontró la tasa en la base de datos. Ejecuta el SQL primero.');
             }
-            throw new Error('No se pudo encontrar el número en el HTML del BCV');
+            
+            // Convertimos el texto "876,79760000" a número (reemplazando coma por punto)
+            tasaBCV = parseFloat(data.valor.replace(',', '.'));
+            
+            // Formateamos la fecha de tu propia base de datos para mostrarla al usuario
+            const fechaObj = new Date(data.fecha_actualizacion);
+            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const fechaStr = fechaObj.toLocaleDateString('es-VE', opcionesFecha);
+            
+            // Actualizamos la pantalla al instante (sin retrasos ni errores CORS)
+            document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
+            document.getElementById('fechaBCVDisplay').textContent = `Fecha Valor: ${fechaStr}`;
+            
+            // Si el usuario ya escribió un monto, recalcular los bolívares con la nueva tasa
+            if (document.getElementById('customAmount').value) {
+                document.getElementById('customAmount').dispatchEvent(new Event('input'));
+            }
+            
+            console.log('✅ Tasa BCV oficial cargada exitosamente desde tu BD:', tasaBCV);
             
         } catch (error) {
-            console.warn('⚠️ El BCV bloqueó la extracción automática. Usando tasa de respaldo...', error);
+            console.error('❌ Error al leer la tasa de la BD:', error);
             
-            // FALLBACK: Si el BCV bloquea este proxy también, usamos un valor manual que tú actualices
-            tasaBCV = 876.7976; // ⚠️ ACTUALIZA ESTE NÚMERO MANUALMENTE SI FALLA LA EXTRACCIÓN
-            
+            // FALLBACK DE EMERGENCIA: Si algo falla, usamos un valor manual para que la app no se rompa
+            tasaBCV = 876.7976; 
             document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
-            document.getElementById('fechaBCVDisplay').textContent = 'Fecha Valor: (Tasa manual de respaldo)';
+            document.getElementById('fechaBCVDisplay').textContent = 'Tasa de respaldo (Verificar con Admin)';
             
             if (document.getElementById('customAmount').value) {
                 document.getElementById('customAmount').dispatchEvent(new Event('input'));
@@ -69,11 +64,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    // Ejecutamos la función apenas carga la página
     await obtenerTasaBCV();
-
-    // ⚠️ ¡IMPORTANTE! Ejecutamos la función apenas carga la página
-    await obtenerTasaBCV();
-        await obtenerTasaBCV();
 
     // ==========================================
     // 3. CONFIGURACIÓN DE PAQUETES (5% OFF)
@@ -546,27 +538,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (dbError) throw new Error('Error al guardar: ' + dbError.message);
             console.log('✅ Depósito registrado:', deposito);
 
-            // ==========================================
             // C. MOSTRAR VISTA DE ÉXITO PROFESIONAL
-            // ==========================================
-            
-            // 1. Ocultar el formulario completo
             document.getElementById('formDeposito').style.display = 'none';
-            
-            // 2. Actualizar el monto en la vista de éxito
             document.getElementById('successAmount').textContent = cantidad;
-            
-            // 3. Mostrar la vista de éxito
             document.getElementById('successView').style.display = 'block';
-            
-            // 4. Hacer scroll suave hacia arriba para que el usuario lo vea
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
         } catch (err) {
             console.error('Error en depósito:', err);
             mostrarMensaje('❌ Error: ' + err.message, 'error');
         } finally {
-            // Solo restauramos el botón si hubo un error, porque si fue éxito, el formulario se oculta
             if (document.getElementById('formDeposito').style.display !== 'none') {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
@@ -586,7 +567,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 11. FUNCIÓN PARA REINICIAR Y HACER OTRO DEPÓSITO
     // ============================================
     window.nuevoDeposito = function() {
-        // Resetear formulario y variables
         formDeposito.reset();
         resetearFileUpload();
         document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -598,16 +578,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('totalUSD').textContent = '0.00';
         document.getElementById('totalVES').textContent = '0.00';
         
-        // Mostrar formulario de nuevo y ocultar vista de éxito
         document.getElementById('formDeposito').style.display = 'block';
         document.getElementById('successView').style.display = 'none';
         
-        // Restaurar botón por si acaso
         const btn = document.getElementById('btnDepositar');
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
         
-        // Scroll al inicio
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 });
