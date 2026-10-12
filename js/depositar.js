@@ -13,57 +13,63 @@ document.addEventListener('DOMContentLoaded', async function() {
     let metodoSeleccionado = null;
     let userData = null;
 
-    // ==========================================
-    // 2. OBTENER TASA BCV REAL (VÍA API PROFESIONAL)
-    // ==========================================
-    async function obtenerTasaBCV() {
+      async function obtenerTasaBCV() {
         try {
-            console.log('🔄 Consultando tasa oficial del BCV...');
+            console.log('🔄 Intentando extraer tasa directa del BCV...');
             
-            // Usamos la API más confiable de Venezuela, que extrae el dato del BCV 
-            // en sus servidores y nos lo entrega sin bloqueos 403.
-            const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+            // Usamos un proxy alternativo que a veces evade el bloqueo 403 del BCV
+            const urlBCV = 'https://www.bcv.org.ve/';
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(urlBCV);
             
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('El proxy fue bloqueado o falló');
+            
+            const html = await response.text();
+            
+            // Buscamos el bloque específico del dólar en el HTML del BCV
+            // El BCV suele tener algo como: <div id="dolar"> ... <strong>876,79760000</strong>
+            const match = html.match(/id="dolar"[\s\S]*?<strong>([\d,\.]+)<\/strong>/);
+            
+            if (match && match[1]) {
+                let textoTasa = match[1]; // Ej: "876,79760000"
+                textoTasa = textoTasa.replace(',', '.'); // "876.79760000"
+                const tasa = parseFloat(textoTasa);
+                
+                if (!isNaN(tasa) && tasa > 10) {
+                    tasaBCV = tasa;
+                    
+                    const hoy = new Date();
+                    const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    const fechaStr = hoy.toLocaleDateString('es-VE', opcionesFecha);
+                    
+                    document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
+                    document.getElementById('fechaBCVDisplay').textContent = `Fecha Valor: ${fechaStr}`;
+                    
+                    if (document.getElementById('customAmount').value) {
+                        document.getElementById('customAmount').dispatchEvent(new Event('input'));
+                    }
+                    console.log('✅ Tasa BCV extraída exitosamente de la web:', tasaBCV);
+                    return;
+                }
             }
-            
-            const data = await response.json();
-            
-            // La API nos da el promedio, que es la tasa oficial publicada por el BCV
-            tasaBCV = data.promedio;
-            
-            // Formateamos la fecha exactamente como la necesitas: "martes, 13 de octubre de 2026"
-            const fechaObj = new Date(data.fechaActualizacion);
-            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const fechaStr = fechaObj.toLocaleDateString('es-VE', opcionesFecha);
-            
-            // Actualizamos la interfaz al instante
-            document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
-            document.getElementById('fechaBCVDisplay').textContent = `Fecha Valor: ${fechaStr}`;
-            
-            // Si el usuario ya escribió un monto, recalcular los bolívares con la nueva tasa
-            if (document.getElementById('customAmount').value) {
-                document.getElementById('customAmount').dispatchEvent(new Event('input'));
-            }
-            
-            console.log('✅ Tasa BCV cargada exitosamente:', tasaBCV);
+            throw new Error('No se pudo encontrar el número en el HTML del BCV');
             
         } catch (error) {
-            console.error('❌ Error al conectar con la API del BCV:', error);
+            console.warn('⚠️ El BCV bloqueó la extracción automática. Usando tasa de respaldo...', error);
             
-            // FALLBACK DE EMERGENCIA: Si la API falla (muy raro), usamos un valor manual 
-            // para que la aplicación NUNCA se rompa y el usuario pueda seguir operando.
-            tasaBCV = 36.50; // ⚠️ Puedes actualizar este número manualmente si hay una caída extrema
+            // FALLBACK: Si el BCV bloquea este proxy también, usamos un valor manual que tú actualices
+            tasaBCV = 876.7976; // ⚠️ ACTUALIZA ESTE NÚMERO MANUALMENTE SI FALLA LA EXTRACCIÓN
             
             document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
-            document.getElementById('fechaBCVDisplay').textContent = 'Tasa de respaldo (Verificar BCV)';
+            document.getElementById('fechaBCVDisplay').textContent = 'Fecha Valor: (Tasa manual de respaldo)';
             
             if (document.getElementById('customAmount').value) {
                 document.getElementById('customAmount').dispatchEvent(new Event('input'));
             }
         }
     }
+
+    await obtenerTasaBCV();
 
     // ⚠️ ¡IMPORTANTE! Ejecutamos la función apenas carga la página
     await obtenerTasaBCV();
