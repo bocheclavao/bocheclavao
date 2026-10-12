@@ -165,6 +165,82 @@
         @media (max-width: 600px) {
             .payment-methods-grid { grid-template-columns: repeat(2, 1fr); }
         }
+        /* Mensaje de seguridad (primera vez) */
+.security-warning {
+    background: rgba(255, 165, 0, 0.1);
+    border: 2px solid #FFA500;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+.security-warning i {
+    font-size: 2rem;
+    color: #FFA500;
+    flex-shrink: 0;
+}
+.security-warning h4 {
+    color: #FFA500;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.security-warning p {
+    color: #ccc;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
+}
+.security-warning p strong {
+    color: #fff;
+}
+
+/* Mensaje de datos bloqueados */
+.locked-data-message {
+    background: rgba(100, 100, 255, 0.1);
+    border: 2px solid #6464ff;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+.locked-data-message i {
+    font-size: 2rem;
+    color: #6464ff;
+    flex-shrink: 0;
+}
+.locked-data-message h4 {
+    color: #6464ff;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.locked-data-message p {
+    color: #ccc;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
+}
+.locked-data-message p strong {
+    color: #fff;
+}
+
+/* Campos bloqueados (solo lectura) */
+.form-group input:disabled,
+.form-group select:disabled {
+    background: #1a1a1a;
+    color: #888;
+    cursor: not-allowed;
+    border-color: #444;
+}
+.form-group input:disabled:focus,
+.form-group select:disabled:focus {
+    border-color: #444;
+}
     </style>
 </head>
 <body>
@@ -239,18 +315,45 @@
                 <div class="section-title"><i class="fas fa-credit-card"></i> Método de Recepción</div>
                 <div class="payment-methods-grid" id="paymentMethodsGrid"></div>
 
-                <div class="dynamic-form" id="dynamicForm">
-                    <div class="section-title"><i class="fas fa-edit"></i> Datos de tu cuenta</div>
-                    <div id="userFormFields"></div>
-
-                    <button type="submit" class="btn-primary" id="btnRetirar">
-                        <i class="fas fa-paper-plane"></i> Solicitar Retiro
-                    </button>
-                    <div id="msgRetiro" class="message"></div>
-                </div>
-            </form>
+<div class="dynamic-form" id="dynamicForm">
+    <!-- Mensaje de seguridad (se muestra solo la primera vez) -->
+    <div id="securityWarning" class="security-warning" style="display: none;">
+        <i class="fas fa-shield-alt"></i>
+        <div>
+            <h4>⚠️ Importante: Datos Permanentes</h4>
+            <p>
+                Los datos que ingreses quedarán <strong>vinculados permanentemente a tu perfil</strong> por seguridad. 
+                Una vez guardados, <strong>no podrás modificarlos</strong> para prevenir fraudes y robos.
+            </p>
+            <p style="margin-top: 10px;">
+                Asegúrate de que los datos sean correctos y pertenecientes al <strong>titular de la cuenta verificada</strong>.
+            </p>
         </div>
+    </div>
 
+    <!-- Mensaje de datos bloqueados (se muestra si ya hay datos guardados) -->
+    <div id="lockedDataMessage" class="locked-data-message" style="display: none;">
+        <i class="fas fa-lock"></i>
+        <div>
+            <h4>🔒 Datos Bancarios Bloqueados</h4>
+            <p>
+                Tus datos de recepción están <strong>bloqueados por seguridad</strong> y vinculados a tu perfil verificado.
+                No pueden ser modificados para proteger tu cuenta de fraudes.
+            </p>
+            <p style="margin-top: 10px; font-size: 0.85rem;">
+                Si necesitas cambiar estos datos, contacta a soporte.
+            </p>
+        </div>
+    </div>
+
+    <div class="section-title"><i class="fas fa-edit"></i> Datos de tu cuenta</div>
+    <div id="userFormFields"></div>
+
+    <button type="submit" class="btn-primary" id="btnRetirar">
+        <i class="fas fa-paper-plane"></i> Solicitar Retiro
+    </button>
+    <div id="msgRetiro" class="message"></div>
+</div>
         <!-- Vista de éxito -->
         <div id="successView" class="success-view" style="display: none;">
             <div class="success-icon-container">
