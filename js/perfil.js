@@ -541,47 +541,90 @@ document.addEventListener('DOMContentLoaded', async function() {
         btn.addEventListener('click', () => { if (!btn.disabled) openCamera(btn.dataset.cameraBtn); });
     });
 
-    // ========== ENVIAR KYC (CON SUBIDA A STORAGE) ==========
+        // ========== ENVIAR KYC CON MODAL DE TÉRMINOS ==========
     const fullProfileForm = document.getElementById('fullProfileForm');
+    const termsModal = document.getElementById('termsModal');
+    const termsCheckbox = document.getElementById('termsCheckbox');
+    const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+    const rejectTermsBtn = document.getElementById('rejectTermsBtn');
+
+    // 1. Interceptamos el envío del formulario
     if (fullProfileForm) {
         fullProfileForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (perfilBloqueado) { showMessage('⚠️ No puedes modificar estos datos mientras tu KYC está en revisión o verificado.', 'error'); return; }
+            e.preventDefault(); // Detenemos el envío real
+            
+            if (perfilBloqueado) { 
+                showMessage('⚠️ No puedes modificar estos datos mientras tu KYC está en revisión o verificado.', 'error'); 
+                return; 
+            }
 
             const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
-
-            const docFrontal = val('docFrontalUrl');
-            const docTrasero = val('docTraseroUrl');
-            const selfie = val('selfieUrl');
             const fechaNacimiento = val('fechaNacimiento');
+            const docFrontal = val('docFrontalUrl');
+            const selfie = val('selfieUrl');
 
+            // Validaciones básicas antes de mostrar el modal
             if (!fechaNacimiento) { showMessage('Por favor, selecciona tu fecha de nacimiento.', 'error'); return; }
             if (!edadValida) { showMessage('⚠️ Debes ser mayor de 18 años para registrarte.', 'error'); return; }
             if (!docFrontal) { showMessage('Por favor, toma una foto del frente de tu documento.', 'error'); return; }
             if (!selfie) { showMessage('Por favor, toma una selfie con detección facial.', 'error'); return; }
 
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Subiendo documentos...'; }
+            // Si todo está bien, mostramos el modal de términos
+            termsCheckbox.checked = false; // Resetear checkbox
+            acceptTermsBtn.disabled = true; // Deshabilitar botón de aceptar
+            if (termsModal) termsModal.classList.add('show');
+        });
+    }
+
+    // 2. Lógica del Checkbox (Habilitar/Deshabilitar botón)
+    if (termsCheckbox && acceptTermsBtn) {
+        termsCheckbox.addEventListener('change', function() {
+            acceptTermsBtn.disabled = !this.checked;
+        });
+    }
+
+    // 3. Lógica del Botón Rechazar
+    if (rejectTermsBtn && termsModal) {
+        rejectTermsBtn.addEventListener('click', () => {
+            termsModal.classList.remove('show');
+            showMessage('⚠️ Debes aceptar los términos y condiciones para continuar.', 'info');
+        });
+    }
+
+    // 4. Lógica del Botón Aceptar y Enviar (Aquí va la lógica real de guardado)
+    if (acceptTermsBtn) {
+        acceptTermsBtn.addEventListener('click', async () => {
+            // Ocultar modal
+            if (termsModal) termsModal.classList.remove('show');
+            
+            const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+            
+            if (submitBtn) { 
+                submitBtn.disabled = true; 
+                submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Subiendo documentos...'; 
+            }
             showMessage('📤 Procesando imágenes y enviando a verificación...', 'info');
 
             try {
-                // 1. Subir imágenes nuevas a Storage (si son Base64)
+                // A. Subir imágenes nuevas a Storage (si son Base64)
                 const rutaFront = `${currentUserId}/doc_front_${Date.now()}.jpg`;
-                const urlFront = await subirImagenAStorage(docFrontal, rutaFront);
+                const urlFront = await subirImagenAStorage(val('docFrontalUrl'), rutaFront);
 
                 let urlBack = perfilActual.documento_trasero_url;
+                const docTrasero = val('docTraseroUrl');
                 if (docTrasero && docTrasero.startsWith('data:')) {
                     const rutaBack = `${currentUserId}/doc_back_${Date.now()}.jpg`;
                     urlBack = await subirImagenAStorage(docTrasero, rutaBack);
                 }
 
                 const rutaSelfie = `${currentUserId}/selfie_${Date.now()}.jpg`;
-                const urlSelfie = await subirImagenAStorage(selfie, rutaSelfie);
+                const urlSelfie = await subirImagenAStorage(val('selfieUrl'), rutaSelfie);
 
-                // 2. Preparar datos para la BD (ahora con URLs limpias, no Base64)
+                // B. Preparar datos para la BD (Incluyendo la aceptación de términos)
                 const datos = {
                     nombre: nombreOriginal,
                     telefono: val('phoneCountry') + ' ' + val('telefono'),
-                    fecha_nacimiento: fechaNacimiento,
+                    fecha_nacimiento: val('fechaNacimiento'),
                     nacionalidad: val('nacionalidad'),
                     direccion: val('direccion'),
                     ciudad: val('ciudad'),
@@ -594,6 +637,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     documento_trasero_url: urlBack || null,
                     selfie_url: urlSelfie,
                     estado_kyc: 'pendiente',
+                    // 🚨 DATOS CRÍTICOS DE CONSENTIMIENTO LEGAL:
+                    acepto_terminos: true,
+                    fecha_aceptacion_terminos: new Date().toISOString(),
                     ultima_actualizacion: new Date().toISOString()
                 };
 
@@ -602,7 +648,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const { error } = await db.from('perfiles').update(datos).eq('id', currentUserId);
                 if (error) throw error;
 
-                showMessage('✅ Perfil guardado y KYC enviado. Un administrador revisará tus documentos pronto.', 'success');
+                showMessage('✅ Perfil guardado, Términos aceptados y KYC enviado. Un administrador revisará tus documentos pronto.', 'success');
+                
+                // Redirigir al dashboard después de 3 segundos
                 setTimeout(() => { window.location.href = 'dashboard.html'; }, 3000);
 
             } catch (err) {
@@ -615,7 +663,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
-
     // Inicialización
     llenarSelectoresPaises();
     preloadFaceModels();
