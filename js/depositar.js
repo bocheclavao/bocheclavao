@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         { cantidad: 100, descuento: 0.05 }
     ];
 
-   'pagomovil': {
+  'pagomovil': {
     nombre: 'Pago Móvil',
     logo: '../img/pg.png',
     datosEmpresa: [
@@ -113,7 +113,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     ],
     requiereArchivo: true
 },
-
     // ==========================================
     // 5. CARGAR DATOS DEL USUARIO
     // ==========================================
