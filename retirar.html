@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boche Clava'o - Retirar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../img/moneda.png">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #000000;
+            background-image: radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 25%);
+            min-height: 100vh; color: #ffffff; display: flex; flex-direction: column;
+        }
+        .navbar {
+            background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid #222; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+        .navbar-logo { max-width: 60px; height: auto; }
+        .navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
+        .btn-volver {
+            background: transparent; border: 1px solid #444; color: #ccc;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-family: 'Montserrat', sans-serif; font-weight: 600;
+            display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
+        }
+        .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
+
+        .main-content { flex: 1; padding: 30px 20px; max-width: 700px; margin: 0 auto; width: 100%; }
+
+        .page-header { margin-bottom: 25px; }
+        .page-header h1 { font-size: 1.8rem; font-weight: 800; color: #FFD700; margin-bottom: 8px; }
+        .page-header p { color: #999; font-size: 0.9rem; }
+
+        /* Tarjeta de saldo disponible */
+        .saldo-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 1px solid #333; border-radius: 12px; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px;
+        }
+        .saldo-card .label { color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .saldo-card .amount { color: #FFD700; font-size: 2rem; font-weight: 900; display: flex; align-items: center; gap: 10px; }
+        .saldo-card .amount img { width: 32px; height: 32px; }
+
+        /* Bloqueo KYC */
+        .kyc-bloqueo {
+            background: rgba(255, 165, 0, 0.1); border: 2px solid #FFA500; border-radius: 12px;
+            padding: 30px; text-align: center;
+        }
+        .kyc-bloqueo i { font-size: 3rem; color: #FFA500; margin-bottom: 15px; }
+        .kyc-bloqueo h2 { color: #FFA500; font-size: 1.4rem; margin-bottom: 10px; }
+        .kyc-bloqueo p { color: #ccc; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5; }
+        .btn-kyc-link {
+            display: inline-block; padding: 12px 25px; background: #FFA500; color: #000;
+            text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .btn-kyc-link:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,165,0,0.3); }
+
+        /* Info de retiro */
+        .retiro-info {
+            background: rgba(255, 215, 0, 0.05); border: 1px dashed #FFD700; border-radius: 10px;
+            padding: 18px; margin-bottom: 25px; font-size: 0.85rem; color: #ccc;
+        }
+        .retiro-info i { color: #FFD700; margin-right: 8px; }
+        .retiro-info ul { margin-top: 10px; padding-left: 20px; }
+        .retiro-info li { margin-bottom: 6px; }
+
+        /* Métodos de retiro */
+        .section-title { font-size: 1.1rem; font-weight: 700; color: #FFD700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        
+        .payment-methods-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px; margin-bottom: 25px;
+        }
+        .method-card {
+            background: #111; border: 1px solid #333; border-radius: 10px;
+            padding: 15px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .method-card:hover { border-color: #FFD700; }
+        .method-card.selected { border-color: #ff4444; background: rgba(255, 68, 68, 0.05); }
+        .method-card img { width: 45px; height: 45px; object-fit: contain; }
+        .method-card span { font-size: 0.8rem; font-weight: 600; color: #ccc; text-align: center; }
+
+        /* Formulario */
+        .dynamic-form { display: none; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 14px; background: #111; border: 1px solid #333;
+            border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.95rem;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; }
+        .form-group small { color: #666; font-size: 0.75rem; margin-top: 5px; display: block; }
+
+        .conversion-preview {
+            background: rgba(0, 255, 0, 0.05); border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 8px; padding: 15px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .conversion-preview .label { color: #888; font-size: 0.8rem; }
+        .conversion-preview .value { color: #00ff00; font-size: 1.2rem; font-weight: 800; }
+
+        .btn-primary {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 800;
+            cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 68, 68, 0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+        .message {
+            margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center;
+            display: none; font-size: 0.85rem; font-weight: 600;
+        }
+        .message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
+        .message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
+
+        /* Vista de éxito */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseSuccess { 
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); } 
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(0, 255, 0, 0); } 
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } 
+        }
+        .success-view {
+            text-align: center; padding: 40px 20px; animation: fadeIn 0.5s ease;
+        }
+        .success-icon-container {
+            width: 90px; height: 90px; background: rgba(0, 255, 0, 0.1); 
+            border: 2px solid #00ff00; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            margin: 0 auto 25px; font-size: 2.5rem; animation: pulseSuccess 2s infinite;
+        }
+        .success-view h2 { color: #00ff00; font-size: 1.6rem; margin-bottom: 15px; font-weight: 800; }
+        .success-view p { color: #ccc; font-size: 1rem; line-height: 1.6; margin-bottom: 20px; max-width: 500px; margin-left: auto; margin-right: auto; }
+        .success-info-box {
+            background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; border-radius: 8px;
+            padding: 20px; margin-bottom: 30px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;
+        }
+        .success-info-box p { margin: 0; font-size: 0.9rem; }
+        .success-info-box p + p { margin-top: 10px; color: #aaa; font-size: 0.85rem; }
+        .success-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .btn-secondary {
+            padding: 12px 30px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-secondary:hover { background: #333; border-color: #666; transform: translateY(-2px); }
+
+        .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
+        .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
+        .footer-text span { color: #FFD700; font-weight: 600; }
+
+        @media (max-width: 600px) {
+            .payment-methods-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="billetera.html" class="navbar-brand">
+            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
+            <span class="navbar-title">Boche Clava'o</span>
+        </a>
+        <button class="btn-volver" onclick="window.location.href='billetera.html'">
+            <i class="fas fa-arrow-left"></i> Billetera
+        </button>
+    </nav>
+
+    <div class="main-content">
+        <div class="page-header">
+            <h1><i class="fas fa-money-bill-wave"></i> Retirar Fondos</h1>
+            <p>Solicita el retiro de tus ganancias a tu cuenta preferida.</p>
+        </div>
+
+        <!-- Tarjeta de saldo -->
+        <div class="saldo-card">
+            <div>
+                <div class="label">Saldo Disponible</div>
+                <div style="color: #666; font-size: 0.75rem; margin-top: 4px;">Mínimo de retiro: 10 BC</div>
+            </div>
+            <div class="amount">
+                <img src="../img/moneda.png" alt="BC">
+                <span id="saldoDisponible">0.00</span> BC
+            </div>
+        </div>
+
+        <!-- Bloqueo KYC (visible si no está verificado) -->
+        <div id="kycBloqueo" class="kyc-bloqueo" style="display: none;">
+            <i class="fas fa-lock"></i>
+            <h2>Retiros Bloqueados</h2>
+            <p>Por seguridad, debes completar y ser aprobado en la verificación de identidad (KYC) antes de poder retirar fondos.</p>
+            <a href="perfil.html" class="btn-kyc-link"><i class="fas fa-user-check"></i> Completar Verificación KYC</a>
+        </div>
+
+        <!-- Formulario de retiro -->
+        <div id="contenidoRetiro" style="display: none;">
+            <div class="retiro-info">
+                <i class="fas fa-shield-alt"></i>
+                <strong>Información importante:</strong>
+                <ul>
+                    <li>Tiempo de procesamiento: <strong>24 a 48 horas hábiles</strong>.</li>
+                    <li>El monto se <strong>congelará de tu saldo</strong> al enviar la solicitud.</li>
+                    <li>Si el retiro es rechazado, el monto será devuelto a tu cuenta.</li>
+                    <li>Verifica que los datos bancarios sean exactos para evitar rechazos.</li>
+                </ul>
+            </div>
+
+            <form id="formRetiro">
+                <div class="form-group">
+                    <label>Monto a Retirar (BC)</label>
+                    <input type="number" id="retMonto" step="0.01" min="10" required placeholder="Ej: 50.00">
+                    <small>Mínimo: 10 BC | Máximo: tu saldo disponible</small>
+                </div>
+
+                <div class="conversion-preview" id="conversionPreview" style="display: none;">
+                    <div>
+                        <div class="label">Recibirás aproximadamente</div>
+                        <div class="value" id="retMontoBs">0.00 Bs</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="label">Tasa BCV</div>
+                        <div class="value" id="retTasaBCV" style="font-size: 0.9rem;">0.00</div>
+                    </div>
+                </div>
+
+                <div class="section-title"><i class="fas fa-credit-card"></i> Método de Recepción</div>
+                <div class="payment-methods-grid" id="paymentMethodsGrid"></div>
+
+                <div class="dynamic-form" id="dynamicForm">
+                    <div class="section-title"><i class="fas fa-edit"></i> Datos de tu cuenta</div>
+                    <div id="userFormFields"></div>
+
+                    <button type="submit" class="btn-primary" id="btnRetirar">
+                        <i class="fas fa-paper-plane"></i> Solicitar Retiro
+                    </button>
+                    <div id="msgRetiro" class="message"></div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Vista de éxito -->
+        <div id="successView" class="success-view" style="display: none;">
+            <div class="success-icon-container">
+                <i class="fas fa-check" style="color: #00ff00;"></i>
+            </div>
+            <h2>¡Solicitud de Retiro Enviada!</h2>
+            <p>
+                Tu solicitud de retiro por <strong style="color: #FFD700; font-size: 1.3rem;"><span id="successAmount">0</span> BC</strong> ha sido registrada correctamente.
+            </p>
+            
+            <div class="success-info-box">
+                <p>
+                    <i class="fas fa-clock" style="color: #FFD700; margin-right: 8px;"></i>
+                    <strong>Tiempo estimado de procesamiento:</strong> 24 a 48 horas hábiles.
+                </p>
+                <p>
+                    El monto ha sido <strong>congelado de tu saldo</strong> mientras se procesa. Si el retiro es rechazado, el monto será devuelto automáticamente.
+                </p>
+                <p>
+                    Puedes revisar el estado en tu <a href="historial.html" style="color: #FFD700; text-decoration: underline;">Historial de Transacciones</a>.
+                </p>
+            </div>
+
+            <div class="success-actions">
+                <button onclick="window.location.href='billetera.html'" class="btn-secondary">
+                    <i class="fas fa-wallet"></i> Ir a mi Billetera
+                </button>
+                <button onclick="nuevoRetiro()" class="btn-primary" style="width: auto; padding: 12px 30px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000;">
+                    <i class="fas fa-plus"></i> Hacer otro retiro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        <p class="footer-text">
+            Copyright © todos los derechos reservados<br>
+            Desarrollado professional <span>G/P</span> 2026 - 2027
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/retirar.js"></script>
+</body>
+</html>
