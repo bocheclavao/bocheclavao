@@ -101,6 +101,92 @@
             display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             gap: 12px; margin-bottom: 25px;
         }
+                /* ⚠️ Mensaje de Advertencia sobre Datos Exactos */
+        .warning-notice {
+            background: rgba(255, 165, 0, 0.08);
+            border: 1px solid rgba(255, 165, 0, 0.4);
+            border-left: 4px solid #FFA500;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            animation: fadeInWarning 0.5s ease;
+        }
+
+        @keyframes fadeInWarning {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .warning-icon {
+            flex-shrink: 0;
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 165, 0, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .warning-icon i {
+            font-size: 1.5rem;
+            color: #FFA500;
+        }
+
+        .warning-content {
+            flex: 1;
+        }
+
+        .warning-content h4 {
+            color: #FFA500;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning-content p {
+            color: #ccc;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .warning-content p strong {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .warning-highlight {
+            display: inline-block;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #00ff00 !important;
+            font-size: 0.8rem !important;
+            margin-top: 8px;
+        }
+
+        .warning-highlight i {
+            margin-right: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .warning-notice {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .warning-content h4 {
+                justify-content: center;
+            }
+        }
         .method-card {
             background: #111; border: 1px solid #333; border-radius: 10px;
             padding: 15px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
