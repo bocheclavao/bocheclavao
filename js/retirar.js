@@ -84,7 +84,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             grid.appendChild(card);
         });
     }
-
     function seleccionarMetodo(key, cardElement) {
         metodoSeleccionado = key;
         const datos = metodosRetiro[key];
@@ -92,40 +91,69 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
         cardElement.classList.add('selected');
 
+        // Verificar si ya hay datos guardados para este método
+        const datosGuardados = perfilUsuario[datos.campoPerfil] || {};
+        const tieneDatosGuardados = Object.keys(datosGuardados).length > 0;
+
         const formFields = document.getElementById('userFormFields');
-        formFields.innerHTML = datos.camposUsuario.map(campo => {
-            if (campo.type === 'select') {
+        const securityWarning = document.getElementById('securityWarning');
+        const lockedDataMessage = document.getElementById('lockedDataMessage');
+
+        if (tieneDatosGuardados) {
+            // ✅ DATOS BLOQUEADOS: Mostrar campos en solo lectura
+            securityWarning.style.display = 'none';
+            lockedDataMessage.style.display = 'flex';
+
+            formFields.innerHTML = datos.camposUsuario.map(campo => {
+                const valorGuardado = datosGuardados[campo.id] || '';
+                
+                if (campo.type === 'select') {
+                    return `
+                        <div class="form-group">
+                            <label>${campo.label} <i class="fas fa-lock" style="color: #6464ff; font-size: 0.75rem; margin-left: 5px;"></i></label>
+                            <select id="${campo.id}" disabled>
+                                <option value="${valorGuardado}">${valorGuardado}</option>
+                            </select>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="form-group">
+                        <label>${campo.label} <i class="fas fa-lock" style="color: #6464ff; font-size: 0.75rem; margin-left: 5px;"></i></label>
+                        <input type="${campo.type}" id="${campo.id}" value="${valorGuardado}" disabled>
+                    </div>
+                `;
+            }).join('');
+
+        } else {
+            // ✅ PRIMERA VEZ: Mostrar formulario con advertencia de seguridad
+            securityWarning.style.display = 'flex';
+            lockedDataMessage.style.display = 'none';
+
+            formFields.innerHTML = datos.camposUsuario.map(campo => {
+                if (campo.type === 'select') {
+                    return `
+                        <div class="form-group">
+                            <label>${campo.label}</label>
+                            <select id="${campo.id}" required>
+                                <option value="">Selecciona...</option>
+                                ${campo.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                }
                 return `
                     <div class="form-group">
                         <label>${campo.label}</label>
-                        <select id="${campo.id}" required>
-                            <option value="">Selecciona...</option>
-                            ${campo.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-                        </select>
+                        <input type="${campo.type}" id="${campo.id}" required placeholder="${campo.placeholder || ''}">
                     </div>
                 `;
-            }
-            return `
-                <div class="form-group">
-                    <label>${campo.label}</label>
-                    <input type="${campo.type}" id="${campo.id}" required placeholder="${campo.placeholder || ''}">
-                </div>
-            `;
-        }).join('');
-
-        // ✅ PRE-LLENAR CON DATOS GUARDADOS DEL PERFIL
-        const datosGuardados = perfilUsuario[datos.campoPerfil] || {};
-        datos.camposUsuario.forEach(campo => {
-            const elemento = document.getElementById(campo.id);
-            if (elemento && datosGuardados[campo.id]) {
-                elemento.value = datosGuardados[campo.id];
-            }
-        });
+            }).join('');
+        }
 
         document.getElementById('dynamicForm').style.display = 'block';
         document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
     // ==========================================
     // 4. CARGAR TASA BCV Y DATOS DEL USUARIO
     // ==========================================
@@ -239,13 +267,28 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (elemento) datosUsuario[campo.id] = elemento.value.trim();
             });
 
-            try {
-                // ✅ GUARDAR DATOS BANCARIOS EN EL PERFIL DEL USUARIO
+                          try {
+                // ✅ GUARDAR DATOS BANCARIOS SOLO SI ES LA PRIMERA VEZ
                 const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
-                const { error: updatePerfilError } = await db
-                    .from('perfiles')
-                    .update({ [campoPerfil]: datosUsuario })
-                    .eq('id', session.user.id);
+                const datosActuales = perfilUsuario[campoPerfil] || {};
+                
+                if (Object.keys(datosActuales).length === 0) {
+                    // Primera vez: guardar y bloquear
+                    const { error: updatePerfilError } = await db
+                        .from('perfiles')
+                        .update({ [campoPerfil]: datosUsuario })
+                        .eq('id', session.user.id);
+                    
+                    if (updatePerfilError) {
+                        console.warn('No se pudieron guardar los datos bancarios:', updatePerfilError);
+                    } else {
+                        console.log('✅ Datos bancarios guardados y bloqueados permanentemente');
+                        // Actualizar variable local para que quede bloqueado
+                        perfilUsuario[campoPerfil] = datosUsuario;
+                    }
+                } else {
+                    console.log('ℹ️ Datos bancarios ya estaban guardados, usando los existentes');
+                }
                 
                 if (updatePerfilError) {
                     console.warn('No se pudieron guardar los datos bancarios:', updatePerfilError);
