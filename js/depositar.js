@@ -139,13 +139,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             ],
             requiereArchivo: true
         },
-        'reserve': {
-            nombre: 'Reserve',
-            logo: '../img/reserve.png',
-            datosEmpresa: [ { label: 'Correo Reserve', value: 'TU_DATO_AQUI' } ],
+           'kontigo': {
+            nombre: 'Kontigo',
+            logo: '../img/kontigo.png',
+            datosEmpresa: [ { label: 'Teléfono / Correo Kontigo', value: 'TU_DATO_AQUI' } ],
             camposUsuario: [
-                { id: 'correoEmisor', label: 'Tu correo Reserve', type: 'email' },
-                { id: 'referencia', label: 'ID de la transacción', type: 'text' }
+                { id: 'cuentaEmisor', label: 'Tu teléfono o correo Kontigo', type: 'text', placeholder: 'Ej: 04141234567 o correo@ejemplo.com' },
+                { id: 'referencia', label: 'ID de la transacción / Referencia', type: 'text', placeholder: 'Código de la operación' }
             ],
             requiereArchivo: true
         },
