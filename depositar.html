@@ -306,11 +306,20 @@
                     <input type="number" id="customAmount" step="1" min="1" placeholder="Ej: 12">
                     <div class="input-addon">BC</div>
                 </div>
-                <div class="conversion-preview">
-                    <span>Total a pagar: $<span id="totalUSD">0.00</span></span>
-                    <span>Equivalente: <span id="totalVES">0.00</span> Bs</span>
-                </div>
-            </div>
+             <div class="conversion-preview" style="flex-direction: column; gap: 10px; background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.3); padding: 15px; border-radius: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <span style="color: #888; font-size: 0.8rem; display: block;">Total a pagar:</span>
+            <span style="color: #00ff00; font-size: 1.3rem; font-weight: 800;">$<span id="totalUSD">0.00</span></span>
+            <span style="color: #FFA500; font-size: 0.75rem; font-weight: 600;">(+ 0.30% com.)</span>
+        </div>
+        <div style="text-align: right;">
+            <span style="color: #888; font-size: 0.8rem; display: block;">Equivalente:</span>
+            <span style="color: #00ff00; font-size: 1.3rem; font-weight: 800;"><span id="totalVES">0.00</span> Bs</span>
+            <span style="color: #FFA500; font-size: 0.75rem; font-weight: 600;">(+ 0.30% com. uso)</span>
+        </div>
+    </div>
+</div>
 
             <div class="section-title"><i class="fas fa-credit-card"></i> Método de Pago</div>
             <div class="payment-methods-grid" id="paymentMethodsGrid"></div>
@@ -319,14 +328,15 @@
                 <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
                 <div class="warning-content">
                     <h4>Importante: Verifica tus datos antes de enviar</h4>
-                    <p>
-                        Debes ingresar los <strong>datos exactos y reales</strong> de tu transacción para que el sistema pueda acreditar las monedas correctamente. 
-                        Si algún dígito, referencia o dato no coincide con el pago realizado, <strong>la recarga no se hará efectiva</strong> hasta que proporciones la información correcta.
-                        <br><br>
-                        <span class="warning-highlight">
-                            <i class="fas fa-check-circle"></i> Revisa el número de referencia, el monto exacto y los datos de tu cuenta antes de reportar el depósito.
-                        </span>
-                    </p>
+                  <p>
+    Es imperativo transferir el <strong>monto exacto</strong> calculado por el sistema. Cualquier discrepancia, por mínima que sea (déficit de fondos), impedirá la conciliación automática y la liberación de las monedas, requiriendo una revisión manual que puede resultar en el rechazo de la transacción. 
+    <br><br>
+    Asimismo, debes ingresar los <strong>datos exactos y reales</strong> de tu transacción para que el sistema pueda acreditar las monedas correctamente.
+    <br><br>
+    <span class="warning-highlight">
+        <i class="fas fa-check-circle"></i> Verifica el monto final con la comisión incluida, el número de referencia y los datos de tu cuenta antes de reportar el depósito.
+    </span>
+</p>
                 </div>
             </div>
 
