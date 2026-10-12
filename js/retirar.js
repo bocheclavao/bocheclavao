@@ -11,15 +11,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     let tasaBCV = 0;
     let saldoActual = 0;
     let metodoSeleccionado = null;
+    let perfilUsuario = null;
 
     // ==========================================
     // 2. MÉTODOS DE PAGO DISPONIBLES PARA RETIRO
-    //    (⚠️ DECLARADOS ANTES DE SER USADOS)
     // ==========================================
     const metodosRetiro = {
         'pagomovil': {
             nombre: 'Pago Móvil',
             logo: '../img/pg.png',
+            campoPerfil: 'datos_pago_pagomovil',
             camposUsuario: [
                 { id: 'banco', label: 'Banco', type: 'select', options: [
                     'Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial (BBVA)', 
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         'zelle': {
             nombre: 'Zelle',
             logo: '../img/zelle.png',
+            campoPerfil: 'datos_pago_zelle',
             camposUsuario: [
                 { id: 'nombre', label: 'Nombre del titular', type: 'text', placeholder: 'Como aparece en Zelle' },
                 { id: 'email', label: 'Correo o teléfono Zelle', type: 'text', placeholder: 'correo@ejemplo.com' }
@@ -45,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         'binance': {
             nombre: 'Binance (USDT)',
             logo: '../img/binance.png',
+            campoPerfil: 'datos_pago_binance',
             camposUsuario: [
                 { id: 'red', label: 'Red', type: 'select', options: ['TRC20 (Tron)', 'BEP20 (BSC)', 'ERC20 (Ethereum)'] },
                 { id: 'direccion', label: 'Dirección de tu wallet', type: 'text', placeholder: 'TXYZ...' }
@@ -53,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         'paypal': {
             nombre: 'PayPal',
             logo: '../img/paypal.png',
+            campoPerfil: 'datos_pago_paypal',
             camposUsuario: [
                 { id: 'email', label: 'Correo PayPal', type: 'email', placeholder: 'correo@ejemplo.com' }
             ]
@@ -61,13 +65,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // ==========================================
     // 3. FUNCIÓN PARA RENDERIZAR MÉTODOS DE PAGO
-    //    (⚠️ DECLARADA ANTES DE SER USADA)
     // ==========================================
     function renderizarMetodosPago() {
         const grid = document.getElementById('paymentMethodsGrid');
         if (!grid) return;
         
-        grid.innerHTML = ''; // Limpiar por si acaso
+        grid.innerHTML = '';
         
         Object.keys(metodosRetiro).forEach(key => {
             const metodo = metodosRetiro[key];
@@ -110,13 +113,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
         }).join('');
 
+        // ✅ PRE-LLENAR CON DATOS GUARDADOS DEL PERFIL
+        const datosGuardados = perfilUsuario[datos.campoPerfil] || {};
+        datos.camposUsuario.forEach(campo => {
+            const elemento = document.getElementById(campo.id);
+            if (elemento && datosGuardados[campo.id]) {
+                elemento.value = datosGuardados[campo.id];
+            }
+        });
+
         document.getElementById('dynamicForm').style.display = 'block';
         document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // ==========================================
     // 4. CARGAR TASA BCV Y DATOS DEL USUARIO
-    //    (AHORA SÍ PUEDE LLAMAR A renderizarMetodosPago)
     // ==========================================
     async function cargarDatosIniciales() {
         try {
@@ -133,19 +144,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                 tasaBCV = 876.7976;
             }
 
-            // Perfil del usuario
-            const { data: perfil } = await db
+            // Perfil del usuario (incluyendo datos bancarios guardados)
+            const { data: perfil, error } = await db
                 .from('perfiles')
                 .select('*')
                 .eq('id', session.user.id)
                 .single();
 
-            if (!perfil) {
+            if (error || !perfil) {
                 alert('No se encontró tu perfil.');
                 window.location.href = 'dashboard.html';
                 return;
             }
 
+            perfilUsuario = perfil;
             saldoActual = perfil.saldo_bc || 0;
             document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
 
@@ -156,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 document.getElementById('kycBloqueo').style.display = 'none';
                 document.getElementById('contenidoRetiro').style.display = 'block';
-                renderizarMetodosPago(); // ✅ Ahora SÍ funciona porque metodosRetiro ya existe
+                renderizarMetodosPago();
             }
 
         } catch (error) {
@@ -189,7 +201,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ==========================================
-    // 6. ENVÍO DEL FORMULARIO
+    // 6. ENVÍO DEL FORMULARIO (CON GUARDADO DE DATOS BANCARIOS)
     // ==========================================
     const formRetiro = document.getElementById('formRetiro');
     if (formRetiro) {
@@ -203,9 +215,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const monto = parseFloat(retMontoInput.value);
             
-            // Validaciones
-            if (monto < 10) {
-                mostrarMensaje('❌ El monto mínimo de retiro es 10 BC.', 'error');
+            // Validaciones (AHORA MÍNIMO 50 BC)
+            if (monto < 50) {
+                mostrarMensaje('❌ El monto mínimo de retiro es 50 BC.', 'error');
                 return;
             }
             if (monto > saldoActual) {
@@ -217,7 +229,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
 
-            const montoUSD = monto; // 1 BC = 1 USD
+            const montoUSD = monto;
             const montoBS = monto * tasaBCV;
 
             // Recopilar datos del usuario
@@ -228,6 +240,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             try {
+                // ✅ GUARDAR DATOS BANCARIOS EN EL PERFIL DEL USUARIO
+                const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
+                const { error: updatePerfilError } = await db
+                    .from('perfiles')
+                    .update({ [campoPerfil]: datosUsuario })
+                    .eq('id', session.user.id);
+                
+                if (updatePerfilError) {
+                    console.warn('No se pudieron guardar los datos bancarios:', updatePerfilError);
+                } else {
+                    console.log('✅ Datos bancarios guardados en el perfil');
+                }
+
                 // Guardar retiro en la base de datos
                 const { data: retiro, error: dbError } = await db
                     .from('retiros')
@@ -248,16 +273,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 // Descontar el saldo del usuario (congelar fondos)
                 const nuevoSaldo = saldoActual - monto;
-                const { error: updateError } = await db
+                const { error: updateSaldoError } = await db
                     .from('perfiles')
                     .update({ saldo_bc: nuevoSaldo })
                     .eq('id', session.user.id);
                 
-                if (updateError) throw new Error('Error al actualizar saldo: ' + updateError.message);
+                if (updateSaldoError) throw new Error('Error al actualizar saldo: ' + updateSaldoError.message);
 
-                // Actualizar variable local
                 saldoActual = nuevoSaldo;
-
                 console.log('✅ Retiro registrado:', retiro);
 
                 // Mostrar vista de éxito
