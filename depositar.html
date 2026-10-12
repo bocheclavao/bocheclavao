@@ -47,7 +47,6 @@
         .balance-info .label { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
         .balance-info .amount { color: #FFD700; font-size: 1.8rem; font-weight: 900; }
 
-        /* Banner de Tasa BCV con Imagen */
         .bcv-banner {
             background: rgba(0, 50, 150, 0.1); border: 1px solid #003296; border-radius: 10px;
             padding: 15px; margin-bottom: 30px; text-align: center;
@@ -96,12 +95,11 @@
         }
         .conversion-preview span { color: #00ff00; font-weight: 600; }
 
-        /* Métodos de Pago con Logos */
         .payment-methods-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             gap: 12px; margin-bottom: 25px;
         }
-                /* ⚠️ Mensaje de Advertencia sobre Datos Exactos */
+
         .warning-notice {
             background: rgba(255, 165, 0, 0.08);
             border: 1px solid rgba(255, 165, 0, 0.4);
@@ -114,79 +112,37 @@
             align-items: flex-start;
             animation: fadeInWarning 0.5s ease;
         }
-
         @keyframes fadeInWarning {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         .warning-icon {
-            flex-shrink: 0;
-            width: 45px;
-            height: 45px;
-            background: rgba(255, 165, 0, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-shrink: 0; width: 45px; height: 45px;
+            background: rgba(255, 165, 0, 0.2); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
         }
-
-        .warning-icon i {
-            font-size: 1.5rem;
-            color: #FFA500;
-        }
-
-        .warning-content {
-            flex: 1;
-        }
-
+        .warning-icon i { font-size: 1.5rem; color: #FFA500; }
+        .warning-content { flex: 1; }
         .warning-content h4 {
-            color: #FFA500;
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            color: #FFA500; font-size: 1rem; font-weight: 700; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 8px;
         }
-
-        .warning-content p {
-            color: #ccc;
-            font-size: 0.85rem;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        .warning-content p strong {
-            color: #fff;
-            font-weight: 700;
-        }
-
+        .warning-content p { color: #ccc; font-size: 0.85rem; line-height: 1.6; margin: 0; }
+        .warning-content p strong { color: #fff; font-weight: 700; }
         .warning-highlight {
-            display: inline-block;
-            background: rgba(0, 255, 0, 0.1);
-            border: 1px solid rgba(0, 255, 0, 0.3);
-            padding: 8px 12px;
-            border-radius: 6px;
-            color: #00ff00 !important;
-            font-size: 0.8rem !important;
-            margin-top: 8px;
+            display: inline-block; background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3); padding: 8px 12px; border-radius: 6px;
+            color: #00ff00 !important; font-size: 0.8rem !important; margin-top: 8px;
         }
-
-        .warning-highlight i {
-            margin-right: 5px;
-        }
+        .warning-highlight i { margin-right: 5px; }
 
         @media (max-width: 600px) {
-            .warning-notice {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-            .warning-content h4 {
-                justify-content: center;
-            }
+            .warning-notice { flex-direction: column; align-items: center; text-align: center; }
+            .warning-content h4 { justify-content: center; }
+            .packages-grid { grid-template-columns: repeat(3, 1fr); }
+            .payment-methods-grid { grid-template-columns: repeat(2, 1fr); }
         }
+
         .method-card {
             background: #111; border: 1px solid #333; border-radius: 10px;
             padding: 15px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -194,9 +150,7 @@
         }
         .method-card:hover { border-color: #FFD700; }
         .method-card.selected { border-color: #0064ff; background: rgba(0, 100, 255, 0.05); }
-        .method-card img {
-            width: 45px; height: 45px; object-fit: contain;
-        }
+        .method-card img { width: 45px; height: 45px; object-fit: contain; }
         .method-card span { font-size: 0.8rem; font-weight: 600; color: #ccc; text-align: center; }
 
         .company-data-box {
@@ -223,61 +177,29 @@
             border: 2px dashed #333; border-radius: 8px; padding: 20px; text-align: center;
             cursor: pointer; transition: all 0.3s ease; position: relative;
         }
-        
         .file-upload:hover { border-color: #FFD700; background: rgba(255, 215, 0, 0.02); }
         .file-upload input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         .file-upload i { font-size: 2rem; color: #666; margin-bottom: 10px; }
         .file-upload p { color: #888; font-size: 0.85rem; }
-        /* Vista previa de la imagen */
-.file-preview {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 15px;
-}
 
-.file-preview img {
-    max-width: 100%;
-    max-height: 200px;
-    border-radius: 8px;
-    border: 2px solid #FFD700;
-    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-    object-fit: contain;
-}
-
-.remove-file {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    width: 30px;
-    height: 30px;
-    background: #ff0000;
-    color: #fff;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.remove-file:hover {
-    background: #cc0000;
-    transform: scale(1.1);
-}
-
-/* Ajuste del contenedor cuando hay imagen */
-.file-upload.has-image .file-upload-content {
-    display: none;
-}
-
-.file-upload.has-image {
-    padding: 15px;
-}
+        .file-preview {
+            position: relative; display: flex; justify-content: center;
+            align-items: center; margin-top: 15px;
+        }
+        .file-preview img {
+            max-width: 100%; max-height: 200px; border-radius: 8px;
+            border: 2px solid #FFD700; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+            object-fit: contain;
+        }
+        .remove-file {
+            position: absolute; top: -10px; right: -10px; width: 30px; height: 30px;
+            background: #ff0000; color: #fff; border: 2px solid #fff; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .remove-file:hover { background: #cc0000; transform: scale(1.1); }
+        .file-upload.has-image .file-upload-content { display: none; }
+        .file-upload.has-image { padding: 15px; }
 
         .btn-primary {
             width: 100%; padding: 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
@@ -298,11 +220,6 @@
         .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
         .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
         .footer-text span { color: #FFD700; font-weight: 600; }
-
-        @media (max-width: 600px) {
-            .packages-grid { grid-template-columns: repeat(3, 1fr); }
-            .payment-methods-grid { grid-template-columns: repeat(2, 1fr); }
-        }
     </style>
 </head>
 <body>
@@ -319,38 +236,34 @@
 
     <div class="main-content">
         
-    <div class="user-balance-bar">
-    <div class="user-info">
-        <h3 id="userNameDisplay">Cargando...</h3>
-        <p>ID: <span id="userIdDisplay">---</span></p>
-    </div>
-    <div class="balance-info">
-        <div class="label">Saldo Actual</div>
-        <div class="amount" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-            <img src="../img/moneda.png" alt="BC" style="width: 28px; height: 28px; object-fit: contain;">
-            <span id="currentBalance">0.00</span> BC
+        <div class="user-balance-bar">
+            <div class="user-info">
+                <h3 id="userNameDisplay">Cargando...</h3>
+                <p>ID: <span id="userIdDisplay">---</span></p>
+            </div>
+            <div class="balance-info">
+                <div class="label">Saldo Actual</div>
+                <div class="amount" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                    <img src="../img/moneda.png" alt="BC" style="width: 28px; height: 28px; object-fit: contain;">
+                    <span id="currentBalance">0.00</span> BC
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
-    
-      <!-- Banner de Tasa BCV Dinámica con Logo -->
-<div class="bcv-banner" style="background: rgba(0, 50, 150, 0.1); border: 1px solid #003296; border-radius: 10px; padding: 15px; margin-bottom: 30px; display: flex; align-items: center; justify-content: center; gap: 15px;">
-    <img src="../img/bcv.png" alt="BCV" style="width: 50px; height: 50px; object-fit: contain; background: #fff; padding: 5px; border-radius: 6px;">
-    <div style="text-align: left;">
-        <div style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Tasa Oficial BCV del Día</div>
-        <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">
-            1 USD = <span id="tasaBCVDisplay" style="color: #00ff00;">Cargando...</span> Bs
+        <div class="bcv-banner" style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+            <img src="../img/bcv.png" alt="BCV" style="width: 50px; height: 50px; object-fit: contain; background: #fff; padding: 5px; border-radius: 6px;">
+            <div style="text-align: left;">
+                <div style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Tasa Oficial BCV del Día</div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">
+                    1 USD = <span id="tasaBCVDisplay" style="color: #00ff00;">Cargando...</span> Bs
+                </div>
+                <small style="color: #666;" id="fechaBCVDisplay">Obteniendo datos...</small>
+            </div>
         </div>
-        <small style="color: #666;" id="fechaBCVDisplay">Obteniendo datos...</small>
-    </div>
-</div>
 
         <form id="formDeposito">
             <div class="section-title"><i class="fas fa-gift"></i> Selecciona un Paquete (5% OFF)</div>
-            <div class="packages-grid" id="packagesGrid">
-                <!-- Se genera con JS -->
-            </div>
+            <div class="packages-grid" id="packagesGrid"></div>
 
             <div class="manual-input-group">
                 <label>O ingresa la cantidad exacta de monedas que deseas:</label>
@@ -365,20 +278,10 @@
             </div>
 
             <div class="section-title"><i class="fas fa-credit-card"></i> Método de Pago</div>
-            <div class="payment-methods-grid" id="paymentMethodsGrid">
-                <!-- Se genera con JS -->
-            </div>
-                        <!-- Métodos de Pago -->
-            <div class="section-title"><i class="fas fa-credit-card"></i> Método de Pago</div>
-            <div class="payment-methods-grid" id="paymentMethodsGrid">
-                <!-- Se genera con JS -->
-            </div>
+            <div class="payment-methods-grid" id="paymentMethodsGrid"></div>
 
-            <!-- ⚠️ NUEVO: Mensaje de Advertencia sobre Datos Exactos -->
             <div class="warning-notice">
-                <div class="warning-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
+                <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
                 <div class="warning-content">
                     <h4>Importante: Verifica tus datos antes de enviar</h4>
                     <p>
@@ -392,9 +295,6 @@
                 </div>
             </div>
 
-            <!-- Datos de la Empresa (Dinámico) -->
-            <div class="company-data-box" id="companyDataBox">
-
             <div class="company-data-box" id="companyDataBox">
                 <h4><i class="fas fa-building"></i> Datos para la transferencia</h4>
                 <div id="companyDataContent"></div>
@@ -404,25 +304,33 @@
                 <div class="section-title"><i class="fas fa-edit"></i> Datos de tu pago</div>
                 <div id="userFormFields"></div>
 
-            <div class="form-group" id="fileUploadGroup">
-    <label>Comprobante de pago (Captura de pantalla)</label>
-    <div class="file-upload" id="fileUploadContainer">
-        <input type="file" id="comprobanteFile" accept="image/*">
-        <div class="file-upload-content">
-            <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
-            <p id="fileName">Haz clic o arrastra tu captura aquí</p>
-            <small style="color: #666; font-size: 0.75rem; margin-top: 5px;">JPG, PNG. Máximo 5MB</small>
-        </div>
-        <!-- Miniatura de la imagen (oculta por defecto) -->
-        <div class="file-preview" id="filePreview" style="display: none;">
-            <img id="previewImage" src="" alt="Vista previa">
-            <button type="button" class="remove-file" id="removeFile" title="Quitar imagen">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    </div>
-    <small>📸 Formatos: JPG, PNG. Máximo 5MB. <strong style="color: #FFA500;">Sin comprobante = Depósito rechazado.</strong></small>
-</div>
+                <div class="form-group" id="fileUploadGroup">
+                    <label>Comprobante de pago (Captura de pantalla)</label>
+                    <div class="file-upload" id="fileUploadContainer">
+                        <input type="file" id="comprobanteFile" accept="image/*">
+                        <div class="file-upload-content">
+                            <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
+                            <p id="fileName">Haz clic o arrastra tu captura aquí</p>
+                            <small style="color: #666; font-size: 0.75rem; margin-top: 5px;">JPG, PNG. Máximo 5MB</small>
+                        </div>
+                        <div class="file-preview" id="filePreview" style="display: none;">
+                            <img id="previewImage" src="" alt="Vista previa">
+                            <button type="button" class="remove-file" id="removeFile" title="Quitar imagen">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <small>📸 Formatos: JPG, PNG. Máximo 5MB. <strong style="color: #FFA500;">Sin comprobante = Depósito rechazado.</strong></small>
+                </div>
+
+                <button type="submit" class="btn-primary" id="btnDepositar">
+                    <i class="fas fa-paper-plane"></i> Reportar Depósito
+                </button>
+                <div id="msgDeposito" class="message"></div>
+            </div>
+        </form>
+
+    </div> <!-- Cierre correcto de main-content -->
 
     <footer class="main-footer">
         <p class="footer-text">
