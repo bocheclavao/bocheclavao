@@ -230,13 +230,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // ==========================================
+     // ==========================================
     // 6. ENVÍO DEL FORMULARIO (CON GUARDADO DE DATOS BANCARIOS)
     // ==========================================
     const formRetiro = document.getElementById('formRetiro');
     if (formRetiro) {
         formRetiro.addEventListener('submit', async function(e) {
             e.preventDefault();
+            console.log('🚀 Iniciando proceso de retiro...');
             
             if (!metodoSeleccionado) {
                 mostrarMensaje('❌ Debes seleccionar un método de recepción.', 'error');
@@ -270,28 +271,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             try {
+                console.log('💾 Guardando datos bancarios en perfil...');
                 // ✅ GUARDAR DATOS BANCARIOS SOLO SI ES LA PRIMERA VEZ
                 const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
                 const datosActuales = perfilUsuario[campoPerfil] || {};
                 
                 if (Object.keys(datosActuales).length === 0) {
-                    // Primera vez: guardar y bloquear
                     const { error: updatePerfilError } = await db
                         .from('perfiles')
                         .update({ [campoPerfil]: datosUsuario })
                         .eq('id', session.user.id);
                     
                     if (updatePerfilError) {
-                        console.warn('No se pudieron guardar los datos bancarios:', updatePerfilError);
+                        console.warn('⚠️ No se pudieron guardar los datos bancarios:', updatePerfilError);
                     } else {
                         console.log('✅ Datos bancarios guardados y bloqueados permanentemente');
-                        // Actualizar variable local para que quede bloqueado
                         perfilUsuario[campoPerfil] = datosUsuario;
                     }
                 } else {
                     console.log('ℹ️ Datos bancarios ya estaban guardados, usando los existentes');
                 }
 
+                console.log('💾 Registrando retiro en base de datos...');
                 // Guardar retiro en la base de datos
                 const { data: retiro, error: dbError } = await db
                     .from('retiros')
@@ -308,8 +309,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .select()
                     .single();
                 
-                if (dbError) throw new Error('Error al guardar: ' + dbError.message);
+                if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
 
+                console.log('💰 Actualizando saldo del usuario...');
                 // Descontar el saldo del usuario (congelar fondos)
                 const nuevoSaldo = saldoActual - monto;
                 const { error: updateSaldoError } = await db
@@ -320,23 +322,38 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (updateSaldoError) throw new Error('Error al actualizar saldo: ' + updateSaldoError.message);
 
                 saldoActual = nuevoSaldo;
-                console.log('✅ Retiro registrado:', retiro);
+                console.log('✅ Retiro registrado exitosamente:', retiro);
 
-                // Mostrar vista de éxito
-                document.getElementById('formRetiro').style.display = 'none';
-                document.getElementById('successAmount').textContent = monto;
-                document.getElementById('successView').style.display = 'block';
+                // ==========================================
+                // MOSTRAR VISTA DE ÉXITO
+                // ==========================================
+                console.log('🎉 Mostrando pantalla de éxito...');
+                
+                const formRetiroEl = document.getElementById('formRetiro');
+                const successViewEl = document.getElementById('successView');
+                const successAmountEl = document.getElementById('successAmount');
+                
+                if (formRetiroEl) formRetiroEl.style.display = 'none';
+                if (successAmountEl) successAmountEl.textContent = monto;
+                
+                if (successViewEl) {
+                    successViewEl.style.display = 'block';
+                    console.log('✅ successView mostrado correctamente');
+                } else {
+                    console.error('❌ ERROR: No se encontró el elemento #successView en el HTML. Revisa retirar.html');
+                    alert('Retiro exitoso, pero hubo un error visual. Revisa la consola (F12).');
+                }
+                
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
             } catch (err) {
-                console.error('Error en retiro:', err);
+                console.error('❌ Error en retiro:', err);
                 mostrarMensaje('❌ Error: ' + err.message, 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-paper-plane"></i> Solicitar Retiro';
             }
         });
     }
-
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgRetiro');
         if (msg) {
