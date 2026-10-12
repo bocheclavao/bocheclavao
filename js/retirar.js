@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             grid.appendChild(card);
         });
     }
+
     function seleccionarMetodo(key, cardElement) {
         metodoSeleccionado = key;
         const datos = metodosRetiro[key];
@@ -101,8 +102,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         if (tieneDatosGuardados) {
             // ✅ DATOS BLOQUEADOS: Mostrar campos en solo lectura
-            securityWarning.style.display = 'none';
-            lockedDataMessage.style.display = 'flex';
+            if (securityWarning) securityWarning.style.display = 'none';
+            if (lockedDataMessage) lockedDataMessage.style.display = 'flex';
 
             formFields.innerHTML = datos.camposUsuario.map(campo => {
                 const valorGuardado = datosGuardados[campo.id] || '';
@@ -127,8 +128,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         } else {
             // ✅ PRIMERA VEZ: Mostrar formulario con advertencia de seguridad
-            securityWarning.style.display = 'flex';
-            lockedDataMessage.style.display = 'none';
+            if (securityWarning) securityWarning.style.display = 'flex';
+            if (lockedDataMessage) lockedDataMessage.style.display = 'none';
 
             formFields.innerHTML = datos.camposUsuario.map(campo => {
                 if (campo.type === 'select') {
@@ -154,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('dynamicForm').style.display = 'block';
         document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
     // ==========================================
     // 4. CARGAR TASA BCV Y DATOS DEL USUARIO
     // ==========================================
@@ -243,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const monto = parseFloat(retMontoInput.value);
             
-            // Validaciones (AHORA MÍNIMO 50 BC)
+            // Validaciones (MÍNIMO 50 BC)
             if (monto < 50) {
                 mostrarMensaje('❌ El monto mínimo de retiro es 50 BC.', 'error');
                 return;
@@ -267,7 +269,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (elemento) datosUsuario[campo.id] = elemento.value.trim();
             });
 
-                          try {
+            try {
                 // ✅ GUARDAR DATOS BANCARIOS SOLO SI ES LA PRIMERA VEZ
                 const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
                 const datosActuales = perfilUsuario[campoPerfil] || {};
@@ -288,12 +290,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 } else {
                     console.log('ℹ️ Datos bancarios ya estaban guardados, usando los existentes');
-                }
-                
-                if (updatePerfilError) {
-                    console.warn('No se pudieron guardar los datos bancarios:', updatePerfilError);
-                } else {
-                    console.log('✅ Datos bancarios guardados en el perfil');
                 }
 
                 // Guardar retiro en la base de datos
