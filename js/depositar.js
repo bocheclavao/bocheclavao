@@ -6,10 +6,54 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!session || !session.user) { window.location.href = 'index.html'; return; }
 
     // ==========================================
-    // 1. CONFIGURACIÓN Y DATOS
+    // 1. VARIABLES GLOBALES
     // ==========================================
-    
-    // Paquetes con 5% de descuento fijo (1 BC = 1 USD)
+    let tasaBCV = 0; // Aquí guardaremos la tasa real del día
+    let paqueteSeleccionado = null;
+    let metodoSeleccionado = null;
+    let userData = null;
+
+    // ==========================================
+    // 2. OBTENER TASA BCV REAL (Automático)
+    // ==========================================
+    async function obtenerTasaBCV() {
+        try {
+            // Usamos la API pública y gratuita de DolarApi para Venezuela
+            const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+            if (!response.ok) throw new Error('Error en la red');
+            
+            const data = await response.json();
+            tasaBCV = data.promedio; // Guardamos la tasa (ej: 36.50)
+            
+            // Formatear la fecha de actualización
+            const fecha = new Date(data.fechaActualizacion).toLocaleDateString('es-VE', {
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+            
+            // Actualizar el HTML
+            document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(2);
+            document.getElementById('fechaBCVDisplay').textContent = `Actualizado: ${fecha}`;
+            
+            // Si el usuario ya escribió algo, recalcular con la tasa nueva
+            if (document.getElementById('customAmount').value) {
+                document.getElementById('customAmount').dispatchEvent(new Event('input'));
+            }
+            
+        } catch (error) {
+            console.error('Error obteniendo tasa BCV:', error);
+            document.getElementById('tasaBCVDisplay').textContent = 'No disp.';
+            document.getElementById('fechaBCVDisplay').textContent = 'Verifica tu conexión';
+            // Valor de respaldo por si la API falla momentáneamente
+            tasaBCV = 36.50; 
+        }
+    }
+
+    // Llamamos a la función apenas carga la página
+    await obtenerTasaBCV();
+
+    // ==========================================
+    // 3. CONFIGURACIÓN DE PAQUETES (5% OFF)
+    // ==========================================
     const paquetes = [
         { cantidad: 5, descuento: 0.05 },
         { cantidad: 10, descuento: 0.05 },
@@ -21,7 +65,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         { cantidad: 100, descuento: 0.05 }
     ];
 
-    // Métodos de pago con LOGOS de la carpeta img/
+    // ==========================================
+    // 4. CONFIGURACIÓN DE MÉTODOS DE PAGO
+    // ==========================================
     const metodosPago = {
         'pagomovil': {
             nombre: 'Pago Móvil',
@@ -51,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             camposUsuario: [
                 { id: 'txid', label: 'Hash de la Transacción (TXID)', type: 'text', placeholder: 'Pega el ID de la transacción aquí' }
             ],
-            requiereArchivo: false // La blockchain lo verifica, pero puedes cambiarlo a true si quieres captura
+            requiereArchivo: false 
         },
         'zelle': {
             nombre: 'Zelle',
@@ -88,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         'reserve': {
             nombre: 'Reserve',
-            logo: '../img/reserve.png', // Si tu archivo se llama reserver.png, cámbialo aquí
+            logo: '../img/reserve.png',
             datosEmpresa: [ { label: 'Correo Reserve', value: 'TU_DATO_AQUI' } ],
             camposUsuario: [
                 { id: 'correoEmisor', label: 'Tu correo Reserve', type: 'email' },
@@ -108,8 +154,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         'tarjeta': {
             nombre: 'Tarjeta Crédito/Débito',
-            logo: '../img/tarjetas.png', // Descarga un logo PNG de Visa/Mastercard y guárdalo así
-            datosEmpresa: [ { label: 'Nota', value: 'Procesado de forma segura. (Requiere configuración de pasarela)' } ],
+            logo: '../img/tarjetas.png',
+            datosEmpresa: [ { label: 'Nota', value: 'Procesado de forma segura.' } ],
             camposUsuario: [
                 { id: 'nombreTitular', label: 'Nombre del titular', type: 'text' },
                 { id: 'referencia', label: 'Últimos 4 dígitos de la tarjeta', type: 'text' }
@@ -118,12 +164,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    let paqueteSeleccionado = null;
-    let metodoSeleccionado = null;
-    let userData = null;
-
     // ==========================================
-    // 2. CARGAR DATOS DEL USUARIO
+    // 5. CARGAR DATOS DEL USUARIO
     // ==========================================
     const { data: perfil } = await db.from('perfiles').select('*').eq('id', session.user.id).single();
     if (perfil) {
@@ -134,11 +176,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ==========================================
-    // 3. RENDERIZAR PAQUETES (5% OFF)
+    // 6. RENDERIZAR PAQUETES
     // ==========================================
     const packagesGrid = document.getElementById('packagesGrid');
     paquetes.forEach(pkg => {
-        const precioOriginal = pkg.cantidad; // 1 BC = 1 USD
+        const precioOriginal = pkg.cantidad; 
         const precioFinal = precioOriginal * (1 - pkg.descuento);
         
         const card = document.createElement('div');
@@ -156,13 +198,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         paqueteSeleccionado = pkg;
         document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
         cardElement.classList.add('selected');
-        
         document.getElementById('customAmount').value = pkg.cantidad;
         actualizarTotales(precioFinal);
     }
 
     // ==========================================
-    // 4. RENDERIZAR MÉTODOS DE PAGO CON LOGOS
+    // 7. RENDERIZAR MÉTODOS DE PAGO
     // ==========================================
     const methodsGrid = document.getElementById('paymentMethodsGrid');
     Object.keys(metodosPago).forEach(key => {
@@ -184,7 +225,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
         cardElement.classList.add('selected');
 
-        // Mostrar datos de la empresa
         const companyBox = document.getElementById('companyDataBox');
         const companyContent = document.getElementById('companyDataContent');
         companyContent.innerHTML = datos.datosEmpresa.map(d => `
@@ -195,7 +235,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         `).join('');
         companyBox.style.display = 'block';
 
-        // Generar campos del usuario
         const formFields = document.getElementById('userFormFields');
         formFields.innerHTML = datos.camposUsuario.map(campo => {
             if (campo.type === 'select') {
@@ -217,22 +256,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
         }).join('');
 
-        // Mostrar/Ocultar subida de archivo
         document.getElementById('fileUploadGroup').style.display = datos.requiereArchivo ? 'block' : 'none';
         document.getElementById('dynamicForm').style.display = 'block';
-        
-        // Scroll suave hacia el formulario
         document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // ==========================================
-    // 5. LÓGICA DE CÁLCULO MANUAL
+    // 8. LÓGICA DE CÁLCULO EN TIEMPO REAL
     // ==========================================
     const customAmountInput = document.getElementById('customAmount');
     customAmountInput.addEventListener('input', function() {
         const cantidad = parseFloat(this.value) || 0;
-        
-        // Si coincide con un paquete, aplicar 5% descuento
         const paqueteMatch = paquetes.find(p => p.cantidad === cantidad);
         let precioFinal = cantidad; 
         
@@ -249,25 +283,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     function actualizarTotales(precioUSD) {
-        // Como no tenemos la tasa en JS (está en la imagen), usamos un placeholder o un valor por defecto para el cálculo
-        // Si quieres que el cálculo en Bs sea exacto, debes poner la tasa numérica aquí:
-        const TASA_ESTIMADA = 36.50; // ⚠️ ACTUALIZA ESTO MANUALMENTE O VÍA ADMIN
-        
-        document.getElementById('totalUSD').textContent = precioUSD.toFixed(2);
-        document.getElementById('totalVES').textContent = (precioUSD * TASA_ESTIMADA).toFixed(2);
+        if (tasaBCV > 0) {
+            document.getElementById('totalUSD').textContent = precioUSD.toFixed(2);
+            // Aquí se usa la tasa REAL obtenida de la API
+            document.getElementById('totalVES').textContent = (precioUSD * tasaBCV).toFixed(2);
+        }
     }
 
     // ==========================================
-    // 6. MANEJO DE ARCHIVO (NOMBRE)
+    // 9. MANEJO DE ARCHIVO Y ENVÍO
     // ==========================================
     document.getElementById('comprobanteFile').addEventListener('change', function() {
         const fileName = this.files[0] ? this.files[0].name : 'Haz clic o arrastra tu captura aquí';
         document.getElementById('fileName').textContent = fileName;
     });
 
-    // ==========================================
-    // 7. ENVÍO DEL FORMULARIO
-    // ==========================================
     const formDeposito = document.getElementById('formDeposito');
     formDeposito.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -287,6 +317,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         const cantidad = parseFloat(customAmountInput.value);
         const totalUSD = parseFloat(document.getElementById('totalUSD').textContent);
+        const totalVES = parseFloat(document.getElementById('totalVES').textContent);
         
         const datosUsuario = {};
         metodosPago[metodoSeleccionado].camposUsuario.forEach(campo => {
@@ -294,10 +325,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
 
         try {
-            // SIMULACIÓN DE GUARDADO EN SUPABASE
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // AQUÍ IRÁ EL CÓDIGO REAL PARA GUARDAR EN SUPABASE
+            // await db.from('depositos').insert({ ... })
+            
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulación
 
-            mostrarMensaje('✅ ¡Depósito reportado con éxito! Tu saldo se acreditará tras la validación.', 'success');
+            mostrarMensaje(`✅ ¡Depósito de ${cantidad} BC reportado! Se acreditarán tras validar los ${totalVES.toFixed(2)} Bs.`, 'success');
+            
             formDeposito.reset();
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
             document.getElementById('companyDataBox').style.display = 'none';
