@@ -354,8 +354,7 @@
     </button>
     <div id="msgRetiro" class="message"></div>
 </div>
-        <!-- Vista de éxito -->
-        <div id="successView" class="success-view" style="display: none;">
+       <div id="successView" class="success-view" style="display: none;">
             <div class="success-icon-container">
                 <i class="fas fa-check" style="color: #00ff00;"></i>
             </div>
@@ -376,6 +375,18 @@
                     Puedes revisar el estado en tu <a href="historial.html" style="color: #FFD700; text-decoration: underline;">Historial de Transacciones</a>.
                 </p>
             </div>
+
+            <div class="success-actions">
+                <button onclick="window.location.href='billetera.html'" class="btn-secondary">
+                    <i class="fas fa-wallet"></i> Ir a mi Billetera
+                </button>
+                <button onclick="nuevoRetiro()" class="btn-primary" style="width: auto; padding: 12px 30px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000;">
+                    <i class="fas fa-plus"></i> Hacer otro retiro
+                </button>
+            </div>
+        </div>
+
+    </div> 
 
             <div class="success-actions">
                 <button onclick="window.location.href='billetera.html'" class="btn-secondary">
