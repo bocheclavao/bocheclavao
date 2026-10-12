@@ -99,12 +99,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             datosEmpresa: [
                 { label: 'Red', value: 'TRC20 (Tron)' },
                 { label: 'Dirección Wallet', value: 'TXYZ1234567890abcdef...' },
-                { label: 'Monto', value: 'Enviar el monto exacto en USDT' }
+                { label: 'Monto Exacto', value: 'Enviar el monto exacto en USDT' },
+                { label: 'Memo/Tag', value: 'No requerido para TRC20' }
             ],
             camposUsuario: [
-                { id: 'txid', label: 'Hash de la Transacción (TXID)', type: 'text', placeholder: 'Pega el ID de la transacción aquí' }
+                { id: 'txid', label: 'Hash de la Transacción (TXID)', type: 'text', placeholder: 'Pega el ID de la transacción aquí (ej: 0x1234...)' },
+                { id: 'montoEnviado', label: 'Monto exacto enviado (USDT)', type: 'number', step: '0.01', placeholder: 'Ej: 9.50' }
             ],
-            requiereArchivo: false 
+            requiereArchivo: true // ✅ Ahora SÍ requiere comprobante
         },
         'zelle': {
             nombre: 'Zelle',
@@ -159,17 +161,44 @@ document.addEventListener('DOMContentLoaded', async function() {
             ],
             requiereArchivo: true
         },
-        'tarjeta': {
+            'tarjeta': {
             nombre: 'Tarjeta Crédito/Débito',
             logo: '../img/tarjetas.png',
-            datosEmpresa: [ { label: 'Nota', value: 'Procesado de forma segura.' } ],
-            camposUsuario: [
-                { id: 'nombreTitular', label: 'Nombre del titular', type: 'text' },
-                { id: 'referencia', label: 'Últimos 4 dígitos de la tarjeta', type: 'text' }
+            datosEmpresa: [ 
+                { label: 'Procesamiento', value: 'Transacción segura encriptada' },
+                { label: 'Moneda', value: 'USD (Dólares Americanos)' }
             ],
-            requiereArchivo: true
+            camposUsuario: [
+                { 
+                    id: 'numeroTarjeta', 
+                    label: 'Número de Tarjeta', 
+                    type: 'text', 
+                    placeholder: '1234 5678 9012 3456',
+                    maxlength: 19
+                },
+                { 
+                    id: 'nombreTitular', 
+                    label: 'Nombre del Titular (como aparece en la tarjeta)', 
+                    type: 'text', 
+                    placeholder: 'JUAN PEREZ' 
+                },
+                { 
+                    id: 'fechaVencimiento', 
+                    label: 'Fecha de Vencimiento', 
+                    type: 'text', 
+                    placeholder: 'MM/AA',
+                    maxlength: 5
+                },
+                { 
+                    id: 'cvv', 
+                    label: 'CVV (3 dígitos detrás de la tarjeta)', 
+                    type: 'text', 
+                    placeholder: '123',
+                    maxlength: 4
+                }
+            ],
+            requiereArchivo: false
         }
-    };
 
     // ==========================================
     // 5. CARGAR DATOS DEL USUARIO
@@ -262,7 +291,35 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             `;
         }).join('');
+        // Formateo automático para campos de tarjeta
+        const inputNumero = document.getElementById('numeroTarjeta');
+        if (inputNumero) {
+            inputNumero.addEventListener('input', function(e) {
+                let valor = e.target.value.replace(/\D/g, '').substring(0, 16);
+                valor = valor.replace(/(\d{4})(?=\d)/g, '$1 ');
+                e.target.value = valor;
+            });
+        }
+        
+        const inputFecha = document.getElementById('fechaVencimiento');
+        if (inputFecha) {
+            inputFecha.addEventListener('input', function(e) {
+                let valor = e.target.value.replace(/\D/g, '').substring(0, 4);
+                if (valor.length >= 2) {
+                    valor = valor.substring(0, 2) + '/' + valor.substring(2);
+                }
+                e.target.value = valor;
+            });
+        }
+        
+        const inputCVV = document.getElementById('cvv');
+        if (inputCVV) {
+            inputCVV.addEventListener('input', function(e) {
+                e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+            });
+        }
 
+        document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
         document.getElementById('fileUploadGroup').style.display = datos.requiereArchivo ? 'block' : 'none';
         document.getElementById('dynamicForm').style.display = 'block';
         document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -296,14 +353,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // ==========================================
-    // 9. MANEJO DE ARCHIVO Y ENVÍO
-    // ==========================================
-    document.getElementById('comprobanteFile').addEventListener('change', function() {
-        const fileName = this.files[0] ? this.files[0].name : 'Haz clic o arrastra tu captura aquí';
-        document.getElementById('fileName').textContent = fileName;
-    });
-
+       // ============================================
+    // 9. ENVÍO DEL FORMULARIO (CON GUARDADO REAL)
+    // ============================================
     const formDeposito = document.getElementById('formDeposito');
     formDeposito.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -313,7 +365,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         if (!metodoSeleccionado) {
-            mostrarMensaje(' Debes seleccionar un método de pago.', 'error');
+            mostrarMensaje('❌ Debes seleccionar un método de pago.', 'error');
             return;
         }
 
@@ -325,19 +377,94 @@ document.addEventListener('DOMContentLoaded', async function() {
         const totalUSD = parseFloat(document.getElementById('totalUSD').textContent);
         const totalVES = parseFloat(document.getElementById('totalVES').textContent);
         
+        // Recopilar datos del usuario
         const datosUsuario = {};
         metodosPago[metodoSeleccionado].camposUsuario.forEach(campo => {
-            datosUsuario[campo.id] = document.getElementById(campo.id).value;
+            const elemento = document.getElementById(campo.id);
+            if (elemento) datosUsuario[campo.id] = elemento.value.trim();
         });
 
-        try {
-            // AQUÍ IRÁ EL CÓDIGO REAL PARA GUARDAR EN SUPABASE
-            // await db.from('depositos').insert({ ... })
-            
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulación
+        // 🔒 SEGURIDAD: Enmascarar datos sensibles de tarjeta antes de guardar
+        let datosPagoSeguros = { ...datosUsuario };
+        if (metodoSeleccionado === 'tarjeta') {
+            const numTarjeta = datosPagoSeguros.numeroTarjeta || '';
+            const soloNumeros = numTarjeta.replace(/\s/g, '');
+            // Guardar solo los últimos 4 dígitos
+            datosPagoSeguros.numeroTarjeta = '**** **** **** ' + soloNumeros.slice(-4);
+            // Enmascarar CVV
+            datosPagoSeguros.cvv = '***';
+        }
 
-            mostrarMensaje(`✅ ¡Depósito de ${cantidad} BC reportado! Se acreditarán tras validar los ${totalVES.toFixed(2)} Bs.`, 'success');
+        try {
+            // ==========================================
+            // A. SUBIR COMPROBANTE A SUPABASE STORAGE
+            // ==========================================
+            let comprobanteUrl = null;
+            const fileInput = document.getElementById('comprobanteFile');
             
+            if (fileInput && fileInput.files[0] && metodosPago[metodoSeleccionado].requiereArchivo) {
+                const archivo = fileInput.files[0];
+                
+                // Validar tamaño (máximo 5MB)
+                if (archivo.size > 5 * 1024 * 1024) {
+                    throw new Error('El comprobante no debe superar los 5MB');
+                }
+                
+                // Validar tipo
+                if (!archivo.type.startsWith('image/')) {
+                    throw new Error('Solo se permiten imágenes (JPG, PNG)');
+                }
+                
+                // Nombre único: user_id/timestamp_nombrearchivo
+                const nombreArchivo = `${session.user.id}/${Date.now()}_${archivo.name.replace(/\s/g, '_')}`;
+                
+                const { data: uploadData, error: uploadError } = await db.storage
+                    .from('comprobantes')
+                    .upload(nombreArchivo, archivo, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                
+                if (uploadError) throw new Error('Error al subir comprobante: ' + uploadError.message);
+                
+                // Obtener URL pública
+                const { data: urlData } = db.storage
+                    .from('comprobantes')
+                    .getPublicUrl(nombreArchivo);
+                
+                comprobanteUrl = urlData.publicUrl;
+            }
+
+            // ==========================================
+            // B. GUARDAR DEPÓSITO EN LA BASE DE DATOS
+            // ==========================================
+            const { data: deposito, error: dbError } = await db
+                .from('depositos')
+                .insert({
+                    user_id: session.user.id,
+                    cantidad_monedas: cantidad,
+                    monto_usd: totalUSD,
+                    monto_bs: totalVES,
+                    tasa_bcv_usada: tasaBCV,
+                    descuento_aplicado: paqueteSeleccionado ? paqueteSeleccionado.descuento * 100 : 0,
+                    metodo_pago: metodoSeleccionado,
+                    datos_pago: datosPagoSeguros,
+                    comprobante_url: comprobanteUrl,
+                    estado: 'pendiente'
+                })
+                .select()
+                .single();
+            
+            if (dbError) throw new Error('Error al guardar: ' + dbError.message);
+
+            console.log('✅ Depósito registrado:', deposito);
+
+            // ==========================================
+            // C. MENSAJE DE ÉXITO
+            // ==========================================
+            mostrarMensajeExito(cantidad, metodoSeleccionado);
+            
+            // Resetear formulario
             formDeposito.reset();
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
             document.getElementById('companyDataBox').style.display = 'none';
@@ -345,16 +472,50 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('fileName').textContent = 'Haz clic o arrastra tu captura aquí';
             
         } catch (err) {
-            mostrarMensaje('❌ Error al reportar: ' + err.message, 'error');
+            console.error('Error en depósito:', err);
+            mostrarMensaje('❌ Error: ' + err.message, 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
         }
     });
 
+    // ============================================
+    // 10. MENSAJE DE ÉXITO DETALLADO
+    // ============================================
+    function mostrarMensajeExito(cantidad, metodo) {
+        const msg = document.getElementById('msgDeposito');
+        const nombreMetodo = metodosPago[metodo].nombre;
+        
+        msg.innerHTML = `
+            <div style="text-align: center;">
+                <i class="fas fa-check-circle" style="font-size: 2.5rem; color: #00ff00; margin-bottom: 10px; display: block;"></i>
+                <h3 style="color: #00ff00; font-size: 1.1rem; margin-bottom: 10px;">¡Pago Reportado Exitosamente!</h3>
+                <p style="color: #ccc; font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;">
+                    Tu solicitud de <strong style="color: #FFD700;">${cantidad} BC</strong> vía 
+                    <strong>${nombreMetodo}</strong> ha sido enviada al sistema.
+                </p>
+                <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin-bottom: 10px;">
+                    Nuestro equipo realizará la revisión de tu pago en un plazo de <strong style="color: #fff;">15 a 30 minutos</strong> 
+                    (hasta 2 horas en horarios de alta demanda).
+                </p>
+                <p style="color: #FFD700; font-size: 0.85rem; font-weight: 600;">
+                    <i class="fas fa-clock"></i> Una vez aprobado, tus BC se acreditarán automáticamente en tu saldo.
+                </p>
+                <p style="color: #888; font-size: 0.75rem; margin-top: 10px;">
+                    Puedes revisar el estado de tu depósito en 
+                    <a href="historial.html" style="color: #FFD700; text-decoration: underline;">Historial de Transacciones</a>
+                </p>
+            </div>
+        `;
+        msg.className = 'message success';
+        
+        // Scroll al mensaje
+        msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgDeposito');
         msg.textContent = texto;
         msg.className = `message ${tipo}`;
     }
-});
