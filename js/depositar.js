@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             ],
             requiereArchivo: false
-        } // <-- ¡AQUÍ ESTABA EL ERROR! Faltaba cerrar el objeto metodosPago correctamente
+        }
     };
 
     // ==========================================
@@ -355,7 +355,74 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 9. ENVÍO DEL FORMULARIO (CON GUARDADO REAL)
+    // 9. MANEJO DE ARCHIVO CON VISTA PREVIA (FUERA DEL SUBMIT)
+    // ============================================
+    const fileInput = document.getElementById('comprobanteFile');
+    const fileUploadContainer = document.getElementById('fileUploadContainer');
+    const filePreview = document.getElementById('filePreview');
+    const previewImage = document.getElementById('previewImage');
+    const removeFileBtn = document.getElementById('removeFile');
+    const uploadIcon = document.getElementById('uploadIcon');
+    const fileNameDisplay = document.getElementById('fileName');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const archivo = e.target.files[0];
+            
+            if (!archivo) {
+                resetearFileUpload();
+                return;
+            }
+
+            if (archivo.size > 5 * 1024 * 1024) {
+                mostrarMensaje('❌ El archivo es demasiado grande. Máximo 5MB.', 'error');
+                resetearFileUpload();
+                return;
+            }
+
+            if (!archivo.type.startsWith('image/')) {
+                mostrarMensaje('❌ Solo se permiten imágenes (JPG, PNG).', 'error');
+                resetearFileUpload();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                previewImage.src = event.target.result;
+                filePreview.style.display = 'block';
+                fileUploadContainer.classList.add('has-image');
+                fileNameDisplay.textContent = archivo.name;
+                if (uploadIcon) uploadIcon.style.display = 'none';
+            };
+            reader.readAsDataURL(archivo);
+
+            const msg = document.getElementById('msgDeposito');
+            if (msg && msg.className.includes('error')) {
+                msg.className = 'message';
+                msg.textContent = '';
+            }
+        });
+    }
+
+    if (removeFileBtn) {
+        removeFileBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            resetearFileUpload();
+        });
+    }
+
+    function resetearFileUpload() {
+        if (fileInput) fileInput.value = '';
+        if (filePreview) filePreview.style.display = 'none';
+        if (fileUploadContainer) fileUploadContainer.classList.remove('has-image');
+        if (fileNameDisplay) fileNameDisplay.textContent = 'Haz clic o arrastra tu captura aquí';
+        if (uploadIcon) uploadIcon.style.display = 'block';
+        if (previewImage) previewImage.src = '';
+    }
+
+    // ============================================
+    // 10. ENVÍO DEL FORMULARIO (CON GUARDADO REAL)
     // ============================================
     const formDeposito = document.getElementById('formDeposito');
     formDeposito.addEventListener('submit', async function(e) {
@@ -378,46 +445,38 @@ document.addEventListener('DOMContentLoaded', async function() {
         const totalUSD = parseFloat(document.getElementById('totalUSD').textContent);
         const totalVES = parseFloat(document.getElementById('totalVES').textContent);
         
-        // Recopilar datos del usuario
         const datosUsuario = {};
         metodosPago[metodoSeleccionado].camposUsuario.forEach(campo => {
             const elemento = document.getElementById(campo.id);
             if (elemento) datosUsuario[campo.id] = elemento.value.trim();
         });
 
-        // 🔒 SEGURIDAD: Enmascarar datos sensibles de tarjeta antes de guardar
         let datosPagoSeguros = { ...datosUsuario };
         if (metodoSeleccionado === 'tarjeta') {
             const numTarjeta = datosPagoSeguros.numeroTarjeta || '';
             const soloNumeros = numTarjeta.replace(/\s/g, '');
-            // Guardar solo los últimos 4 dígitos
             datosPagoSeguros.numeroTarjeta = '**** **** **** ' + soloNumeros.slice(-4);
-            // Enmascarar CVV
             datosPagoSeguros.cvv = '***';
         }
 
         try {
-            // ==========================================
             // A. SUBIR COMPROBANTE A SUPABASE STORAGE
-            // ==========================================
             let comprobanteUrl = null;
-            const fileInput = document.getElementById('comprobanteFile');
             
             if (fileInput && fileInput.files[0] && metodosPago[metodoSeleccionado].requiereArchivo) {
                 const archivo = fileInput.files[0];
                 
-                // Validar tamaño (máximo 5MB)
                 if (archivo.size > 5 * 1024 * 1024) {
                     throw new Error('El comprobante no debe superar los 5MB');
                 }
                 
-                // Validar tipo
                 if (!archivo.type.startsWith('image/')) {
                     throw new Error('Solo se permiten imágenes (JPG, PNG)');
                 }
                 
-                // Nombre único: user_id/timestamp_nombrearchivo
                 const nombreArchivo = `${session.user.id}/${Date.now()}_${archivo.name.replace(/\s/g, '_')}`;
+                
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Subiendo comprobante...';
                 
                 const { data: uploadData, error: uploadError } = await db.storage
                     .from('comprobantes')
@@ -428,17 +487,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 if (uploadError) throw new Error('Error al subir comprobante: ' + uploadError.message);
                 
-                // Obtener URL pública
                 const { data: urlData } = db.storage
                     .from('comprobantes')
                     .getPublicUrl(nombreArchivo);
                 
                 comprobanteUrl = urlData.publicUrl;
+                console.log('✅ Comprobante subido:', comprobanteUrl);
             }
 
-            // ==========================================
             // B. GUARDAR DEPÓSITO EN LA BASE DE DATOS
-            // ==========================================
             const { data: deposito, error: dbError } = await db
                 .from('depositos')
                 .insert({
@@ -457,20 +514,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .single();
             
             if (dbError) throw new Error('Error al guardar: ' + dbError.message);
-
             console.log('✅ Depósito registrado:', deposito);
 
-            // ==========================================
             // C. MENSAJE DE ÉXITO
-            // ==========================================
             mostrarMensajeExito(cantidad, metodoSeleccionado);
             
-            // Resetear formulario
             formDeposito.reset();
+            resetearFileUpload(); // Usamos la función que ya creamos
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
             document.getElementById('companyDataBox').style.display = 'none';
             document.getElementById('dynamicForm').style.display = 'none';
-            document.getElementById('fileName').textContent = 'Haz clic o arrastra tu captura aquí';
             
         } catch (err) {
             console.error('Error en depósito:', err);
@@ -482,7 +535,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // ============================================
-    // 10. MENSAJE DE ÉXITO DETALLADO
+    // 11. MENSAJE DE ÉXITO DETALLADO
     // ============================================
     function mostrarMensajeExito(cantidad, metodo) {
         const msg = document.getElementById('msgDeposito');
@@ -510,14 +563,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             </div>
         `;
         msg.className = 'message success';
-        
-        // Scroll al mensaje
         msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgDeposito');
-        msg.textContent = texto;
-        msg.className = `message ${tipo}`;
+        if (msg) {
+            msg.textContent = texto;
+            msg.className = `message ${tipo}`;
+        }
     }
 });
