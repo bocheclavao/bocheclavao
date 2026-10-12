@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             logo: '../img/wally.png',
             datosEmpresa: [ { label: 'Teléfono / Correo Wally', value: 'TU_DATO_AQUI' } ],
             camposUsuario: [
-                { id: 'correoEmisor', label: 'Tu correo o teléfono Wally', type: 'text' },
+                { id: 'correoEmisor', label: 'correo o teléfono Wally', type: 'text' },
                 { id: 'referencia', label: 'ID de la transacción', type: 'text' }
             ],
             requiereArchivo: true
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async function() {
            'kontigo': {
             nombre: 'Kontigo',
             logo: '../img/kontigo.png',
-            datosEmpresa: [ { label: 'Teléfono / Correo Kontigo', value: 'TU_DATO_AQUI' } ],
+            datosEmpresa: [ { label: 'Teléfono / Correo Kontigo', value: 'clavaoboche@gmail.com' } ],
             camposUsuario: [
                 { id: 'cuentaEmisor', label: 'Tu teléfono o correo Kontigo', type: 'text', placeholder: 'Ej: 04141234567 o correo@ejemplo.com' },
                 { id: 'referencia', label: 'ID de la transacción / Referencia', type: 'text', placeholder: 'Código de la operación' }
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         'paypal': {
             nombre: 'PayPal',
             logo: '../img/paypal.png',
-            datosEmpresa: [ { label: 'Correo PayPal', value: 'TU_DATO_AQUI' } ],
+            datosEmpresa: [ { label: 'Correo PayPal', value: 'clavaoboche@gmail.com' } ],
             camposUsuario: [
                 { id: 'correoEmisor', label: 'Tu correo PayPal', type: 'email' },
                 { id: 'referencia', label: 'Correo con el que enviaste', type: 'email' }
