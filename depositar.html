@@ -193,11 +193,18 @@
             </div>
         </div>
 
-        <!-- IMAGEN DE LA TASA BCV -->
-        <div class="bcv-banner">
-            <img src="../img/bcv.png" alt="Tasa BCV del día" onerror="this.style.display='none'; this.parentElement.innerHTML='<p style=\'color:#ff4444;\'>⚠️ No se encontró la imagen img/bcv.png</p>'">
-            <p>Tasa oficial del día según el Banco Central de Venezuela (1 BC = 1 USD)</p>
+    
+       <!-- Banner de Tasa BCV Dinámica -->
+<div class="bcv-banner" style="background: rgba(0, 50, 150, 0.1); border: 1px solid #003296; border-radius: 10px; padding: 15px; margin-bottom: 30px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 15px;">
+    <i class="fas fa-university" style="font-size: 2rem; color: #003296;"></i>
+    <div style="text-align: left;">
+        <div style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Tasa Oficial BCV del Día</div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">
+            1 USD = <span id="tasaBCVDisplay" style="color: #00ff00;">Cargando...</span> Bs
         </div>
+        <small style="color: #666;" id="fechaBCVDisplay">Obteniendo datos...</small>
+    </div>
+</div>
 
         <form id="formDeposito">
             <div class="section-title"><i class="fas fa-gift"></i> Selecciona un Paquete (5% OFF)</div>
