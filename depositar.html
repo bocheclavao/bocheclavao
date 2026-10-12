@@ -33,32 +33,123 @@
         }
         .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
 
-        .main-content { flex: 1; padding: 30px 20px; max-width: 600px; margin: 0 auto; width: 100%; }
+        .main-content { flex: 1; padding: 30px 20px; max-width: 800px; margin: 0 auto; width: 100%; }
 
-        .page-header { margin-bottom: 30px; }
-        .page-header h1 { font-size: 1.8rem; font-weight: 800; color: #FFD700; margin-bottom: 8px; }
-        .page-header p { color: #999; font-size: 0.9rem; }
-
-        .info-box {
-            background: rgba(255, 215, 0, 0.05); border: 1px solid #333; border-radius: 8px;
-            padding: 15px; margin-bottom: 25px; font-size: 0.85rem; color: #ccc;
+        /* Barra de Usuario y Saldo */
+        .user-balance-bar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 1px solid #333; border-radius: 12px; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; flex-wrap: wrap; gap: 15px;
         }
-        .info-box i { color: #FFD700; margin-right: 8px; }
+        .user-info h3 { color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
+        .user-info p { color: #888; font-size: 0.85rem; }
+        .balance-info { text-align: right; }
+        .balance-info .label { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-info .amount { color: #FFD700; font-size: 1.8rem; font-weight: 900; }
 
+        /* Tasa BCV */
+        .bcv-banner {
+            background: rgba(0, 100, 255, 0.1); border: 1px solid #0064ff; border-radius: 8px;
+            padding: 12px 15px; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;
+            font-size: 0.9rem; color: #ccc;
+        }
+        .bcv-banner i { color: #0064ff; font-size: 1.2rem; }
+        .bcv-banner strong { color: #fff; }
+
+        /* Secciones */
+        .section-title { font-size: 1.1rem; font-weight: 700; color: #FFD700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        
+        /* Grid de Paquetes */
+        .packages-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 12px; margin-bottom: 30px;
+        }
+        .package-card {
+            background: #111; border: 1px solid #333; border-radius: 10px;
+            padding: 15px 10px; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; position: relative;
+        }
+        .package-card:hover { border-color: #FFD700; transform: translateY(-3px); }
+        .package-card.selected { border-color: #00ff00; background: rgba(0, 255, 0, 0.05); }
+        .package-card .coins { font-size: 1.3rem; font-weight: 800; color: #FFD700; display: block; margin-bottom: 5px; }
+        .package-card .price { font-size: 0.85rem; color: #ccc; }
+        .package-card .discount {
+            position: absolute; top: -8px; right: -8px; background: #ff0000; color: #fff;
+            font-size: 0.65rem; font-weight: 800; padding: 3px 6px; border-radius: 4px;
+        }
+
+        /* Input Manual */
+        .manual-input-group { margin-bottom: 30px; }
+        .manual-input-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
+        .input-with-addons {
+            display: flex; align-items: center; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden;
+        }
+        .input-with-addons input {
+            flex: 1; padding: 14px; background: transparent; border: none; color: #fff;
+            font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 700;
+        }
+        .input-with-addons input:focus { outline: none; }
+        .input-addon {
+            padding: 14px 20px; background: #1a1a1a; color: #FFD700; font-weight: 700; border-left: 1px solid #333;
+        }
+        .conversion-preview {
+            margin-top: 10px; font-size: 0.85rem; color: #888; display: flex; justify-content: space-between;
+        }
+        .conversion-preview span { color: #00ff00; font-weight: 600; }
+
+        /* Métodos de Pago */
+        .payment-methods-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px; margin-bottom: 25px;
+        }
+        .method-card {
+            background: #111; border: 1px solid #333; border-radius: 10px;
+            padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .method-card:hover { border-color: #FFD700; }
+        .method-card.selected { border-color: #0064ff; background: rgba(0, 100, 255, 0.05); }
+        .method-card i { font-size: 1.8rem; color: #ccc; }
+        .method-card.selected i { color: #0064ff; }
+        .method-card span { font-size: 0.8rem; font-weight: 600; color: #ccc; text-align: center; }
+
+        /* Datos de la Empresa */
+        .company-data-box {
+            background: rgba(255, 215, 0, 0.05); border: 1px dashed #FFD700; border-radius: 10px;
+            padding: 20px; margin-bottom: 25px; display: none;
+        }
+        .company-data-box h4 { color: #FFD700; font-size: 0.95rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .data-row:last-child { border-bottom: none; }
+        .data-row .label { color: #888; }
+        .data-row .value { color: #fff; font-weight: 600; text-align: right; }
+
+        /* Formulario Dinámico */
+        .dynamic-form { display: none; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
         .form-group input, .form-group select {
             width: 100%; padding: 14px; background: #111; border: 1px solid #333;
-            border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1rem;
+            border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.95rem;
         }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; }
         .form-group small { color: #666; font-size: 0.75rem; margin-top: 5px; display: block; }
+
+        .file-upload {
+            border: 2px dashed #333; border-radius: 8px; padding: 20px; text-align: center;
+            cursor: pointer; transition: all 0.3s ease; position: relative;
+        }
+        .file-upload:hover { border-color: #FFD700; background: rgba(255, 215, 0, 0.02); }
+        .file-upload input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .file-upload i { font-size: 2rem; color: #666; margin-bottom: 10px; }
+        .file-upload p { color: #888; font-size: 0.85rem; }
 
         .btn-primary {
             width: 100%; padding: 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             color: #000; border: none; border-radius: 8px; font-size: 1rem; font-weight: 800;
             cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Montserrat', sans-serif; margin-top: 10px;
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
@@ -73,6 +164,11 @@
         .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
         .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
         .footer-text span { color: #FFD700; font-weight: 600; }
+
+        @media (max-width: 600px) {
+            .packages-grid { grid-template-columns: repeat(3, 1fr); }
+            .payment-methods-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
@@ -88,49 +184,78 @@
     </nav>
 
     <div class="main-content">
-        <div class="page-header">
-            <h1><i class="fas fa-plus-circle"></i> Depositar Fondos</h1>
-            <p>Reporta tu transferencia para acreditar el saldo en tu cuenta.</p>
+        
+        <!-- 1. Saldo y Usuario -->
+        <div class="user-balance-bar">
+            <div class="user-info">
+                <h3 id="userNameDisplay">Cargando...</h3>
+                <p>ID: <span id="userIdDisplay">---</span></p>
+            </div>
+            <div class="balance-info">
+                <div class="label">Saldo Actual</div>
+                <div class="amount"><span id="currentBalance">0.00</span> BC</div>
+            </div>
         </div>
 
-        <div class="info-box">
-            <i class="fas fa-info-circle"></i>
-            Realiza tu Pago Móvil a los datos de la empresa y reporta la transacción. El saldo se acreditará en unos minutos tras la validación manual.
+        <!-- 2. Tasa BCV -->
+        <div class="bcv-banner">
+            <i class="fas fa-university"></i>
+            <div>Tasa BCV del día: <strong id="tasaBCVDisplay">Cargando...</strong> Bs/USD. <br><small>1 Moneda (BC) = 1 USD</small></div>
         </div>
 
         <form id="formDeposito">
-            <div class="form-group">
-                <label>Monto a Depositar (BC)</label>
-                <input type="number" id="depMonto" step="0.01" min="1" required placeholder="Ej: 50.00">
-                <small>Mínimo: 1 BC</small>
+            <!-- 3. Selección de Paquete -->
+            <div class="section-title"><i class="fas fa-gift"></i> Selecciona un Paquete (Mejor Precio)</div>
+            <div class="packages-grid" id="packagesGrid">
+                <!-- Se genera con JS -->
             </div>
-            <div class="form-group">
-                <label>Banco Emisor</label>
-                <select id="depBanco" required>
-                    <option value="">Selecciona tu banco</option>
-                    <option value="Banesco">Banesco</option>
-                    <option value="Mercantil">Mercantil</option>
-                    <option value="Provincial">Provincial</option>
-                    <option value="Venezuela">Banco de Venezuela</option>
-                    <option value="Otro">Otro</option>
-                </select>
+
+            <!-- 4. Input Manual -->
+            <div class="manual-input-group">
+                <label>O ingresa la cantidad exacta de monedas que deseas:</label>
+                <div class="input-with-addons">
+                    <input type="number" id="customAmount" step="1" min="1" placeholder="Ej: 12">
+                    <div class="input-addon">BC</div>
+                </div>
+                <div class="conversion-preview">
+                    <span>Total a pagar: $<span id="totalUSD">0.00</span></span>
+                    <span>Equivalente: <span id="totalVES">0.00</span> Bs</span>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Teléfono del Pago Móvil</label>
-                <input type="tel" id="depTelefono" required placeholder="Ej: 0414-1234567">
+
+            <!-- 5. Métodos de Pago -->
+            <div class="section-title"><i class="fas fa-credit-card"></i> Método de Pago</div>
+            <div class="payment-methods-grid" id="paymentMethodsGrid">
+                <!-- Se genera con JS -->
             </div>
-            <div class="form-group">
-                <label>Cédula del Titular</label>
-                <input type="text" id="depCedula" required placeholder="Ej: V-12345678">
+
+            <!-- 6. Datos de la Empresa (Dinámico) -->
+            <div class="company-data-box" id="companyDataBox">
+                <h4><i class="fas fa-building"></i> Datos para la transferencia</h4>
+                <div id="companyDataContent"></div>
             </div>
-            <div class="form-group">
-                <label>Número de Referencia</label>
-                <input type="text" id="depReferencia" required placeholder="Últimos 6 dígitos">
+
+            <!-- 7. Formulario del Usuario (Dinámico) -->
+            <div class="dynamic-form" id="dynamicForm">
+                <div class="section-title"><i class="fas fa-edit"></i> Datos de tu pago</div>
+                <div id="userFormFields"></div>
+
+                <!-- Comprobante (Para métodos manuales) -->
+                <div class="form-group" id="fileUploadGroup">
+                    <label>Comprobante de pago (Captura de pantalla)</label>
+                    <div class="file-upload">
+                        <input type="file" id="comprobanteFile" accept="image/*" required>
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p id="fileName">Haz clic o arrastra tu captura aquí</p>
+                    </div>
+                    <small>Formatos: JPG, PNG. Máximo 5MB.</small>
+                </div>
+
+                <button type="submit" class="btn-primary" id="btnDepositar">
+                    <i class="fas fa-paper-plane"></i> Reportar Depósito
+                </button>
+                <div id="msgDeposito" class="message"></div>
             </div>
-            <button type="submit" class="btn-primary" id="btnDepositar">
-                <i class="fas fa-paper-plane"></i> Reportar Depósito
-            </button>
-            <div id="msgDeposito" class="message"></div>
         </form>
     </div>
 
