@@ -524,6 +524,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
             document.getElementById('companyDataBox').style.display = 'none';
             document.getElementById('dynamicForm').style.display = 'none';
+                        // ==========================================
+            // C. MOSTRAR VISTA DE ÉXITO PROFESIONAL
+            // ==========================================
+            
+            // 1. Ocultar el formulario
+            document.getElementById('formDeposito').style.display = 'none';
+            
+            // 2. Actualizar el monto en la vista de éxito
+            document.getElementById('successAmount').textContent = cantidad;
+            
+            // 3. Mostrar la vista de éxito
+            document.getElementById('successView').style.display = 'block';
+            
+            // 4. Hacer scroll suave hacia arriba para que el usuario lo vea
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             
         } catch (err) {
             console.error('Error en depósito:', err);
@@ -573,4 +588,27 @@ document.addEventListener('DOMContentLoaded', async function() {
             msg.className = `message ${tipo}`;
         }
     }
+        // ============================================
+    // FUNCIÓN PARA REINICIAR Y HACER OTRO DEPÓSITO
+    // ============================================
+    window.nuevoDeposito = function() {
+        // Resetear formulario y variables
+        formDeposito.reset();
+        resetearFileUpload();
+        document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+        document.getElementById('companyDataBox').style.display = 'none';
+        document.getElementById('dynamicForm').style.display = 'none';
+        paqueteSeleccionado = null;
+        metodoSeleccionado = null;
+        document.getElementById('customAmount').value = '';
+        document.getElementById('totalUSD').textContent = '0.00';
+        document.getElementById('totalVES').textContent = '0.00';
+        
+        // Mostrar formulario de nuevo
+        document.getElementById('formDeposito').style.display = 'block';
+        document.getElementById('successView').style.display = 'none';
+        
+        // Scroll al inicio
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 });
