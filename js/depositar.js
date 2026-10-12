@@ -14,36 +14,80 @@ document.addEventListener('DOMContentLoaded', async function() {
     let userData = null;
 
     // ==========================================
-    // 2. OBTENER TASA BCV REAL (Automático)
+    // 2. OBTENER TASA BCV REAL DIRECTO DE bcv.org.ve
     // ==========================================
     async function obtenerTasaBCV() {
         try {
-            const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-            if (!response.ok) throw new Error('Error en la red');
+            // 1. Intentamos obtener el dato directamente de la web del BCV usando un Proxy CORS
+            // (Los navegadores bloquean las peticiones directas a bcv.org.ve, el proxy lo soluciona)
+            const urlBCV = 'https://www.bcv.org.ve/';
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(urlBCV);
             
-            const data = await response.json();
-            tasaBCV = data.promedio; 
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('Error al conectar con el proxy');
             
-            const fecha = new Date(data.fechaActualizacion).toLocaleDateString('es-VE', {
-                day: '2-digit', month: '2-digit', year: 'numeric'
-            });
+            const html = await response.text();
             
-            document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(2);
-            document.getElementById('fechaBCVDisplay').textContent = `Actualizado: ${fecha}`;
+            // Creamos un documento virtual para buscar en el HTML como si fuera la página real
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
             
-            if (document.getElementById('customAmount').value) {
-                document.getElementById('customAmount').dispatchEvent(new Event('input'));
+            // Buscamos el contenedor del dólar en la página del BCV (id="dolar")
+            const dolarContainer = doc.querySelector('#dolar');
+            
+            if (dolarContainer) {
+                // Extraemos todo el texto dentro de ese contenedor
+                let textoTasa = dolarContainer.textContent.trim();
+                
+                // El BCV a veces lo pone como "876,79760000". Lo limpiamos:
+                // 1. Quitamos todo lo que no sea número o coma/punto
+                // 2. Reemplazamos la coma decimal por punto para que JavaScript lo entienda
+                textoTasa = textoTasa.replace(/[^0-9,\.]/g, '').replace(',', '.');
+                
+                const tasa = parseFloat(textoTasa);
+                
+                // Validamos que sea un número razonable (mayor a 10)
+                if (!isNaN(tasa) && tasa > 10) {
+                    tasaBCV = tasa;
+                    
+                    // Obtenemos la fecha actual del sistema en formato español (ej: "martes, 13 de octubre de 2026")
+                    const hoy = new Date();
+                    const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    const fechaStr = hoy.toLocaleDateString('es-VE', opcionesFecha);
+                    
+                    // Actualizamos el HTML (el BCV usa hasta 8 decimales, nosotros mostramos 4 para limpieza visual)
+                    document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
+                    document.getElementById('fechaBCVDisplay').textContent = `Fecha Valor: ${fechaStr}`;
+                    
+                    if (document.getElementById('customAmount').value) {
+                        document.getElementById('customAmount').dispatchEvent(new Event('input'));
+                    }
+                    console.log('✅ Tasa BCV obtenida exitosamente desde bcv.org.ve:', tasaBCV);
+                    return; // ¡Éxito! Salimos de la función
+                }
             }
+            throw new Error('No se pudo extraer el número de la página del BCV');
             
         } catch (error) {
-            console.error('Error obteniendo tasa BCV:', error);
-            document.getElementById('tasaBCVDisplay').textContent = 'No disp.';
-            document.getElementById('fechaBCVDisplay').textContent = 'Verifica tu conexión';
-            tasaBCV = 36.50; // Valor de respaldo
+            console.warn('⚠️ No se pudo obtener la tasa directa del BCV. Usando fuente alternativa confiable...', error);
+            
+            // 2. FALLBACK (PLAN B): Si el BCV falla o cambia su diseño, usamos una API alternativa
+            try {
+                const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+                const data = await response.json();
+                tasaBCV = data.promedio;
+                
+                const fecha = new Date(data.fechaActualizacion).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(4);
+                document.getElementById('fechaBCVDisplay').textContent = `Fuente alternativa (BCV): ${fecha}`;
+            } catch (fallbackError) {
+                console.error('❌ Todos los métodos de obtención de tasa fallaron:', fallbackError);
+                document.getElementById('tasaBCVDisplay').textContent = 'No disp.';
+                document.getElementById('fechaBCVDisplay').textContent = 'Verifica tu conexión';
+                tasaBCV = 36.50; // Valor de respaldo de emergencia
+            }
         }
     }
-
-    await obtenerTasaBCV();
 
     // ==========================================
     // 3. CONFIGURACIÓN DE PAQUETES (5% OFF)
