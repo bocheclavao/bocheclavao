@@ -9,30 +9,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 1. CONFIGURACIÓN Y DATOS
     // ==========================================
     
-    // Tasa BCV (En producción, esto debería venir de tu base de datos o una API proxy)
-    // Por ahora, usamos un valor de ejemplo. Puedes actualizarlo manualmente o vía admin.
-    const TASA_BCV = 36.50; // ⚠️ CAMBIA ESTE VALOR SEGÚN EL DÍA
-    
-    document.getElementById('tasaBCVDisplay').textContent = `${TASA_BCV.toFixed(2)} Bs`;
-
-    // Paquetes con descuento (1 BC = 1 USD)
+    // Paquetes con 5% de descuento fijo (1 BC = 1 USD)
     const paquetes = [
-        { cantidad: 5, descuento: 0.15 },   // 15% off
-        { cantidad: 10, descuento: 0.10 },  // 10% off
-        { cantidad: 15, descuento: 0.12 },  // 12% off
-        { cantidad: 20, descuento: 0.15 },  // 15% off
-        { cantidad: 35, descuento: 0.18 },  // 18% off
-        { cantidad: 50, descuento: 0.20 },  // 20% off
-        { cantidad: 60, descuento: 0.22 },  // 22% off
-        { cantidad: 100, descuento: 0.25 }  // 25% off
+        { cantidad: 5, descuento: 0.05 },
+        { cantidad: 10, descuento: 0.05 },
+        { cantidad: 15, descuento: 0.05 },
+        { cantidad: 20, descuento: 0.05 },
+        { cantidad: 35, descuento: 0.05 },
+        { cantidad: 50, descuento: 0.05 },
+        { cantidad: 60, descuento: 0.05 },
+        { cantidad: 100, descuento: 0.05 }
     ];
 
-    // Métodos de pago y sus datos de la empresa + campos requeridos al usuario
+    // Métodos de pago con LOGOS de la carpeta img/
     const metodosPago = {
         'pagomovil': {
             nombre: 'Pago Móvil',
-            icono: 'fas fa-mobile-alt',
-            color: '#0064ff',
+            logo: '../img/pg.png',
             datosEmpresa: [
                 { label: 'Banco', value: 'Banesco' },
                 { label: 'Teléfono', value: '0414-1234567' },
@@ -47,46 +40,82 @@ document.addEventListener('DOMContentLoaded', async function() {
             ],
             requiereArchivo: true
         },
-        'usdt': {
-            nombre: 'USDT (Binance/Tron)',
-            icono: 'fab fa-bitcoin',
-            color: '#f0b90b',
+        'binance': {
+            nombre: 'Binance (USDT)',
+            logo: '../img/binance.png',
             datosEmpresa: [
                 { label: 'Red', value: 'TRC20 (Tron)' },
                 { label: 'Dirección Wallet', value: 'TXYZ1234567890abcdef...' },
-                { label: 'Monto Exacto', value: 'Enviar el monto exacto en USD' }
+                { label: 'Monto', value: 'Enviar el monto exacto en USDT' }
             ],
             camposUsuario: [
                 { id: 'txid', label: 'Hash de la Transacción (TXID)', type: 'text', placeholder: 'Pega el ID de la transacción aquí' }
             ],
-            requiereArchivo: false // La blockchain lo verifica, pero puedes dejarlo en true si quieres captura
+            requiereArchivo: false // La blockchain lo verifica, pero puedes cambiarlo a true si quieres captura
         },
         'zelle': {
             nombre: 'Zelle',
-            icono: 'fas fa-university',
-            color: '#6d1ed4',
+            logo: '../img/zelle.png',
             datosEmpresa: [
                 { label: 'Nombre', value: 'Juan Perez' },
                 { label: 'Email / Teléfono', value: 'pagos@bocheclavao.com' }
             ],
             camposUsuario: [
                 { id: 'nombreEmisor', label: 'Nombre del titular de la cuenta Zelle', type: 'text' },
-                { id: 'referencia', label: 'Número de Confirmación / Referencia', type: 'text' }
+                { id: 'referencia', label: 'Número de Confirmación', type: 'text' }
             ],
             requiereArchivo: true
         },
         'zinli': {
             nombre: 'Zinli',
-            icono: 'fas fa-wallet',
-            color: '#00d084',
-            datosEmpresa: [{ label: 'Correo Zinli', value: 'cobros@bocheclavao.com' }],
+            logo: '../img/zinli.png',
+            datosEmpresa: [ { label: 'Correo Zinli', value: 'cobros@bocheclavao.com' } ],
             camposUsuario: [
                 { id: 'correoEmisor', label: 'Tu correo Zinli', type: 'email' },
                 { id: 'referencia', label: 'ID de la transacción', type: 'text' }
             ],
             requiereArchivo: true
         },
-        // Puedes agregar 'wally', 'kontigo', 'reserve', 'tarjeta' siguiendo la misma estructura...
+        'wally': {
+            nombre: 'Wally',
+            logo: '../img/wally.png',
+            datosEmpresa: [ { label: 'Teléfono / Correo Wally', value: 'TU_DATO_AQUI' } ],
+            camposUsuario: [
+                { id: 'correoEmisor', label: 'Tu correo o teléfono Wally', type: 'text' },
+                { id: 'referencia', label: 'ID de la transacción', type: 'text' }
+            ],
+            requiereArchivo: true
+        },
+        'reserve': {
+            nombre: 'Reserve',
+            logo: '../img/reserve.png', // Si tu archivo se llama reserver.png, cámbialo aquí
+            datosEmpresa: [ { label: 'Correo Reserve', value: 'TU_DATO_AQUI' } ],
+            camposUsuario: [
+                { id: 'correoEmisor', label: 'Tu correo Reserve', type: 'email' },
+                { id: 'referencia', label: 'ID de la transacción', type: 'text' }
+            ],
+            requiereArchivo: true
+        },
+        'paypal': {
+            nombre: 'PayPal',
+            logo: '../img/paypal.png',
+            datosEmpresa: [ { label: 'Correo PayPal', value: 'TU_DATO_AQUI' } ],
+            camposUsuario: [
+                { id: 'correoEmisor', label: 'Tu correo PayPal', type: 'email' },
+                { id: 'referencia', label: 'Correo con el que enviaste', type: 'email' }
+            ],
+            requiereArchivo: true
+        },
+        'tarjeta': {
+            nombre: 'Tarjeta Crédito/Débito',
+            logo: '../img/tarjetas.png', // Descarga un logo PNG de Visa/Mastercard y guárdalo así
+            datosEmpresa: [ { label: 'Nota', value: 'Procesado de forma segura. (Requiere configuración de pasarela)' } ],
+            camposUsuario: [
+                { id: 'nombreTitular', label: 'Nombre del titular', type: 'text' },
+                { id: 'referencia', label: 'Últimos 4 dígitos de la tarjeta', type: 'text' }
+            ],
+            requiereArchivo: true
+        }
     };
 
     let paqueteSeleccionado = null;
@@ -105,18 +134,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ==========================================
-    // 3. RENDERIZAR PAQUETES
+    // 3. RENDERIZAR PAQUETES (5% OFF)
     // ==========================================
     const packagesGrid = document.getElementById('packagesGrid');
     paquetes.forEach(pkg => {
         const precioOriginal = pkg.cantidad; // 1 BC = 1 USD
         const precioFinal = precioOriginal * (1 - pkg.descuento);
-        const ahorro = precioOriginal - precioFinal;
-
+        
         const card = document.createElement('div');
         card.className = 'package-card';
         card.innerHTML = `
-            ${pkg.descuento > 0 ? `<div class="discount">-${(pkg.descuento * 100).toFixed(0)}%</div>` : ''}
+            <div class="discount">-5%</div>
             <span class="coins">${pkg.cantidad} BC</span>
             <span class="price">$${precioFinal.toFixed(2)}</span>
         `;
@@ -134,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ==========================================
-    // 4. RENDERIZAR MÉTODOS DE PAGO
+    // 4. RENDERIZAR MÉTODOS DE PAGO CON LOGOS
     // ==========================================
     const methodsGrid = document.getElementById('paymentMethodsGrid');
     Object.keys(metodosPago).forEach(key => {
@@ -142,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const card = document.createElement('div');
         card.className = 'method-card';
         card.innerHTML = `
-            <i class="${metodo.icono}" style="color: ${metodo.color}"></i>
+            <img src="${metodo.logo}" alt="${metodo.nombre}" onerror="this.src='../img/moneda.png'">
             <span>${metodo.nombre}</span>
         `;
         card.onclick = () => seleccionarMetodo(key, card);
@@ -192,6 +220,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Mostrar/Ocultar subida de archivo
         document.getElementById('fileUploadGroup').style.display = datos.requiereArchivo ? 'block' : 'none';
         document.getElementById('dynamicForm').style.display = 'block';
+        
+        // Scroll suave hacia el formulario
+        document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // ==========================================
@@ -201,13 +232,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     customAmountInput.addEventListener('input', function() {
         const cantidad = parseFloat(this.value) || 0;
         
-        // Buscar si coincide con un paquete para aplicar descuento
+        // Si coincide con un paquete, aplicar 5% descuento
         const paqueteMatch = paquetes.find(p => p.cantidad === cantidad);
-        let precioFinal = cantidad; // Sin descuento por defecto
+        let precioFinal = cantidad; 
         
         if (paqueteMatch) {
             precioFinal = cantidad * (1 - paqueteMatch.descuento);
-            // Resaltar visualmente el paquete
             document.querySelectorAll('.package-card').forEach((c, index) => {
                 c.classList.toggle('selected', paquetes[index].cantidad === cantidad);
             });
@@ -219,8 +249,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     function actualizarTotales(precioUSD) {
+        // Como no tenemos la tasa en JS (está en la imagen), usamos un placeholder o un valor por defecto para el cálculo
+        // Si quieres que el cálculo en Bs sea exacto, debes poner la tasa numérica aquí:
+        const TASA_ESTIMADA = 36.50; // ⚠️ ACTUALIZA ESTO MANUALMENTE O VÍA ADMIN
+        
         document.getElementById('totalUSD').textContent = precioUSD.toFixed(2);
-        document.getElementById('totalVES').textContent = (precioUSD * TASA_BCV).toFixed(2);
+        document.getElementById('totalVES').textContent = (precioUSD * TASA_ESTIMADA).toFixed(2);
     }
 
     // ==========================================
@@ -254,32 +288,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         const cantidad = parseFloat(customAmountInput.value);
         const totalUSD = parseFloat(document.getElementById('totalUSD').textContent);
         
-        // Recopilar datos dinámicos del usuario
         const datosUsuario = {};
         metodosPago[metodoSeleccionado].camposUsuario.forEach(campo => {
             datosUsuario[campo.id] = document.getElementById(campo.id).value;
         });
 
-        // Aquí iría la lógica de subida de imagen a Supabase Storage (si requiereArchivo es true)
-        // let urlComprobante = null;
-        // if (metodosPago[metodoSeleccionado].requiereArchivo) { ... }
-
         try {
             // SIMULACIÓN DE GUARDADO EN SUPABASE
-            // const { data, error } = await db.from('solicitudes_deposito').insert({
-            //     user_id: session.user.id,
-            //     cantidad_monedas: cantidad,
-            //     monto_usd: totalUSD,
-            //     monto_bs: totalUSD * TASA_BCV,
-            //     metodo_pago: metodoSeleccionado,
-            //     datos_pago: datosUsuario,
-            //     estado: 'pendiente',
-            //     creado_en: new Date().toISOString()
-            // });
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Simular red
-
-            mostrarMensaje('✅ ¡Depósito reportado con éxito! Tu saldo se acreditará tras la validación (15-30 min).', 'success');
+            mostrarMensaje('✅ ¡Depósito reportado con éxito! Tu saldo se acreditará tras la validación.', 'success');
             formDeposito.reset();
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
             document.getElementById('companyDataBox').style.display = 'none';
