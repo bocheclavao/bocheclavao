@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ==========================================
     // 1. VARIABLES GLOBALES
     // ==========================================
-    let tasaBCV = 0; // Aquí guardaremos la tasa real del día
+    let tasaBCV = 0; 
     let paqueteSeleccionado = null;
     let metodoSeleccionado = null;
     let userData = null;
@@ -18,23 +18,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ==========================================
     async function obtenerTasaBCV() {
         try {
-            // Usamos la API pública y gratuita de DolarApi para Venezuela
             const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
             if (!response.ok) throw new Error('Error en la red');
             
             const data = await response.json();
-            tasaBCV = data.promedio; // Guardamos la tasa (ej: 36.50)
+            tasaBCV = data.promedio; 
             
-            // Formatear la fecha de actualización
             const fecha = new Date(data.fechaActualizacion).toLocaleDateString('es-VE', {
                 day: '2-digit', month: '2-digit', year: 'numeric'
             });
             
-            // Actualizar el HTML
             document.getElementById('tasaBCVDisplay').textContent = tasaBCV.toFixed(2);
             document.getElementById('fechaBCVDisplay').textContent = `Actualizado: ${fecha}`;
             
-            // Si el usuario ya escribió algo, recalcular con la tasa nueva
             if (document.getElementById('customAmount').value) {
                 document.getElementById('customAmount').dispatchEvent(new Event('input'));
             }
@@ -43,12 +39,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.error('Error obteniendo tasa BCV:', error);
             document.getElementById('tasaBCVDisplay').textContent = 'No disp.';
             document.getElementById('fechaBCVDisplay').textContent = 'Verifica tu conexión';
-            // Valor de respaldo por si la API falla momentáneamente
-            tasaBCV = 36.50; 
+            tasaBCV = 36.50; // Valor de respaldo
         }
     }
 
-    // Llamamos a la función apenas carga la página
     await obtenerTasaBCV();
 
     // ==========================================
@@ -65,54 +59,118 @@ document.addEventListener('DOMContentLoaded', async function() {
         { cantidad: 100, descuento: 0.05 }
     ];
 
-  'pagomovil': {
-    nombre: 'Pago Móvil',
-    logo: '../img/pg.png',
-    datosEmpresa: [
-        { label: 'Banco', value: 'Banesco' },
-        { label: 'Teléfono', value: '0414-1234567' },
-        { label: 'Cédula', value: 'V-12.345.678' },
-        { label: 'Razón Social', value: 'Boche Clavao C.A.' }
-    ],
-    camposUsuario: [
-        { 
-            id: 'bancoEmisor', 
-            label: 'Tu Banco Emisor', 
-            type: 'select', 
-            options: [
-                'Banco de Venezuela',
-                'Banesco',
-                'Mercantil',
-                'Provincial (BBVA)',
-                'Bicentenario',
-                'Bancaribe',
-                'Banco Exterior',
-                'Bancrecer',
-                'Banplus',
-                'Banco del Tesoro',
-                'Banco Nacional de Crédito (BNC)',
-                'Banco Occidental de Descuento (BOD)',
-                'Banco Plaza',
-                'Banco Sofitasa',
-                'Banco Agrícola de Venezuela',
-                'Banco Fondo Común (BFC)',
-                '100% Banco',
-                'Mi Banco',
-                'Banco Activo',
-                'Bancamiga',
-                'Bantrab',
-                'Banco de la Fuerza Armada (BANFANB)',
-                'Banco Caroní',
-                'Del Sur Banco Universal',
-                'Banco Internacional de Desarrollo'
-            ] 
+    // ==========================================
+    // 4. CONFIGURACIÓN DE MÉTODOS DE PAGO
+    // ==========================================
+    const metodosPago = {
+        'pagomovil': {
+            nombre: 'Pago Móvil',
+            logo: '../img/pg.png',
+            datosEmpresa: [
+                { label: 'Banco', value: 'Banesco' },
+                { label: 'Teléfono', value: '0414-1234567' },
+                { label: 'Cédula', value: 'V-12.345.678' },
+                { label: 'Razón Social', value: 'Boche Clavao C.A.' }
+            ],
+            camposUsuario: [
+                { 
+                    id: 'bancoEmisor', 
+                    label: 'Tu Banco Emisor', 
+                    type: 'select', 
+                    options: [
+                        'Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial (BBVA)', 
+                        'Bicentenario', 'Bancaribe', 'Banco Exterior', 'Bancrecer', 'Banplus', 
+                        'Banco del Tesoro', 'Banco Nacional de Crédito (BNC)', 'Banco Occidental de Descuento (BOD)', 
+                        'Banco Plaza', 'Banco Sofitasa', 'Banco Agrícola de Venezuela', 
+                        'Banco Fondo Común (BFC)', '100% Banco', 'Mi Banco', 'Banco Activo', 
+                        'Bancamiga', 'Bantrab', 'Banco de la Fuerza Armada (BANFANB)', 
+                        'Banco Caroní', 'Del Sur Banco Universal', 'Banco Internacional de Desarrollo'
+                    ] 
+                },
+                { id: 'telefonoEmisor', label: 'Tu Teléfono (Pago Móvil)', type: 'tel', placeholder: '0414-1234567' },
+                { id: 'cedulaEmisor', label: 'Tu Cédula', type: 'text', placeholder: 'V-12345678' },
+                { id: 'referencia', label: 'Número de Referencia (4-6 dígitos)', type: 'text', placeholder: 'Ej: 123456' }
+            ],
+            requiereArchivo: true
         },
-        { id: 'telefonoEmisor', label: 'Tu Teléfono (Pago Móvil)', type: 'tel', placeholder: '0414-1234567' },
-        { id: 'cedulaEmisor', label: 'Tu Cédula', type: 'text', placeholder: 'V-12345678' },
-        { id: 'referencia', label: 'Número de Referencia (4-6 dígitos)', type: 'text', placeholder: 'Ej: 123456' }
-    ],
-    requiereArchivo: true
-},
+        'binance': {
+            nombre: 'Binance (USDT)',
+            logo: '../img/binance.png',
+            datosEmpresa: [
+                { label: 'Red', value: 'TRC20 (Tron)' },
+                { label: 'Dirección Wallet', value: 'TXYZ1234567890abcdef...' },
+                { label: 'Monto', value: 'Enviar el monto exacto en USDT' }
+            ],
+            camposUsuario: [
+                { id: 'txid', label: 'Hash de la Transacción (TXID)', type: 'text', placeholder: 'Pega el ID de la transacción aquí' }
+            ],
+            requiereArchivo: false 
+        },
+        'zelle': {
+            nombre: 'Zelle',
+            logo: '../img/zelle.png',
+            datosEmpresa: [
+                { label: 'Nombre', value: 'Juan Perez' },
+                { label: 'Email / Teléfono', value: 'pagos@bocheclavao.com' }
+            ],
+            camposUsuario: [
+                { id: 'nombreEmisor', label: 'Nombre del titular de la cuenta Zelle', type: 'text' },
+                { id: 'referencia', label: 'Número de Confirmación', type: 'text' }
+            ],
+            requiereArchivo: true
+        },
+        'zinli': {
+            nombre: 'Zinli',
+            logo: '../img/zinli.png',
+            datosEmpresa: [ { label: 'Correo Zinli', value: 'cobros@bocheclavao.com' } ],
+            camposUsuario: [
+                { id: 'correoEmisor', label: 'Tu correo Zinli', type: 'email' },
+                { id: 'referencia', label: 'ID de la transacción', type: 'text' }
+            ],
+            requiereArchivo: true
+        },
+        'wally': {
+            nombre: 'Wally',
+            logo: '../img/wally.png',
+            datosEmpresa: [ { label: 'Teléfono / Correo Wally', value: 'TU_DATO_AQUI' } ],
+            camposUsuario: [
+                { id: 'correoEmisor', label: 'Tu correo o teléfono Wally', type: 'text' },
+                { id: 'referencia', label: 'ID de la transacción', type: 'text' }
+            ],
+            requiereArchivo: true
+        },
+        'reserve': {
+            nombre: 'Reserve',
+            logo: '../img/reserve.png',
+            datosEmpresa: [ { label: 'Correo Reserve', value: 'TU_DATO_AQUI' } ],
+            camposUsuario: [
+                { id: 'correoEmisor', label: 'Tu correo Reserve', type: 'email' },
+                { id: 'referencia', label: 'ID de la transacción', type: 'text' }
+            ],
+            requiereArchivo: true
+        },
+        'paypal': {
+            nombre: 'PayPal',
+            logo: '../img/paypal.png',
+            datosEmpresa: [ { label: 'Correo PayPal', value: 'TU_DATO_AQUI' } ],
+            camposUsuario: [
+                { id: 'correoEmisor', label: 'Tu correo PayPal', type: 'email' },
+                { id: 'referencia', label: 'Correo con el que enviaste', type: 'email' }
+            ],
+            requiereArchivo: true
+        },
+        'tarjeta': {
+            nombre: 'Tarjeta Crédito/Débito',
+            logo: '../img/tarjetas.png',
+            datosEmpresa: [ { label: 'Nota', value: 'Procesado de forma segura.' } ],
+            camposUsuario: [
+                { id: 'nombreTitular', label: 'Nombre del titular', type: 'text' },
+                { id: 'referencia', label: 'Últimos 4 dígitos de la tarjeta', type: 'text' }
+            ],
+            requiereArchivo: true
+        }
+    };
+
     // ==========================================
     // 5. CARGAR DATOS DEL USUARIO
     // ==========================================
@@ -234,7 +292,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     function actualizarTotales(precioUSD) {
         if (tasaBCV > 0) {
             document.getElementById('totalUSD').textContent = precioUSD.toFixed(2);
-            // Aquí se usa la tasa REAL obtenida de la API
             document.getElementById('totalVES').textContent = (precioUSD * tasaBCV).toFixed(2);
         }
     }
@@ -256,7 +313,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         if (!metodoSeleccionado) {
-            mostrarMensaje('❌ Debes seleccionar un método de pago.', 'error');
+            mostrarMensaje(' Debes seleccionar un método de pago.', 'error');
             return;
         }
 
