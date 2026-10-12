@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
         cardElement.classList.add('selected');
 
-        // Verificar si ya hay datos guardados para este método
         const datosGuardados = perfilUsuario[datos.campoPerfil] || {};
         const tieneDatosGuardados = Object.keys(datosGuardados).length > 0;
 
@@ -101,13 +100,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         const lockedDataMessage = document.getElementById('lockedDataMessage');
 
         if (tieneDatosGuardados) {
-            // ✅ DATOS BLOQUEADOS: Mostrar campos en solo lectura
             if (securityWarning) securityWarning.style.display = 'none';
             if (lockedDataMessage) lockedDataMessage.style.display = 'flex';
 
             formFields.innerHTML = datos.camposUsuario.map(campo => {
                 const valorGuardado = datosGuardados[campo.id] || '';
-                
                 if (campo.type === 'select') {
                     return `
                         <div class="form-group">
@@ -127,7 +124,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }).join('');
 
         } else {
-            // ✅ PRIMERA VEZ: Mostrar formulario con advertencia de seguridad
             if (securityWarning) securityWarning.style.display = 'flex';
             if (lockedDataMessage) lockedDataMessage.style.display = 'none';
 
@@ -161,7 +157,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ==========================================
     async function cargarDatosIniciales() {
         try {
-            // Tasa BCV desde tu base de datos
             const { data: configData } = await db
                 .from('configuracion_sistema')
                 .select('valor')
@@ -174,7 +169,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 tasaBCV = 876.7976;
             }
 
-            // Perfil del usuario (incluyendo datos bancarios guardados)
             const { data: perfil, error } = await db
                 .from('perfiles')
                 .select('*')
@@ -191,7 +185,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             saldoActual = perfil.saldo_bc || 0;
             document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
 
-            // Verificar KYC
             if (perfil.estado_kyc !== 'verificado') {
                 document.getElementById('kycBloqueo').style.display = 'block';
                 document.getElementById('contenidoRetiro').style.display = 'none';
@@ -218,7 +211,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (retMontoInput) {
         retMontoInput.addEventListener('input', function() {
             const monto = parseFloat(this.value) || 0;
-            
             if (monto > 0 && tasaBCV > 0) {
                 const montoBs = monto * tasaBCV;
                 document.getElementById('retMontoBs').textContent = montoBs.toFixed(2) + ' Bs';
@@ -230,8 +222,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-     // ==========================================
-    // 6. ENVÍO DEL FORMULARIO (CON GUARDADO DE DATOS BANCARIOS)
+    // ==========================================
+    // 6. ENVÍO DEL FORMULARIO
     // ==========================================
     const formRetiro = document.getElementById('formRetiro');
     if (formRetiro) {
@@ -246,7 +238,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const monto = parseFloat(retMontoInput.value);
             
-            // Validaciones (MÍNIMO 50 BC)
             if (monto < 50) {
                 mostrarMensaje('❌ El monto mínimo de retiro es 50 BC.', 'error');
                 return;
@@ -263,7 +254,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             const montoUSD = monto;
             const montoBS = monto * tasaBCV;
 
-            // Recopilar datos del usuario
             const datosUsuario = {};
             metodosRetiro[metodoSeleccionado].camposUsuario.forEach(campo => {
                 const elemento = document.getElementById(campo.id);
@@ -272,7 +262,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             try {
                 console.log('💾 Guardando datos bancarios en perfil...');
-                // ✅ GUARDAR DATOS BANCARIOS SOLO SI ES LA PRIMERA VEZ
                 const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
                 const datosActuales = perfilUsuario[campoPerfil] || {};
                 
@@ -293,7 +282,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
 
                 console.log('💾 Registrando retiro en base de datos...');
-                // Guardar retiro en la base de datos
                 const { data: retiro, error: dbError } = await db
                     .from('retiros')
                     .insert({
@@ -312,7 +300,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
 
                 console.log('💰 Actualizando saldo del usuario...');
-                // Descontar el saldo del usuario (congelar fondos)
                 const nuevoSaldo = saldoActual - monto;
                 const { error: updateSaldoError } = await db
                     .from('perfiles')
@@ -330,18 +317,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.log('🎉 Mostrando pantalla de éxito...');
                 
                 const formRetiroEl = document.getElementById('formRetiro');
+                const contenidoRetiroEl = document.getElementById('contenidoRetiro');
                 const successViewEl = document.getElementById('successView');
                 const successAmountEl = document.getElementById('successAmount');
                 
                 if (formRetiroEl) formRetiroEl.style.display = 'none';
+                if (contenidoRetiroEl) contenidoRetiroEl.style.display = 'none'; // Ocultamos el contenedor padre también
                 if (successAmountEl) successAmountEl.textContent = monto;
                 
                 if (successViewEl) {
                     successViewEl.style.display = 'block';
                     console.log('✅ successView mostrado correctamente');
                 } else {
-                    console.error('❌ ERROR: No se encontró el elemento #successView en el HTML. Revisa retirar.html');
-                    alert('Retiro exitoso, pero hubo un error visual. Revisa la consola (F12).');
+                    console.error('❌ ERROR: No se encontró el elemento #successView en el HTML.');
                 }
                 
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -354,6 +342,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
+
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgRetiro');
         if (msg) {
@@ -372,6 +361,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('conversionPreview').style.display = 'none';
         metodoSeleccionado = null;
         
+        document.getElementById('contenidoRetiro').style.display = 'block';
         document.getElementById('formRetiro').style.display = 'block';
         document.getElementById('successView').style.display = 'none';
         
