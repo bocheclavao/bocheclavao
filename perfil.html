@@ -144,7 +144,85 @@
         .validation-message.error { display: block; background: rgba(255, 0, 0, 0.1); border: 1px solid #ff4444; color: #ff4444; }
         .validation-message.success { display: block; background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+                /* Estilos específicos para el Modal de Términos */
+        .terms-modal-content {
+            max-width: 600px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+        }
+        .terms-modal-content .modal-title {
+            padding: 20px 25px;
+            border-bottom: 1px solid #333;
+            margin: 0;
+            background: #111;
+        }
+        .terms-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+            text-align: left;
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .terms-scroll-area h4 {
+            color: #FFD700;
+            font-size: 1rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .terms-scroll-area h4:first-child { margin-top: 0; }
+        .terms-scroll-area ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        .terms-scroll-area li { margin-bottom: 6px; }
+        .terms-scroll-area strong { color: #fff; }
+
+        .terms-footer {
+            padding: 20px 25px;
+            border-top: 1px solid #333;
+            background: #111;
+        }
+        .terms-checkbox-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .terms-checkbox-label input[type="checkbox"] {
+            margin-top: 4px;
+            width: 18px;
+            height: 18px;
+            accent-color: #FFD700;
+            cursor: pointer;
+        }
+        .terms-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+        .terms-actions button {
+            padding: 12px 24px;
+            font-size: 0.95rem;
+        }
+        .terms-actions button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
     </style>
+
+    
 </head>
 <body>
     <nav class="navbar">
@@ -343,6 +421,59 @@
                 <button type="button" class="btn-camera primary" id="modalCaptureBtn" disabled>
                     <i class="fas fa-camera"></i> Esperando...
                 </button>
+            </div>
+        </div>
+    </div>
+        <!-- ========== MODAL: TÉRMINOS Y CONDICIONES ========== -->
+    <div class="modal" id="termsModal">
+        <div class="modal-content terms-modal-content">
+            <h3 class="modal-title"><i class="fas fa-file-contract"></i> Términos y Condiciones de Uso</h3>
+            
+            <div class="terms-scroll-area">
+                <h4>1. Naturaleza de Juego de Azar</h4>
+                <p>El Usuario reconoce y acepta que la participación en los eventos deportivos ofrecidos por La Plataforma constituye un juego de azar regulado, sujeto a variabilidad, incertidumbre y posible pérdida total de los Tokens utilizados.</p>
+
+                <h4>2. Prohibiciones y Sanciones</h4>
+                <p>Queda estrictamente prohibido:</p>
+                <ul>
+                    <li>Manipulación de resultados.</li>
+                    <li>Colusión entre Usuario y Bochador.</li>
+                    <li>Intentos de fraude o uso de bots.</li>
+                    <li>Suplantación de identidad o manejo de cuentas múltiples.</li>
+                    <li>Falsificación documental.</li>
+                </ul>
+                <p><strong>Sanciones aplicables:</strong> Eliminación inmediata de la cuenta, congelación de fondos, revisión manual obligatoria, bloqueo de IP y denuncia ante las autoridades competentes.</p>
+
+                <h4>3. Limitación de Responsabilidad</h4>
+                <p>La Plataforma no será responsable por:</p>
+                <ul>
+                    <li>Fallas de conectividad o interrupciones del servicio.</li>
+                    <li>Eventos deportivos imprevistos, errores de árbitros o decisiones oficiales.</li>
+                    <li>Pérdidas económicas, daños indirectos o consecuenciales.</li>
+                    <li>Decisiones del Usuario basadas únicamente en estadísticas o análisis propios.</li>
+                </ul>
+
+                <h4>4. Ausencia de Garantía de Ganancias y Pérdida de Tokens</h4>
+                <p>La Plataforma <strong>no garantiza</strong> ganancias, retornos económicos ni rendimientos, ya que los resultados dependen exclusivamente del desempeño del Bochador y el azar.</p>
+                <p>El Usuario entiende que cada Token usado en un evento puede resultar en: Ganancia, Pérdida, aplicación de Comisiones, o cualquier otro resultado previsto en el sistema.</p>
+
+                <h4>5. Decisiones Finales</h4>
+                <p>El Usuario acepta que los resultados deportivos finales, determinados por los árbitros oficiales y validados por la IA de la Plataforma, son <strong>definitivos e inapelables</strong>.</p>
+            </div>
+
+            <div class="terms-footer">
+                <label class="terms-checkbox-label">
+                    <input type="checkbox" id="termsCheckbox">
+                    <span>He leído, comprendo y acepto los Términos y Condiciones, así como la Política de Juego Responsable.</span>
+                </label>
+                <div class="terms-actions">
+                    <button type="button" class="btn-camera secondary" id="rejectTermsBtn">
+                        <i class="fas fa-times"></i> Rechazar
+                    </button>
+                    <button type="button" class="btn-camera primary" id="acceptTermsBtn" disabled>
+                        <i class="fas fa-check"></i> Aceptar y Enviar KYC
+                    </button>
+                </div>
             </div>
         </div>
     </div>
