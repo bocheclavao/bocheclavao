@@ -19,49 +19,205 @@ document.addEventListener('DOMContentLoaded', async function() {
     let tempAvatarData = null;
     let perfilBloqueado = false;
     let nombreOriginal = '';
-    let perfilActual = null; // Para guardar el perfil actual y evitar sobrescribir URLs antiguas
+    let perfilActual = null;
 
-    // 🌍 LISTA DE PAÍSES (Abreviada para el ejemplo, usa tu lista completa)
+    // 🌍 LISTA COMPLETA DE PAÍSES CON BANDERAS Y CÓDIGOS
     const countries = [
-        { code: 'VE', name: 'Venezuela', phone: '+58', flag: '🇻🇪' },
+        { code: 'AF', name: 'Afganistán', phone: '+93', flag: '🇦🇫' },
+        { code: 'AL', name: 'Albania', phone: '+355', flag: '🇦🇱' },
+        { code: 'DE', name: 'Alemania', phone: '+49', flag: '🇩🇪' },
+        { code: 'AD', name: 'Andorra', phone: '+376', flag: '🇦🇩' },
+        { code: 'AO', name: 'Angola', phone: '+244', flag: '🇦🇴' },
+        { code: 'AG', name: 'Antigua y Barbuda', phone: '+1-268', flag: '🇦🇬' },
+        { code: 'SA', name: 'Arabia Saudita', phone: '+966', flag: '🇸🇦' },
+        { code: 'DZ', name: 'Argelia', phone: '+213', flag: '🇩🇿' },
+        { code: 'AR', name: 'Argentina', phone: '+54', flag: '🇦🇷' },
+        { code: 'AM', name: 'Armenia', phone: '+374', flag: '🇦🇲' },
+        { code: 'AU', name: 'Australia', phone: '+61', flag: '🇦🇺' },
+        { code: 'AT', name: 'Austria', phone: '+43', flag: '🇦🇹' },
+        { code: 'AZ', name: 'Azerbaiyán', phone: '+994', flag: '🇦🇿' },
+        { code: 'BS', name: 'Bahamas', phone: '+1-242', flag: '🇧🇸' },
+        { code: 'BD', name: 'Bangladés', phone: '+880', flag: '🇧🇩' },
+        { code: 'BB', name: 'Barbados', phone: '+1-246', flag: '🇧🇧' },
+        { code: 'BH', name: 'Baréin', phone: '+973', flag: '🇧🇭' },
+        { code: 'BE', name: 'Bélgica', phone: '+32', flag: '🇧🇪' },
+        { code: 'BZ', name: 'Belice', phone: '+501', flag: '🇧🇿' },
+        { code: 'BJ', name: 'Benín', phone: '+229', flag: '🇧🇯' },
+        { code: 'BY', name: 'Bielorrusia', phone: '+375', flag: '🇧🇾' },
+        { code: 'MM', name: 'Birmania (Myanmar)', phone: '+95', flag: '🇲🇲' },
+        { code: 'BO', name: 'Bolivia', phone: '+591', flag: '🇧🇴' },
+        { code: 'BA', name: 'Bosnia y Herzegovina', phone: '+387', flag: '🇧🇦' },
+        { code: 'BW', name: 'Botsuana', phone: '+267', flag: '🇧🇼' },
+        { code: 'BR', name: 'Brasil', phone: '+55', flag: '🇧🇷' },
+        { code: 'BN', name: 'Brunéi', phone: '+673', flag: '🇧🇳' },
+        { code: 'BG', name: 'Bulgaria', phone: '+359', flag: '🇧🇬' },
+        { code: 'BF', name: 'Burkina Faso', phone: '+226', flag: '🇧🇫' },
+        { code: 'BI', name: 'Burundi', phone: '+257', flag: '🇧🇮' },
+        { code: 'BT', name: 'Bután', phone: '+975', flag: '🇧🇹' },
+        { code: 'CV', name: 'Cabo Verde', phone: '+238', flag: '🇨🇻' },
+        { code: 'KH', name: 'Camboya', phone: '+855', flag: '🇰🇭' },
+        { code: 'CM', name: 'Camerún', phone: '+237', flag: '🇨🇲' },
+        { code: 'CA', name: 'Canadá', phone: '+1', flag: '🇨🇦' },
+        { code: 'QA', name: 'Catar', phone: '+974', flag: '🇶🇦' },
+        { code: 'TD', name: 'Chad', phone: '+235', flag: '🇹🇩' },
+        { code: 'CL', name: 'Chile', phone: '+56', flag: '🇨🇱' },
+        { code: 'CN', name: 'China', phone: '+86', flag: '🇨🇳' },
+        { code: 'CY', name: 'Chipre', phone: '+357', flag: '🇨🇾' },
+        { code: 'VA', name: 'Ciudad del Vaticano', phone: '+379', flag: '🇻🇦' },
         { code: 'CO', name: 'Colombia', phone: '+57', flag: '🇨🇴' },
+        { code: 'KM', name: 'Comoras', phone: '+269', flag: '🇰🇲' },
+        { code: 'CG', name: 'Congo (Rep. del)', phone: '+242', flag: '🇨🇬' },
+        { code: 'CD', name: 'Congo (Rep. Dem. del)', phone: '+243', flag: '🇨🇩' },
+        { code: 'KP', name: 'Corea del Norte', phone: '+850', flag: '🇰🇵' },
+        { code: 'KR', name: 'Corea del Sur', phone: '+82', flag: '🇰🇷' },
+        { code: 'CI', name: 'Costa de Marfil', phone: '+225', flag: '🇨🇮' },
+        { code: 'CR', name: 'Costa Rica', phone: '+506', flag: '🇨🇷' },
+        { code: 'HR', name: 'Croacia', phone: '+385', flag: '🇭🇷' },
+        { code: 'CU', name: 'Cuba', phone: '+53', flag: '🇨🇺' },
+        { code: 'DK', name: 'Dinamarca', phone: '+45', flag: '🇩🇰' },
+        { code: 'DM', name: 'Dominica', phone: '+1-767', flag: '🇩🇲' },
+        { code: 'EC', name: 'Ecuador', phone: '+593', flag: '🇪🇨' },
+        { code: 'EG', name: 'Egipto', phone: '+20', flag: '🇪🇬' },
+        { code: 'SV', name: 'El Salvador', phone: '+503', flag: '🇸🇻' },
+        { code: 'AE', name: 'Emiratos Árabes Unidos', phone: '+971', flag: '🇦🇪' },
+        { code: 'ER', name: 'Eritrea', phone: '+291', flag: '🇪🇷' },
+        { code: 'SK', name: 'Eslovaquia', phone: '+421', flag: '🇸🇰' },
+        { code: 'SI', name: 'Eslovenia', phone: '+386', flag: '🇸🇮' },
+        { code: 'ES', name: 'España', phone: '+34', flag: '🇪🇸' },
         { code: 'US', name: 'Estados Unidos', phone: '+1', flag: '🇺🇸' },
+        { code: 'EE', name: 'Estonia', phone: '+372', flag: '🇪🇪' },
+        { code: 'ET', name: 'Etiopía', phone: '+251', flag: '🇪🇹' },
+        { code: 'PH', name: 'Filipinas', phone: '+63', flag: '🇵🇭' },
+        { code: 'FI', name: 'Finlandia', phone: '+358', flag: '🇫🇮' },
+        { code: 'FJ', name: 'Fiyi', phone: '+679', flag: '🇫🇯' },
+        { code: 'FR', name: 'Francia', phone: '+33', flag: '🇫🇷' },
+        { code: 'GA', name: 'Gabón', phone: '+241', flag: '🇬🇦' },
+        { code: 'GM', name: 'Gambia', phone: '+220', flag: '🇬🇲' },
+        { code: 'GE', name: 'Georgia', phone: '+995', flag: '🇬🇪' },
+        { code: 'GH', name: 'Ghana', phone: '+233', flag: '🇬🇭' },
+        { code: 'GD', name: 'Granada', phone: '+1-473', flag: '🇬🇩' },
+        { code: 'GR', name: 'Grecia', phone: '+30', flag: '🇬🇷' },
+        { code: 'GT', name: 'Guatemala', phone: '+502', flag: '🇬🇹' },
+        { code: 'GN', name: 'Guinea', phone: '+224', flag: '🇬🇳' },
+        { code: 'GQ', name: 'Guinea Ecuatorial', phone: '+240', flag: '🇬🇶' },
+        { code: 'GW', name: 'Guinea-Bisáu', phone: '+245', flag: '🇬🇼' },
+        { code: 'GY', name: 'Guyana', phone: '+592', flag: '🇬🇾' },
+        { code: 'HT', name: 'Haití', phone: '+509', flag: '🇭🇹' },
+        { code: 'HN', name: 'Honduras', phone: '+504', flag: '🇭🇳' },
+        { code: 'HU', name: 'Hungría', phone: '+36', flag: '🇭🇺' },
+        { code: 'IN', name: 'India', phone: '+91', flag: '🇮🇳' },
+        { code: 'ID', name: 'Indonesia', phone: '+62', flag: '🇮🇩' },
+        { code: 'IQ', name: 'Irak', phone: '+964', flag: '🇮🇶' },
+        { code: 'IR', name: 'Irán', phone: '+98', flag: '🇮🇷' },
+        { code: 'IE', name: 'Irlanda', phone: '+353', flag: '🇮🇪' },
+        { code: 'IS', name: 'Islandia', phone: '+354', flag: '🇮🇸' },
+        { code: 'MH', name: 'Islas Marshall', phone: '+692', flag: '🇲🇭' },
+        { code: 'SB', name: 'Islas Salomón', phone: '+677', flag: '🇸🇧' },
+        { code: 'IL', name: 'Israel', phone: '+972', flag: '🇮🇱' },
+        { code: 'IT', name: 'Italia', phone: '+39', flag: '🇮🇹' },
+        { code: 'JM', name: 'Jamaica', phone: '+1-876', flag: '🇯🇲' },
+        { code: 'JP', name: 'Japón', phone: '+81', flag: '🇯🇵' },
+        { code: 'JO', name: 'Jordania', phone: '+962', flag: '🇯🇴' },
+        { code: 'KZ', name: 'Kazajistán', phone: '+7', flag: '🇰🇿' },
+        { code: 'KE', name: 'Kenia', phone: '+254', flag: '🇰🇪' },
+        { code: 'KG', name: 'Kirguistán', phone: '+996', flag: '🇰🇬' },
+        { code: 'KI', name: 'Kiribati', phone: '+686', flag: '🇰🇮' },
+        { code: 'KW', name: 'Kuwait', phone: '+965', flag: '🇰🇼' },
+        { code: 'LA', name: 'Laos', phone: '+856', flag: '🇱🇦' },
+        { code: 'LS', name: 'Lesoto', phone: '+266', flag: '🇱🇸' },
+        { code: 'LV', name: 'Letonia', phone: '+371', flag: '🇱🇻' },
+        { code: 'LB', name: 'Líbano', phone: '+961', flag: '🇱🇧' },
+        { code: 'LR', name: 'Liberia', phone: '+231', flag: '🇱🇷' },
+        { code: 'LY', name: 'Libia', phone: '+218', flag: '🇱🇾' },
+        { code: 'LI', name: 'Liechtenstein', phone: '+423', flag: '🇱🇮' },
+        { code: 'LT', name: 'Lituania', phone: '+370', flag: '🇱🇹' },
+        { code: 'LU', name: 'Luxemburgo', phone: '+352', flag: '🇱🇺' },
+        { code: 'MG', name: 'Madagascar', phone: '+261', flag: '🇲🇬' },
+        { code: 'MY', name: 'Malasia', phone: '+60', flag: '🇲🇾' },
+        { code: 'MW', name: 'Malaui', phone: '+265', flag: '🇲🇼' },
+        { code: 'MV', name: 'Maldivas', phone: '+960', flag: '🇲🇻' },
+        { code: 'ML', name: 'Malí', phone: '+223', flag: '🇲🇱' },
+        { code: 'MT', name: 'Malta', phone: '+356', flag: '🇲🇹' },
+        { code: 'MA', name: 'Marruecos', phone: '+212', flag: '🇲🇦' },
+        { code: 'MU', name: 'Mauricio', phone: '+230', flag: '🇲🇺' },
+        { code: 'MR', name: 'Mauritania', phone: '+222', flag: '🇲🇷' },
         { code: 'MX', name: 'México', phone: '+52', flag: '🇲🇽' },
-        { code: 'AR', name: 'Argentina', phone: '+54', flag: '🇦🇷' }
-        // ... (Agrega aquí el resto de tu lista de países)
+        { code: 'FM', name: 'Micronesia', phone: '+691', flag: '🇫🇲' },
+        { code: 'MD', name: 'Moldavia', phone: '+373', flag: '🇲🇩' },
+        { code: 'MC', name: 'Mónaco', phone: '+377', flag: '🇲🇨' },
+        { code: 'MN', name: 'Mongolia', phone: '+976', flag: '🇲🇳' },
+        { code: 'ME', name: 'Montenegro', phone: '+382', flag: '🇲🇪' },
+        { code: 'MZ', name: 'Mozambique', phone: '+258', flag: '🇲🇿' },
+        { code: 'NA', name: 'Namibia', phone: '+264', flag: '🇳🇦' },
+        { code: 'NR', name: 'Nauru', phone: '+674', flag: '🇳🇷' },
+        { code: 'NP', name: 'Nepal', phone: '+977', flag: '🇳🇵' },
+        { code: 'NI', name: 'Nicaragua', phone: '+505', flag: '🇳🇮' },
+        { code: 'NE', name: 'Níger', phone: '+227', flag: '🇳🇪' },
+        { code: 'NG', name: 'Nigeria', phone: '+234', flag: '🇳🇬' },
+        { code: 'NO', name: 'Noruega', phone: '+47', flag: '🇳🇴' },
+        { code: 'NZ', name: 'Nueva Zelanda', phone: '+64', flag: '🇳🇿' },
+        { code: 'OM', name: 'Omán', phone: '+968', flag: '🇴🇲' },
+        { code: 'NL', name: 'Países Bajos', phone: '+31', flag: '🇳🇱' },
+        { code: 'PK', name: 'Pakistán', phone: '+92', flag: '🇵🇰' },
+        { code: 'PW', name: 'Palaos', phone: '+680', flag: '🇵🇼' },
+        { code: 'PA', name: 'Panamá', phone: '+507', flag: '🇵🇦' },
+        { code: 'PG', name: 'Papúa Nueva Guinea', phone: '+675', flag: '🇵🇬' },
+        { code: 'PY', name: 'Paraguay', phone: '+595', flag: '🇵🇾' },
+        { code: 'PE', name: 'Perú', phone: '+51', flag: '🇵🇪' },
+        { code: 'PL', name: 'Polonia', phone: '+48', flag: '🇵🇱' },
+        { code: 'PT', name: 'Portugal', phone: '+351', flag: '🇵🇹' },
+        { code: 'GB', name: 'Reino Unido', phone: '+44', flag: '🇬🇧' },
+        { code: 'CF', name: 'Rep. Centroafricana', phone: '+236', flag: '🇨🇫' },
+        { code: 'CZ', name: 'República Checa', phone: '+420', flag: '🇨🇿' },
+        { code: 'DO', name: 'República Dominicana', phone: '+1-809', flag: '🇩🇴' },
+        { code: 'RW', name: 'Ruanda', phone: '+250', flag: '🇷🇼' },
+        { code: 'RO', name: 'Rumania', phone: '+40', flag: '🇷🇴' },
+        { code: 'RU', name: 'Rusia', phone: '+7', flag: '🇷🇺' },
+        { code: 'WS', name: 'Samoa', phone: '+685', flag: '🇼🇸' },
+        { code: 'KN', name: 'San Cristóbal y Nieves', phone: '+1-869', flag: '🇰🇳' },
+        { code: 'SM', name: 'San Marino', phone: '+378', flag: '🇸🇲' },
+        { code: 'VC', name: 'San Vicente y las Granadinas', phone: '+1-784', flag: '🇻🇨' },
+        { code: 'LC', name: 'Santa Lucía', phone: '+1-758', flag: '🇱🇨' },
+        { code: 'ST', name: 'Santo Tomé y Príncipe', phone: '+239', flag: '🇸🇹' },
+        { code: 'SN', name: 'Senegal', phone: '+221', flag: '🇸🇳' },
+        { code: 'RS', name: 'Serbia', phone: '+381', flag: '🇷🇸' },
+        { code: 'SC', name: 'Seychelles', phone: '+248', flag: '🇸🇨' },
+        { code: 'SL', name: 'Sierra Leona', phone: '+232', flag: '🇸🇱' },
+        { code: 'SG', name: 'Singapur', phone: '+65', flag: '🇸🇬' },
+        { code: 'SY', name: 'Siria', phone: '+963', flag: '🇸🇾' },
+        { code: 'SO', name: 'Somalia', phone: '+252', flag: '🇸🇴' },
+        { code: 'LK', name: 'Sri Lanka', phone: '+94', flag: '🇱🇰' },
+        { code: 'SZ', name: 'Suazilandia (Eswatini)', phone: '+268', flag: '🇸🇿' },
+        { code: 'ZA', name: 'Sudáfrica', phone: '+27', flag: '🇿🇦' },
+        { code: 'SD', name: 'Sudán', phone: '+249', flag: '🇸🇩' },
+        { code: 'SS', name: 'Sudán del Sur', phone: '+211', flag: '🇸🇸' },
+        { code: 'SE', name: 'Suecia', phone: '+46', flag: '🇸🇪' },
+        { code: 'CH', name: 'Suiza', phone: '+41', flag: '🇨🇭' },
+        { code: 'SR', name: 'Surinam', phone: '+597', flag: '🇸🇷' },
+        { code: 'TH', name: 'Tailandia', phone: '+66', flag: '🇹🇭' },
+        { code: 'TW', name: 'Taiwán', phone: '+886', flag: '🇹🇼' },
+        { code: 'TZ', name: 'Tanzania', phone: '+255', flag: '🇹🇿' },
+        { code: 'TJ', name: 'Tayikistán', phone: '+992', flag: '🇹🇯' },
+        { code: 'TL', name: 'Timor Oriental', phone: '+670', flag: '🇹🇱' },
+        { code: 'TG', name: 'Togo', phone: '+228', flag: '🇹🇬' },
+        { code: 'TO', name: 'Tonga', phone: '+676', flag: '🇹🇴' },
+        { code: 'TT', name: 'Trinidad y Tobago', phone: '+1-868', flag: '🇹🇹' },
+        { code: 'TN', name: 'Túnez', phone: '+216', flag: '🇹🇳' },
+        { code: 'TM', name: 'Turkmenistán', phone: '+993', flag: '🇹🇲' },
+        { code: 'TR', name: 'Turquía', phone: '+90', flag: '🇹🇷' },
+        { code: 'TV', name: 'Tuvalu', phone: '+688', flag: '🇹🇻' },
+        { code: 'UA', name: 'Ucrania', phone: '+380', flag: '🇺🇦' },
+        { code: 'UG', name: 'Uganda', phone: '+256', flag: '🇺🇬' },
+        { code: 'UY', name: 'Uruguay', phone: '+598', flag: '🇺🇾' },
+        { code: 'UZ', name: 'Uzbekistán', phone: '+998', flag: '🇺🇿' },
+        { code: 'VU', name: 'Vanuatu', phone: '+678', flag: '🇻🇺' },
+        { code: 'VE', name: 'Venezuela', phone: '+58', flag: '🇻🇪' },
+        { code: 'VN', name: 'Vietnam', phone: '+84', flag: '🇻🇳' },
+        { code: 'YE', name: 'Yemen', phone: '+967', flag: '🇾🇪' },
+        { code: 'DJ', name: 'Yibuti', phone: '+253', flag: '🇩🇯' },
+        { code: 'ZM', name: 'Zambia', phone: '+260', flag: '🇿🇲' },
+        { code: 'ZW', name: 'Zimbabue', phone: '+263', flag: '🇿🇼' }
     ];
-
-    // ==========================================
-    // FUNCIÓN AUXILIAR: SUBIR BASE64 A SUPABASE STORAGE
-    // ==========================================
-    async function subirImagenAStorage(base64Data, ruta) {
-        if (!base64Data || !base64Data.startsWith('data:')) return base64Data; // Si ya es URL, la devolvemos
-        
-        try {
-            // Convertir Base64 a Blob
-            const arr = base64Data.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) { u8arr[n] = bstr.charCodeAt(n); }
-            const blob = new Blob([u8arr], { type: mime });
-
-            // Subir a Supabase Storage
-            const { error: uploadError } = await db.storage
-                .from('kyc_documentos')
-                .upload(ruta, blob, { contentType: mime, upsert: true });
-                
-            if (uploadError) throw uploadError;
-            
-            // Obtener URL pública
-            const { data: urlData } = db.storage.from('kyc_documentos').getPublicUrl(ruta);
-            return urlData.publicUrl;
-        } catch (err) {
-            console.error('Error al subir imagen:', err);
-            throw err;
-        }
-    }
 
     function showMessage(text, type) {
         if (messageDiv) {
@@ -209,7 +365,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
             if (error) { console.error('Error al cargar perfil:', error); return; }
             
-            perfilActual = perfil; // Guardamos el perfil actual para referencia
+            perfilActual = perfil;
             nombreOriginal = perfil.nombre || 'Usuario';
             const apodo = perfil.apodo || '';
 
@@ -288,7 +444,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     function mostrarAvatar(avatarUrl, nombre) {
         const avatarInitial = document.getElementById('avatarInitial');
         const avatarImage = document.getElementById('avatarImage');
-        if (avatarUrl && !avatarUrl.startsWith('data:')) { // Solo mostrar si es URL real, no base64 temporal
+        if (avatarUrl && !avatarUrl.startsWith('data:')) {
             if (avatarImage) { avatarImage.src = avatarUrl; avatarImage.style.display = 'block'; }
             if (avatarInitial) avatarInitial.style.display = 'none';
         } else if (tempAvatarData) {
@@ -300,7 +456,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // ========== AVATAR: OPCIONES ==========
     const avatarOptionsModal = document.getElementById('avatarOptionsModal');
     const avatarFileInput = document.getElementById('avatarFileInput');
     const avatarWrapper = document.getElementById('avatarWrapper');
@@ -362,7 +517,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         img.src = dataUrl;
     }
 
-    // ========== GUARDAR CAMBIOS (Avatar + Apodo) CON STORAGE ==========
     if (btnSaveProfile) {
         btnSaveProfile.addEventListener('click', async () => {
             const apodoInput = document.getElementById('apodo');
@@ -381,12 +535,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             btnSaveProfile.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
 
             try {
-                const datosActualizar = { 
-                    apodo: nuevoApodo,
-                    ultima_actualizacion: new Date().toISOString()
-                };
+                const datosActualizar = { apodo: nuevoApodo, ultima_actualizacion: new Date().toISOString() };
                 
-                // Si hay nueva imagen, subirla a Storage
                 if (tempAvatarData) {
                     const ruta = `${currentUserId}/avatar_${Date.now()}.jpg`;
                     datosActualizar.avatar_url = await subirImagenAStorage(tempAvatarData, ruta);
@@ -400,7 +550,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('profileApodo').textContent = nuevoApodo || nombreOriginal;
                     if (tempAvatarData) {
                         mostrarAvatar(datosActualizar.avatar_url, nombreOriginal);
-                        tempAvatarData = null; // Limpiar temporal
+                        tempAvatarData = null;
                     }
                     showProfileMessage('✅ ¡Perfil actualizado correctamente!', 'success');
                 }
@@ -413,7 +563,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // ========== CÁMARA ==========
+    async function subirImagenAStorage(base64Data, ruta) {
+        if (!base64Data || !base64Data.startsWith('data:')) return base64Data;
+        try {
+            const arr = base64Data.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) { u8arr[n] = bstr.charCodeAt(n); }
+            const blob = new Blob([u8arr], { type: mime });
+
+            const { error: uploadError } = await db.storage.from('kyc_documentos').upload(ruta, blob, { contentType: mime, upsert: true });
+            if (uploadError) throw uploadError;
+            
+            const { data: urlData } = db.storage.from('kyc_documentos').getPublicUrl(ruta);
+            return urlData.publicUrl;
+        } catch (err) {
+            console.error('Error al subir imagen:', err);
+            throw err;
+        }
+    }
+
     const cameraModal = document.getElementById('cameraModal');
     const modalVideo = document.getElementById('modalVideo');
     const modalCaptureBtn = document.getElementById('modalCaptureBtn');
@@ -425,10 +596,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const titles = { 'docFront': 'Foto del documento (Frente)', 'docBack': 'Foto del documento (Reverso)', 'selfie': 'Selfie con rastreo facial (IA)', 'avatar': 'Foto de perfil' };
         if (title) title.textContent = titles[type] || 'Cámara';
         if (errorMsg) errorMsg.style.display = 'none';
-        if (modalCaptureBtn) { 
-            modalCaptureBtn.disabled = true; 
-            modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Iniciando cámara...'; 
-        }
+        if (modalCaptureBtn) { modalCaptureBtn.disabled = true; modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Iniciando cámara...'; }
 
         try {
             currentStream = await navigator.mediaDevices.getUserMedia({
@@ -440,10 +608,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (modalVideo) {
                 modalVideo.onloadeddata = () => {
                     if (type === 'selfie' && faceApiLoaded) startFaceTracking(modalVideo);
-                    else if (modalCaptureBtn) { 
-                        modalCaptureBtn.disabled = false; 
-                        modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Capturar'; 
-                    }
+                    else if (modalCaptureBtn) { modalCaptureBtn.disabled = false; modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Capturar'; }
                 };
             }
         } catch (err) {
@@ -471,20 +636,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const resized = faceapi.resizeResults(detection, displaySize);
                     if (canvas) faceapi.draw.drawDetections(canvas, resized);
                     if (statusDiv) { statusDiv.className = 'face-detection-status success'; statusDiv.textContent = '✅ Rostro humano detectado. ¡Listo para capturar!'; }
-                    if (modalCaptureBtn) { 
-                        modalCaptureBtn.disabled = false; 
-                        modalCaptureBtn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Capturar Selfie!'; 
-                        modalCaptureBtn.style.background = '#00ff00'; 
-                        modalCaptureBtn.style.color = '#000'; 
-                    }
+                    if (modalCaptureBtn) { modalCaptureBtn.disabled = false; modalCaptureBtn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Capturar Selfie!'; modalCaptureBtn.style.background = '#00ff00'; modalCaptureBtn.style.color = '#000'; }
                 } else {
                     if (statusDiv) { statusDiv.className = 'face-detection-status detecting'; statusDiv.textContent = '🔍 Buscando rostro... Centra tu cara en el cuadro.'; }
-                    if (modalCaptureBtn) { 
-                        modalCaptureBtn.disabled = true; 
-                        modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Esperando rostro...'; 
-                        modalCaptureBtn.style.background = ''; 
-                        modalCaptureBtn.style.color = ''; 
-                    }
+                    if (modalCaptureBtn) { modalCaptureBtn.disabled = true; modalCaptureBtn.innerHTML = '<i class="fas fa-camera"></i> Esperando rostro...'; modalCaptureBtn.style.background = ''; modalCaptureBtn.style.color = ''; }
                 }
             } catch (err) { console.error('⚠️ Error en detección facial:', err); }
             trackingAnimationId = requestAnimationFrame(detect);
@@ -529,7 +684,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const field = fieldMap[currentCameraType];
                 if (field) {
                     const inputEl = document.getElementById(field.url);
-                    if (inputEl) inputEl.value = imageData; // Se guarda como Base64 temporal, se subirá al enviar el formulario
+                    if (inputEl) inputEl.value = imageData;
                     setDocStatus(currentCameraType, 'pending-save');
                 }
             }
@@ -541,14 +696,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         btn.addEventListener('click', () => { if (!btn.disabled) openCamera(btn.dataset.cameraBtn); });
     });
 
-        // ========== ENVIAR KYC CON MODAL DE TÉRMINOS ==========
+    // ========== ENVIAR KYC CON MODAL DE TÉRMINOS ==========
     const fullProfileForm = document.getElementById('fullProfileForm');
     const termsModal = document.getElementById('termsModal');
     const termsCheckbox = document.getElementById('termsCheckbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const rejectTermsBtn = document.getElementById('rejectTermsBtn');
 
-    // 1. Interceptamos el envío del formulario
     if (fullProfileForm) {
         fullProfileForm.addEventListener('submit', async (e) => {
             e.preventDefault(); // Detenemos el envío real
@@ -563,27 +717,30 @@ document.addEventListener('DOMContentLoaded', async function() {
             const docFrontal = val('docFrontalUrl');
             const selfie = val('selfieUrl');
 
-            // Validaciones básicas antes de mostrar el modal
             if (!fechaNacimiento) { showMessage('Por favor, selecciona tu fecha de nacimiento.', 'error'); return; }
             if (!edadValida) { showMessage('⚠️ Debes ser mayor de 18 años para registrarte.', 'error'); return; }
             if (!docFrontal) { showMessage('Por favor, toma una foto del frente de tu documento.', 'error'); return; }
             if (!selfie) { showMessage('Por favor, toma una selfie con detección facial.', 'error'); return; }
 
-            // Si todo está bien, mostramos el modal de términos
-            termsCheckbox.checked = false; // Resetear checkbox
-            acceptTermsBtn.disabled = true; // Deshabilitar botón de aceptar
-            if (termsModal) termsModal.classList.add('show');
+            // MOSTRAR EL MODAL DE TÉRMINOS
+            if (termsModal) {
+                termsCheckbox.checked = false;
+                acceptTermsBtn.disabled = true;
+                termsModal.classList.add('show');
+                console.log('✅ Modal de términos mostrado correctamente');
+            } else {
+                console.error('❌ ERROR: No se encontró el modal #termsModal en el HTML. Revisa perfil.html');
+                alert('Error: Falta el modal de términos en el HTML.');
+            }
         });
     }
 
-    // 2. Lógica del Checkbox (Habilitar/Deshabilitar botón)
     if (termsCheckbox && acceptTermsBtn) {
         termsCheckbox.addEventListener('change', function() {
             acceptTermsBtn.disabled = !this.checked;
         });
     }
 
-    // 3. Lógica del Botón Rechazar
     if (rejectTermsBtn && termsModal) {
         rejectTermsBtn.addEventListener('click', () => {
             termsModal.classList.remove('show');
@@ -591,22 +748,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // 4. Lógica del Botón Aceptar y Enviar (Aquí va la lógica real de guardado)
     if (acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', async () => {
-            // Ocultar modal
             if (termsModal) termsModal.classList.remove('show');
             
             const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
             
-            if (submitBtn) { 
-                submitBtn.disabled = true; 
-                submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Subiendo documentos...'; 
-            }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Subiendo documentos...'; }
             showMessage('📤 Procesando imágenes y enviando a verificación...', 'info');
 
             try {
-                // A. Subir imágenes nuevas a Storage (si son Base64)
                 const rutaFront = `${currentUserId}/doc_front_${Date.now()}.jpg`;
                 const urlFront = await subirImagenAStorage(val('docFrontalUrl'), rutaFront);
 
@@ -620,7 +771,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const rutaSelfie = `${currentUserId}/selfie_${Date.now()}.jpg`;
                 const urlSelfie = await subirImagenAStorage(val('selfieUrl'), rutaSelfie);
 
-                // B. Preparar datos para la BD (Incluyendo la aceptación de términos)
                 const datos = {
                     nombre: nombreOriginal,
                     telefono: val('phoneCountry') + ' ' + val('telefono'),
@@ -637,7 +787,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     documento_trasero_url: urlBack || null,
                     selfie_url: urlSelfie,
                     estado_kyc: 'pendiente',
-                    // 🚨 DATOS CRÍTICOS DE CONSENTIMIENTO LEGAL:
                     acepto_terminos: true,
                     fecha_aceptacion_terminos: new Date().toISOString(),
                     ultima_actualizacion: new Date().toISOString()
@@ -649,8 +798,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (error) throw error;
 
                 showMessage('✅ Perfil guardado, Términos aceptados y KYC enviado. Un administrador revisará tus documentos pronto.', 'success');
-                
-                // Redirigir al dashboard después de 3 segundos
                 setTimeout(() => { window.location.href = 'dashboard.html'; }, 3000);
 
             } catch (err) {
@@ -663,7 +810,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
-    // Inicialización
+
     llenarSelectoresPaises();
     preloadFaceModels();
     cargarPerfil();
