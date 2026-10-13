@@ -26,7 +26,6 @@
         .header { text-align: center; margin-bottom: 30px; }
         .header h1 { color: #FFD700; font-size: 2rem; margin-bottom: 10px; }
         
-        /* Stats Cards */
         .stats-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px; margin-bottom: 30px; max-width: 1200px; margin-left: auto; margin-right: auto;
@@ -37,12 +36,8 @@
         .stat-card h3 { color: #888; font-size: 0.85rem; margin-bottom: 8px; text-transform: uppercase; }
         .stat-card .value { color: #FFD700; font-size: 1.8rem; font-weight: 800; }
         .stat-card.pending .value { color: #FFA500; }
-        .stat-card.rejected .value { color: #ff4444; }
 
-        /* Tabs */
-        .tabs {
-            display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;
-        }
+        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .tab-btn {
             padding: 12px 30px; background: #111; border: 1px solid #333; color: #888;
             border-radius: 8px; cursor: pointer; font-weight: 700; font-family: 'Montserrat', sans-serif;
@@ -51,14 +46,24 @@
         .tab-btn.active { background: #FFD700; color: #000; border-color: #FFD700; }
         .tab-btn:hover:not(.active) { border-color: #FFD700; color: #FFD700; }
 
-        /* Tables */
+        /* Filtros */
+        .filter-bar {
+            display: flex; justify-content: center; align-items: center; gap: 10px; 
+            margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .filter-input {
+            padding: 10px; background: #111; border: 1px solid #333; color: #fff;
+            border-radius: 8px; font-family: 'Montserrat', sans-serif;
+        }
+        .filter-input:focus { outline: none; border-color: #FFD700; }
+
         .table-container {
             max-width: 1200px; margin: 0 auto; background: #111; border-radius: 12px;
             border: 1px solid #333; overflow-x: auto; display: none;
         }
         .table-container.active { display: block; }
         
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th { background: #1a1a1a; color: #FFD700; padding: 15px; text-align: left; font-size: 0.85rem; text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #222; color: #ccc; font-size: 0.9rem; }
         tr:hover { background: rgba(255, 215, 0, 0.03); }
@@ -74,29 +79,62 @@
             padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer;
             font-weight: 600; font-size: 0.8rem; margin-right: 5px; transition: all 0.2s;
         }
+        .btn-view { background: rgba(0, 170, 255, 0.2); color: #00aaff; }
+        .btn-view:hover { background: #00aaff; color: #fff; }
         .btn-approve { background: rgba(0, 255, 0, 0.2); color: #00ff00; }
         .btn-approve:hover { background: #00ff00; color: #000; }
         .btn-reject { background: rgba(255, 0, 0, 0.2); color: #ff4444; }
         .btn-reject:hover { background: #ff4444; color: #fff; }
-        .btn-view { background: rgba(0, 170, 255, 0.2); color: #00aaff; }
-        .btn-view:hover { background: #00aaff; color: #fff; }
 
-        /* Modal para comprobante */
+        /* Paginación */
+        .pagination {
+            display: flex; justify-content: center; align-items: center; gap: 15px;
+            margin-top: 20px; padding-bottom: 20px;
+        }
+        .page-btn {
+            padding: 8px 16px; background: #111; border: 1px solid #333; color: #FFD700;
+            border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-btn:hover:not(:disabled) { background: #FFD700; color: #000; }
+        .page-info { color: #888; font-size: 0.9rem; }
+
+        /* Modal Ficha Completa */
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
+            padding: 20px;
         }
         .modal.active { display: flex; }
         .modal-content {
-            background: #111; border: 1px solid #FFD700; border-radius: 12px; padding: 20px;
-            max-width: 90%; max-height: 90%; text-align: center; position: relative;
+            background: #111; border: 1px solid #FFD700; border-radius: 12px; padding: 25px;
+            max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; text-align: left; position: relative;
         }
-        .modal-content img { max-width: 100%; max-height: 70vh; border-radius: 8px; }
         .modal-close {
-            position: absolute; top: 10px; right: 15px; color: #fff; font-size: 1.5rem;
+            position: absolute; top: 15px; right: 20px; color: #fff; font-size: 1.5rem;
             cursor: pointer; background: none; border: none;
         }
+        .ficha-header {
+            border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .ficha-header h3 { color: #FFD700; font-size: 1.2rem; }
+        .ficha-row {
+            display: flex; justify-content: space-between; padding: 8px 0;
+            border-bottom: 1px solid #1a1a1a; font-size: 0.9rem;
+        }
+        .ficha-row .label { color: #888; }
+        .ficha-row .value { color: #fff; font-weight: 600; text-align: right; word-break: break-word; max-width: 60%; }
         
+        .ficha-image {
+            margin-top: 20px; text-align: center;
+        }
+        .ficha-image img {
+            max-width: 100%; max-height: 300px; border-radius: 8px;
+            border: 1px solid #333; object-fit: contain;
+        }
+        .ficha-image p { color: #888; font-size: 0.8rem; margin-top: 8px; }
+
         .loading { text-align: center; padding: 40px; color: #888; }
         .empty-state { text-align: center; padding: 40px; color: #666; }
     </style>
@@ -109,7 +147,6 @@
         <p>Gestiona depósitos, retiros y comisiones de la plataforma</p>
     </div>
 
-    <!-- Estadísticas Rápidas -->
     <div class="stats-grid">
         <div class="stat-card pending">
             <h3>Depósitos Pendientes</h3>
@@ -120,15 +157,25 @@
             <div class="value" id="statRetPendientes">0</div>
         </div>
         <div class="stat-card">
-            <h3>Comisión Acumulada (Mes)</h3>
+            <h3>Comisión Acumulada</h3>
             <div class="value" id="statComision">$0.00</div>
         </div>
     </div>
 
-   <div class="tabs">
-    <button class="tab-btn active" onclick="cambiarTab('depositos', event)">Depósitos</button>
-    <button class="tab-btn" onclick="cambiarTab('retiros', event)">Retiros</button>
-</div>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="cambiarTab('depositos', event)">Depósitos</button>
+        <button class="tab-btn" onclick="cambiarTab('retiros', event)">Retiros</button>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="filter-bar">
+        <label style="color: #888; font-size: 0.85rem;">Desde:</label>
+        <input type="date" id="filterStartDate" class="filter-input">
+        <label style="color: #888; font-size: 0.85rem;">Hasta:</label>
+        <input type="date" id="filterEndDate" class="filter-input">
+        <button class="tab-btn" style="padding: 10px 20px;" onclick="aplicarFiltro()"><i class="fas fa-filter"></i> Filtrar</button>
+        <button class="tab-btn" style="padding: 10px 20px; background: transparent; border-color: #ff4444; color: #ff4444;" onclick="limpiarFiltro()">Limpiar</button>
+    </div>
 
     <!-- Tabla Depósitos -->
     <div id="tab-depositos" class="table-container active">
@@ -140,7 +187,7 @@
                     <th>Monto BC</th>
                     <th>Total Pagado</th>
                     <th>Método</th>
-                    <th>Fecha</th>
+                    <th>Fecha y Hora</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -149,6 +196,7 @@
                 <tr><td colspan="8" class="loading">Cargando depósitos...</td></tr>
             </tbody>
         </table>
+        <div class="pagination" id="paginationDepositos"></div>
     </div>
 
     <!-- Tabla Retiros -->
@@ -161,7 +209,7 @@
                     <th>Monto BC</th>
                     <th>Monto Neto (Bs)</th>
                     <th>Método</th>
-                    <th>Fecha</th>
+                    <th>Fecha y Hora</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -170,15 +218,25 @@
                 <tr><td colspan="8" class="loading">Cargando retiros...</td></tr>
             </tbody>
         </table>
+        <div class="pagination" id="paginationRetiros"></div>
     </div>
 
-    <!-- Modal Comprobante -->
-    <div id="modalComprobante" class="modal">
+    <!-- Modal Ficha Completa -->
+    <div id="modalFicha" class="modal">
         <div class="modal-content">
-            <button class="modal-close" onclick="cerrarModal()">&times;</button>
-            <h3 style="color: #FFD700; margin-bottom: 15px;">Comprobante de Pago</h3>
-            <img id="imgComprobante" src="" alt="Comprobante">
-            <p id="infoComprobante" style="color: #888; margin-top: 10px; font-size: 0.85rem;"></p>
+            <button class="modal-close" onclick="cerrarModalFicha()">&times;</button>
+            <div class="ficha-header">
+                <h3 id="fichaTitulo">Detalle de Transacción</h3>
+                <span id="fichaEstado" class="status-badge"></span>
+            </div>
+            <div id="fichaBody">
+                <!-- Se llena dinámicamente con JS -->
+            </div>
+            <div class="ficha-image" id="fichaImageContainer" style="display: none;">
+                <h4 style="color: #FFD700; margin-bottom: 10px; font-size: 0.9rem;">Comprobante Adjunto</h4>
+                <img id="fichaImagen" src="" alt="Comprobante">
+                <p>Haz clic en la imagen para ampliarla en una nueva pestaña.</p>
+            </div>
         </div>
     </div>
 
