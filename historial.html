@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boche Clava'o - Historial</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../img/moneda.png">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #000000;
+            background-image: radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 25%),
+                              radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.06) 0%, transparent 25%);
+            min-height: 100vh; color: #ffffff; display: flex; flex-direction: column;
+        }
+        .navbar {
+            background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid #222; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+        .navbar-logo { max-width: 60px; height: auto; }
+        .navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
+        .btn-volver {
+            background: transparent; border: 1px solid #444; color: #ccc;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-family: 'Montserrat', sans-serif; font-weight: 600;
+            display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
+        }
+        .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
+
+        .main-content { flex: 1; padding: 30px 20px; max-width: 1000px; margin: 0 auto; width: 100%; }
+
+        /* Tarjeta de Saldo Compacta */
+        .balance-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 1px solid #FFD700; border-radius: 16px; padding: 25px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; box-shadow: 0 10px 40px rgba(255, 215, 0, 0.15);
+        }
+        .balance-info h2 { color: #999; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+        .balance-info .amount { font-size: 2.5rem; font-weight: 900; color: #FFD700; text-shadow: 0 0 20px rgba(255,215,0,0.2); }
+        .user-info { text-align: right; }
+        .user-info .name { color: #fff; font-size: 1.1rem; font-weight: 700; }
+        .user-info .id { color: #666; font-size: 0.8rem; margin-top: 4px; }
+
+        /* Filtros */
+        .filter-bar {
+            display: flex; justify-content: center; align-items: center; gap: 12px; 
+            margin-bottom: 25px; flex-wrap: wrap; background: rgba(10, 10, 10, 0.8);
+            padding: 15px; border-radius: 12px; border: 1px solid #222;
+        }
+        .filter-input, .filter-select {
+            padding: 10px 15px; background: #111; border: 1px solid #333; color: #fff;
+            border-radius: 8px; font-family: 'Montserrat', sans-serif; font-size: 0.9rem;
+        }
+        .filter-input:focus, .filter-select:focus { outline: none; border-color: #FFD700; }
+        .btn-filter {
+            padding: 10px 20px; background: #FFD700; color: #000; border: none;
+            border-radius: 8px; cursor: pointer; font-weight: 700; font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease;
+        }
+        .btn-filter:hover { background: #e6c200; transform: translateY(-2px); }
+        .btn-clear {
+            padding: 10px 20px; background: transparent; color: #ff4444; border: 1px solid #ff4444;
+            border-radius: 8px; cursor: pointer; font-weight: 700; font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease;
+        }
+        .btn-clear:hover { background: rgba(255, 68, 68, 0.1); }
+
+        /* Tabla */
+        .table-container {
+            background: #111; border-radius: 12px; border: 1px solid #333; overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: #1a1a1a; color: #FFD700; padding: 15px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 15px; border-bottom: 1px solid #222; color: #ccc; font-size: 0.9rem; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: rgba(255, 215, 0, 0.03); }
+
+        .tipo-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700;
+        }
+        .tipo-deposito { background: rgba(0, 255, 0, 0.1); color: #00ff00; }
+        .tipo-retiro { background: rgba(255, 68, 68, 0.1); color: #ff4444; }
+
+        .status-badge {
+            padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        }
+        .status-pendiente { background: rgba(255, 165, 0, 0.2); color: #FFA500; }
+        .status-aprobado { background: rgba(0, 255, 0, 0.2); color: #00ff00; }
+        .status-rechazado { background: rgba(255, 0, 0, 0.2); color: #ff4444; }
+
+        .loading, .empty-state { text-align: center; padding: 40px; color: #666; }
+
+        /* Paginación */
+        .pagination {
+            display: flex; justify-content: center; align-items: center; gap: 15px;
+            margin-top: 25px; padding-bottom: 20px;
+        }
+        .page-btn {
+            padding: 8px 16px; background: #111; border: 1px solid #333; color: #FFD700;
+            border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-btn:hover:not(:disabled) { background: #FFD700; color: #000; }
+        .page-info { color: #888; font-size: 0.85rem; }
+
+        .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
+        .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
+        .footer-text span { color: #FFD700; font-weight: 600; }
+
+        @media (max-width: 768px) {
+            .balance-card { flex-direction: column; text-align: center; gap: 15px; }
+            .user-info { text-align: center; }
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .filter-input, .filter-select, .btn-filter, .btn-clear { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="billetera.html" class="navbar-brand">
+            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
+            <span class="navbar-title">Boche Clava'o</span>
+        </a>
+        <button class="btn-volver" onclick="window.location.href='billetera.html'">
+            <i class="fas fa-arrow-left"></i> Billetera
+        </button>
+    </nav>
+
+    <div class="main-content">
+        
+        <!-- Saldo y Usuario -->
+        <div class="balance-card">
+            <div class="balance-info">
+                <h2>Saldo Actual</h2>
+                <div class="amount" id="walletBalance">0.00 BC</div>
+            </div>
+            <div class="user-info">
+                <div class="name" id="walletUserName">Cargando...</div>
+                <div class="id" id="walletUserId">ID: ---</div>
+            </div>
+        </div>
+
+        <!-- Barra de Filtros -->
+        <div class="filter-bar">
+            <select id="filterType" class="filter-select">
+                <option value="todos">Todos los movimientos</option>
+                <option value="deposito">Solo Depósitos</option>
+                <option value="retiro">Solo Retiros</option>
+            </select>
+            <input type="date" id="filterStart" class="filter-input" title="Fecha desde">
+            <input type="date" id="filterEnd" class="filter-input" title="Fecha hasta">
+            <button class="btn-filter" onclick="aplicarFiltros()"><i class="fas fa-filter"></i> Filtrar</button>
+            <button class="btn-clear" onclick="limpiarFiltros()"><i class="fas fa-times"></i> Limpiar</button>
+        </div>
+
+        <!-- Tabla de Historial -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Tipo</th>
+                        <th>Monto BC</th>
+                        <th>Detalle</th>
+                        <th>Método</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaHistorial">
+                    <tr><td colspan="6" class="loading">Cargando historial...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        <div class="pagination" id="paginationContainer"></div>
+
+    </div>
+
+    <footer class="main-footer">
+        <p class="footer-text">
+            Copyright © todos los derechos reservados<br>
+            Desarrollado professional <span>G/P</span> 2026 - 2027
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/historial.js"></script>
+</body>
+</html>
