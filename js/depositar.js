@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ==========================================
-    // ENVÍO DEL FORMULARIO (BLINDADO)
+    // ENVÍO DEL FORMULARIO (BLINDADO Y COMPLETO)
     // ==========================================
     document.getElementById('formDeposito').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (dbError) throw new Error('Error al guardar: ' + dbError.message);
             console.log('✅ Depósito registrado:', deposito);
 
-            // 3. ENVIAR CORREO (Si falla, NO detiene el proceso)
+            // 3. ENVIAR CORREO
             try {
                 console.log('📧 Intentando enviar correo...');
                 const { error: emailError } = await db.functions.invoke('enviar-factura', {
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 else console.log('✅ Correo enviado.');
             } catch (emailErr) { console.warn('⚠️ Fallo la conexión con la función de correo.'); }
 
-            // 4. GENERAR PDF (Si falla, NO detiene el proceso)
+            // 4. GENERAR PDF
             try {
                 console.log('📄 Generando PDF...');
                 if (window.jspdf) {
@@ -257,21 +257,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             } catch (pdfErr) { console.warn('⚠️ Error al generar PDF:', pdfErr); }
 
-            
-                       // 5. MOSTRAR ÉXITO (SIEMPRE SE EJECUTA)
+            // 5. MOSTRAR ÉXITO
             console.log('🎉 Mostrando vista de éxito...');
-            
             document.getElementById('formDeposito').style.display = 'none';
             document.getElementById('successAmount').textContent = cantidad;
             
-            // Agregar botón de descarga de factura
             const successActions = document.querySelector('.success-actions');
             if (successActions) {
-                // Eliminar botón existente si hay
                 const btnExistente = document.getElementById('btnDescargarFactura');
                 if (btnExistente) btnExistente.remove();
                 
-                // Crear nuevo botón
                 const btnDescargar = document.createElement('button');
                 btnDescargar.id = 'btnDescargarFactura';
                 btnDescargar.className = 'btn-secondary';
@@ -285,8 +280,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         alert('No se pudo generar la factura. Por favor, contacta a soporte.');
                     }
                 };
-                
-                // Insertar al inicio de los botones
                 successActions.insertBefore(btnDescargar, successActions.firstChild);
                 console.log('✅ Botón de descarga agregado');
             }
@@ -294,6 +287,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('successView').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
             console.log('✅ Vista de éxito mostrada');
+
+        } catch (err) {
+            console.error('❌ Error crítico en el depósito:', err);
+            mostrarMensaje('❌ Error: ' + err.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+        }
+    });
 
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgDeposito');
@@ -306,14 +307,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         document.getElementById('companyDataBox').style.display = 'none';
         document.getElementById('dynamicForm').style.display = 'none';
-        paqueteSeleccionado = null; metodoSeleccionado = null;
+        paqueteSeleccionado = null; 
+        metodoSeleccionado = null;
         document.getElementById('customAmount').value = '';
         document.getElementById('totalUSD').textContent = '0.00';
         document.getElementById('totalVES').textContent = '0.00';
         document.getElementById('formDeposito').style.display = 'block';
         document.getElementById('successView').style.display = 'none';
         const btn = document.getElementById('btnDepositar');
-        btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+        btn.disabled = false; 
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 });
