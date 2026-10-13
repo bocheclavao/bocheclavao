@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     let saldoActual = 0;
     let metodoSeleccionado = null;
     let perfilUsuario = null;
+    const COMISION_PORCENTAJE = 0.003; // 0.30% de comisión de la plataforma
 
     // ==========================================
     // 2. MÉTODOS DE PAGO DISPONIBLES PARA RETIRO
@@ -69,7 +70,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     function renderizarMetodosPago() {
         const grid = document.getElementById('paymentMethodsGrid');
         if (!grid) return;
-        
         grid.innerHTML = '';
         
         Object.keys(metodosRetiro).forEach(key => {
@@ -203,17 +203,22 @@ document.addEventListener('DOMContentLoaded', async function() {
     await cargarDatosIniciales();
 
     // ==========================================
-    // 5. CÁLCULO EN TIEMPO REAL
+    // 5. CÁLCULO EN TIEMPO REAL (CON COMISIÓN)
     // ==========================================
     const retMontoInput = document.getElementById('retMonto');
     const conversionPreview = document.getElementById('conversionPreview');
     
     if (retMontoInput) {
         retMontoInput.addEventListener('input', function() {
-            const monto = parseFloat(this.value) || 0;
-            if (monto > 0 && tasaBCV > 0) {
-                const montoBs = monto * tasaBCV;
-                document.getElementById('retMontoBs').textContent = montoBs.toFixed(2) + ' Bs';
+            const montoSolicitado = parseFloat(this.value) || 0;
+            if (montoSolicitado > 0 && tasaBCV > 0) {
+                const comisionBC = montoSolicitado * COMISION_PORCENTAJE;
+                const montoNetoBC = montoSolicitado - comisionBC;
+                const montoNetoBS = montoNetoBC * tasaBCV;
+                
+                document.getElementById('retMontoDisplay').textContent = montoSolicitado.toFixed(2);
+                document.getElementById('retComision').textContent = comisionBC.toFixed(2);
+                document.getElementById('retMontoNetoBs').textContent = montoNetoBS.toFixed(2);
                 document.getElementById('retTasaBCV').textContent = tasaBCV.toFixed(4);
                 conversionPreview.style.display = 'flex';
             } else {
@@ -236,13 +241,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            const monto = parseFloat(retMontoInput.value);
+            const montoSolicitado = parseFloat(retMontoInput.value);
             
-            if (monto < 50) {
+            if (montoSolicitado < 50) {
                 mostrarMensaje('❌ El monto mínimo de retiro es 50 BC.', 'error');
                 return;
             }
-            if (monto > saldoActual) {
+            if (montoSolicitado > saldoActual) {
                 mostrarMensaje('❌ No tienes suficiente saldo disponible.', 'error');
                 return;
             }
@@ -251,8 +256,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
 
-            const montoUSD = monto;
-            const montoBS = monto * tasaBCV;
+            // Cálculos finales con comisión
+            const comisionBC = montoSolicitado * COMISION_PORCENTAJE;
+            const montoNetoBC = montoSolicitado - comisionBC;
+            const montoUSD = montoNetoBC; // Valor real que sale de la plataforma
+            const montoBS = montoNetoBC * tasaBCV;
+            const comisionBS = comisionBC * tasaBCV;
 
             const datosUsuario = {};
             metodosRetiro[metodoSeleccionado].camposUsuario.forEach(campo => {
@@ -286,9 +295,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .from('retiros')
                     .insert({
                         user_id: session.user.id,
-                        monto_bc: monto,
+                        monto_bc: montoSolicitado,
                         monto_usd: montoUSD,
                         monto_bs: montoBS,
+                        comision_bc: comisionBC,      // Nuevo campo
+                        comision_bs: comisionBS,      // Nuevo campo
                         tasa_bcv_usada: tasaBCV,
                         metodo_pago: metodoSeleccionado,
                         datos_pago: datosUsuario,
@@ -300,7 +311,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
 
                 console.log('💰 Actualizando saldo del usuario...');
-                const nuevoSaldo = saldoActual - monto;
+                const nuevoSaldo = saldoActual - montoSolicitado; // Se descuenta el monto total solicitado
                 const { error: updateSaldoError } = await db
                     .from('perfiles')
                     .update({ saldo_bc: nuevoSaldo })
@@ -322,8 +333,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const successAmountEl = document.getElementById('successAmount');
                 
                 if (formRetiroEl) formRetiroEl.style.display = 'none';
-                if (contenidoRetiroEl) contenidoRetiroEl.style.display = 'none'; // Ocultamos el contenedor padre también
-                if (successAmountEl) successAmountEl.textContent = monto;
+                if (contenidoRetiroEl) contenidoRetiroEl.style.display = 'none';
+                if (successAmountEl) successAmountEl.textContent = montoSolicitado;
                 
                 if (successViewEl) {
                     successViewEl.style.display = 'block';
