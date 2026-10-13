@@ -256,34 +256,46 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.warn('⚠️ Error al enviar correo:', emailErr); 
             }
 
+            // 4. GENERAR PDF CON HEADER DORADO (COMO EL CORREO)
             try {
-                console.log('📄 Generando PDF...');
+                console.log('📄 Generando PDF con logo...');
                 if (window.jspdf) {
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF();
-                    doc.setFillColor(255, 215, 0); 
-                    doc.rect(0, 0, 210, 40, 'F');
+                    
+                    // Header dorado (igual que el correo)
+                    doc.setFillColor(255, 215, 0); // Color #FFD700
+                    doc.rect(0, 0, 210, 35, 'F');
+                    
+                    // Título
                     doc.setTextColor(0, 0, 0); 
-                    doc.setFontSize(22); 
+                    doc.setFontSize(24); 
                     doc.setFont("helvetica", "bold");
-                    doc.text("BOCHE CLAVA'O", 105, 20, null, null, "center");
-                    doc.setFontSize(12); 
+                    doc.text("BOCHE CLAVA'O", 105, 22, null, null, "center");
+                    
+                    doc.setFontSize(11); 
                     doc.setFont("helvetica", "normal"); 
                     doc.text("Comprobante de Depósito", 105, 30, null, null, "center");
+                    
+                    // Info básica
                     doc.setTextColor(50, 50, 50); 
                     doc.setFontSize(10);
-                    doc.text(`ID Transacción: ${deposito.id}`, 14, 55);
-                    doc.text(`Fecha: ${new Date().toLocaleString('es-VE')}`, 14, 62);
-                    doc.text(`Usuario: ${userData.nombre || session.user.email}`, 14, 69);
+                    doc.text(`ID Transacción: ${deposito.id}`, 14, 50);
+                    doc.text(`Fecha: ${new Date().toLocaleString('es-VE')}`, 14, 57);
+                    doc.text(`Usuario: ${userData.nombre || session.user.email}`, 14, 64);
+                    
+                    // Línea separadora
                     doc.setDrawColor(200, 200, 200); 
-                    doc.line(14, 75, 196, 75);
-                    doc.setFontSize(12); 
+                    doc.line(14, 70, 196, 70);
+                    
+                    // Detalles
+                    doc.setFontSize(13); 
                     doc.setFont("helvetica", "bold"); 
-                    doc.text("Detalles del Depósito", 14, 90);
+                    doc.text("Detalles del Depósito", 14, 85);
                     doc.setFont("helvetica", "normal"); 
                     doc.setFontSize(10);
                     
-                    let y = 105;
+                    let y = 100;
                     const detalles = [
                         { label: "Método de Pago:", value: metodosPago[metodoSeleccionado].nombre.toUpperCase() },
                         { label: "Cantidad de Monedas:", value: `${cantidad} BC` },
@@ -301,16 +313,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                         doc.setFont("helvetica", "normal");
                         const valorWidth = doc.getStringUnitWidth(item.value) * doc.internal.getFontSize() / doc.internal.scaleFactor;
                         doc.text(item.value, 196 - valorWidth, y);
-                        y += 10;
+                        y += 9;
                     });
 
+                    // Footer
                     doc.setFontSize(8); 
                     doc.setTextColor(100, 100, 100);
-                    doc.text("Este documento es un comprobante generado automáticamente.", 105, 280, null, null, "center");
-                    doc.text("Soporte: soporte@bocheclavao.com", 105, 285, null, null, "center");
+                    doc.text("Este documento es un comprobante generado automáticamente.", 105, 275, null, null, "center");
+                    doc.text("Soporte: soporte@bocheclavao.com", 105, 280, null, null, "center");
 
                     window.facturaPDF = doc;
-                    console.log('✅ PDF generado');
+                    console.log('✅ PDF generado con header dorado');
                 } else {
                     console.warn('⚠️ jsPDF no está cargado');
                 }
@@ -318,37 +331,53 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.warn('⚠️ Error al generar PDF:', pdfErr); 
             }
 
-            console.log('🎉 Mostrando vista de éxito...');
+            // 5. MOSTRAR VISTA DE ÉXITO CON LOGS MEJORADOS
+            console.log(' Iniciando muestra de vista de éxito...');
+            
+            // Ocultar formulario
             document.getElementById('formDeposito').style.display = 'none';
             document.getElementById('successAmount').textContent = cantidad;
             
+            // Insertar botón de descarga
             const successActions = document.querySelector('.success-actions');
+            console.log('🔍 Buscando .success-actions:', successActions);
+            
             if (successActions) {
+                // Remover botón existente si hay
                 const btnExistente = document.getElementById('btnDescargarFactura');
-                if (btnExistente) btnExistente.remove();
+                if (btnExistente) {
+                    console.log('️ Removiendo botón existente');
+                    btnExistente.remove();
+                }
                 
+                // Crear nuevo botón
                 const btnDescargar = document.createElement('button');
                 btnDescargar.id = 'btnDescargarFactura';
                 btnDescargar.className = 'btn-secondary';
                 btnDescargar.style.marginTop = '10px';
                 btnDescargar.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar Factura';
                 btnDescargar.onclick = () => {
+                    console.log(' Click en descargar PDF');
                     if (window.facturaPDF) {
                         window.facturaPDF.save(`Factura_BocheClavao_${deposito.id.substring(0,8)}.pdf`);
-                        console.log('📄 PDF descargado');
+                        console.log('✅ PDF descargado');
                     } else {
                         alert('No se pudo generar la factura. Contacta a soporte.');
                     }
                 };
+                
+                // Insertar al inicio
                 successActions.insertBefore(btnDescargar, successActions.firstChild);
-                console.log('✅ Botón de descarga insertado');
+                console.log('✅ Botón de descarga insertado correctamente');
             } else {
-                console.error('❌ No se encontró .success-actions en el HTML');
+                console.error('❌ ERROR CRÍTICO: No se encontró .success-actions en el HTML');
+                console.log('HTML actual:', document.querySelector('.success-view')?.innerHTML);
             }
             
+            // Mostrar vista de éxito
             document.getElementById('successView').style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
             console.log('✅ Vista de éxito mostrada');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
         } catch (err) {
             console.error('❌ Error crítico:', err);
