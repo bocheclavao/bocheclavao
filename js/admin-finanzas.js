@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ==========================================
     let currentPage = 1;
     const itemsPerPage = 20;
-    let currentTab = 'depositos';
+    let currentTab = 'depositos'; // Variable global para saber en qué pestaña estamos
     let filterStart = null;
     let filterEnd = null;
     let totalRecords = 0;
@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         const { data: adminData } = await db.from('admin_roles').select('es_admin, activo').eq('id', session.user.id).eq('es_admin', true).eq('activo', true).single();
         if (!adminData) { 
-            alert('Acceso denegado.'); window.location.href = 'dashboard.html'; return false; 
+            alert('Acceso denegado. No tienes permisos de administrador.'); 
+            window.location.href = 'dashboard.html'; 
+            return false; 
         }
         return true;
     }
@@ -49,17 +51,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('statComision').textContent = '$' + comisionTotal.toFixed(2);
     }
 
-    async function cargarTabla(tipo) {
-        currentTab = tipo;
+    async function cargarTabla(tab) {
+        currentTab = tab;
         currentPage = 1; // Resetear a página 1 al cambiar de tabla o filtro
         await ejecutarConsulta();
     }
 
     async function ejecutarConsulta() {
-        const tbody = document.getElementById(tipo === 'depositos' ? 'tablaDepositos' : 'tablaRetiros');
+        // CORRECCIÓN: Usar currentTab en lugar de tipo
+        const tbody = document.getElementById(currentTab === 'depositos' ? 'tablaDepositos' : 'tablaRetiros');
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando datos...</td></tr>';
 
-        let query = db.from(tipo).select('*', { count: 'exact' });
+        let query = db.from(currentTab).select('*', { count: 'exact' });
 
         // Aplicar filtros de fecha si existen
         if (filterStart) query = query.gte('created_at', `${filterStart}T00:00:00`);
@@ -98,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             let acciones = '';
             if (item.estado === 'pendiente') {
-                if (tipo === 'depositos') {
+                if (currentTab === 'depositos') {
                     acciones = `
                         <button class="action-btn btn-view" onclick='mostrarFichaCompleta("deposito", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")})'><i class="fas fa-eye"></i></button>
                         <button class="action-btn btn-approve" onclick="aprobarDeposito('${item.id}', ${item.cantidad_monedas}, '${item.user_id}')"><i class="fas fa-check"></i></button>
@@ -112,10 +115,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     `;
                 }
             } else {
-                acciones = `<button class="action-btn btn-view" onclick='mostrarFichaCompleta("${tipo}", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")})'><i class="fas fa-eye"></i> Ficha</button>`;
+                const tipoFicha = currentTab === 'depositos' ? 'deposito' : 'retiro';
+                acciones = `<button class="action-btn btn-view" onclick='mostrarFichaCompleta("${tipoFicha}", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")})'><i class="fas fa-eye"></i> Ficha</button>`;
             }
 
-            const montoDisplay = tipo === 'depositos' 
+            const montoDisplay = currentTab === 'depositos' 
                 ? `$${(item.monto_usd || 0).toFixed(2)} / Bs. ${(item.monto_bs || 0).toFixed(2)}`
                 : `Bs. ${(item.monto_bs || 0).toFixed(2)}`;
 
@@ -255,20 +259,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!confirm(`¿Aprobar este depósito de ${cantidadBC} BC? Se sumará al saldo y se notificará al usuario.`)) return;
 
         try {
-            // 1. Obtener email del usuario
             const { data: userData } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
             if (!userData) throw new Error('Usuario no encontrado');
 
-            // 2. Actualizar depósito
             const { error: errDep } = await db.from('depositos').update({ estado: 'aprobado' }).eq('id', idDeposito);
             if (errDep) throw errDep;
 
-            // 3. Actualizar saldo
             const nuevoSaldo = (userData.saldo_bc || 0) + Number(cantidadBC);
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
             if (errUpdate) throw errUpdate;
 
-            // 4. ENVIAR CORREO DE CONFIRMACIÓN
             try {
                 await db.functions.invoke('notificar-transaccion', {
                     body: {
@@ -309,15 +309,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!confirm('¿Confirmar que ya realizaste el pago externo y aprobar este retiro? Se notificará al usuario.')) return;
         
         try {
-            // 1. Obtener datos para el correo
             const { data: retiroData } = await db.from('retiros').select('user_id, monto_bc').eq('id', idRetiro).single();
             const { data: userData } = await db.from('perfiles').select('email, nombre').eq('id', retiroData.user_id).single();
 
-            // 2. Actualizar retiro
             const { error } = await db.from('retiros').update({ estado: 'aprobado' }).eq('id', idRetiro);
             if (error) throw error;
             
-            // 3. ENVIAR CORREO DE CONFIRMACIÓN
             try {
                 await db.functions.invoke('notificar-transaccion', {
                     body: {
