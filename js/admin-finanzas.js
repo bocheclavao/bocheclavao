@@ -281,25 +281,35 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (e.target === this) cerrarModalFicha();
     });
 
-    // ==========================================
-    // 5. ACCIONES BLINDADAS + CORREOS
-    // ==========================================
-    window.aprobarDeposito = async function(idDeposito, cantidadBC, userId) {
+       window.aprobarDeposito = async function(idDeposito, cantidadBC, userId) {
         if (!confirm(`¿Aprobar este depósito de ${cantidadBC} BC? Se sumará al saldo y se notificará al usuario.`)) return;
 
         try {
-            const { data: userData } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
-            if (!userData) throw new Error('Usuario no encontrado');
+            // 1. Obtener datos del usuario
+            const { data: userData, error: userErr } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
+            if (userErr || !userData) throw new Error('Usuario no encontrado: ' + (userErr?.message || ''));
 
+            // 2. Actualizar estado del depósito
             const { error: errDep } = await db.from('depositos').update({ estado: 'aprobado' }).eq('id', idDeposito);
-            if (errDep) throw errDep;
+            if (errDep) throw new Error('Error al actualizar depósito: ' + errDep.message);
 
+            // 3. Sumar al saldo
             const nuevoSaldo = (userData.saldo_bc || 0) + Number(cantidadBC);
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
-            if (errUpdate) throw errUpdate;
+            if (errUpdate) throw new Error('Error al actualizar saldo: ' + errUpdate.message);
 
+            // 4. ENVIAR CORREO (Con logs detallados para depuración)
             try {
-                await db.functions.invoke('notificar-transaccion', {
+                console.log('📧 Intentando enviar correo a:', userData.email);
+                console.log('📦 Datos enviados a la función:', {
+                    email: userData.email,
+                    nombre: userData.nombre || 'Usuario',
+                    tipo: 'deposito_aprobado',
+                    monto: cantidadBC,
+                    id: idDeposito
+                });
+                
+                const { data: emailData, error: emailErr } = await db.functions.invoke('notificar-transaccion', {
                     body: {
                         email: userData.email,
                         nombre: userData.nombre || 'Usuario',
@@ -308,29 +318,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                         id: idDeposito
                     }
                 });
+
+                if (emailErr) {
+                    console.error('❌ Error de Supabase al invocar la función:', emailErr);
+                    alert('⚠️ Depósito aprobado, pero FALLÓ el envío del correo. Revisa la consola (F12).');
+                } else {
+                    console.log('✅ Respuesta exitosa de la función de correo:', emailData);
+                }
             } catch (emailErr) {
-                console.warn('⚠️ Falló el envío del correo, pero la transacción se aprobó:', emailErr);
+                console.error('❌ Excepción inesperada al enviar correo:', emailErr);
             }
 
             alert('✅ Depósito aprobado, saldo actualizado y correo enviado.');
             await cargarEstadisticas();
             ejecutarConsulta();
         } catch (err) {
-            console.error('Error aprobando depósito:', err);
+            console.error('❌ Error global aprobando depósito:', err);
             alert('❌ Error al procesar: ' + err.message);
-        }
-    };
-
-    window.rechazarDeposito = async function(idDeposito) {
-        if (!confirm('¿Rechazar este depósito?')) return;
-        try {
-            const { error } = await db.from('depositos').update({ estado: 'rechazado' }).eq('id', idDeposito);
-            if (error) throw error;
-            alert('✅ Depósito rechazado.');
-            await cargarEstadisticas();
-            ejecutarConsulta();
-        } catch (err) {
-            alert('❌ Error: ' + err.message);
         }
     };
 
@@ -338,14 +342,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!confirm('¿Confirmar que ya realizaste el pago externo y aprobar este retiro? Se notificará al usuario.')) return;
         
         try {
-            const { data: retiroData } = await db.from('retiros').select('user_id, monto_bc').eq('id', idRetiro).single();
-            const { data: userData } = await db.from('perfiles').select('email, nombre').eq('id', retiroData.user_id).single();
+            // 1. Obtener datos del retiro y del usuario
+            const { data: retiroData, error: retiroErr } = await db.from('retiros').select('user_id, monto_bc').eq('id', idRetiro).single();
+            if (retiroErr || !retiroData) throw new Error('Retiro no encontrado');
 
-            const { error } = await db.from('retiros').update({ estado: 'aprobado' }).eq('id', idRetiro);
-            if (error) throw error;
+            const { data: userData, error: userErr } = await db.from('perfiles').select('email, nombre').eq('id', retiroData.user_id).single();
+            if (userErr || !userData) throw new Error('Usuario no encontrado');
+
+            // 2. Actualizar estado del retiro
+            const { error: errRet } = await db.from('retiros').update({ estado: 'aprobado' }).eq('id', idRetiro);
+            if (errRet) throw new Error('Error al actualizar retiro: ' + errRet.message);
             
+            // 3. ENVIAR CORREO (Con logs detallados)
             try {
-                await db.functions.invoke('notificar-transaccion', {
+                console.log('📧 Intentando enviar correo de retiro a:', userData.email);
+                
+                const { data: emailData, error: emailErr } = await db.functions.invoke('notificar-transaccion', {
                     body: {
                         email: userData.email,
                         nombre: userData.nombre || 'Usuario',
@@ -354,14 +366,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                         id: idRetiro
                     }
                 });
+
+                if (emailErr) {
+                    console.error('❌ Error de Supabase al invocar la función:', emailErr);
+                    alert('⚠️ Retiro aprobado, pero FALLÓ el envío del correo. Revisa la consola (F12).');
+                } else {
+                    console.log('✅ Respuesta exitosa de la función de correo:', emailData);
+                }
             } catch (emailErr) {
-                console.warn('⚠️ Falló el envío del correo, pero el retiro se aprobó:', emailErr);
+                console.error('❌ Excepción inesperada al enviar correo:', emailErr);
             }
 
             alert('✅ Retiro marcado como APROBADO y correo enviado.');
             await cargarEstadisticas();
             ejecutarConsulta();
         } catch (err) {
+            console.error('❌ Error global aprobando retiro:', err);
             alert('❌ Error: ' + err.message);
         }
     };
