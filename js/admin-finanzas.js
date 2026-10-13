@@ -62,24 +62,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando datos...</td></tr>';
 
         try {
-            // ==========================================
-            // CONSULTA CON JOIN DIRECTO A PERFILES
-            // ==========================================
-            let query = db.from(currentTab).select(`
-                *,
-                perfiles!user_id (
-                    id,
-                    nombre,
-                    email,
-                    saldo_bc
-                )
-            `, { count: 'exact' });
+            // PASO 1: Obtener los registros principales (SIN JOIN)
+            let query = db.from(currentTab).select('*', { count: 'exact' });
 
-            // Aplicar filtros de fecha si existen
             if (filterStart) query = query.gte('created_at', `${filterStart}T00:00:00`);
             if (filterEnd) query = query.lte('created_at', `${filterEnd}T23:59:59`);
 
-            // Paginación
             const start = (currentPage - 1) * itemsPerPage;
             const end = start + itemsPerPage - 1;
 
@@ -99,14 +87,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
-            // Renderizar filas
+            // PASO 2: Obtener los perfiles de los usuarios manualmente
+            const userIds = [...new Set(data.map(d => d.user_id))]; // IDs únicos
+            const { data: perfiles, error: errorPerfiles } = await db
+                .from('perfiles')
+                .select('id, nombre, email, saldo_bc')
+                .in('id', userIds);
+
+            if (errorPerfiles) {
+                console.warn('Advertencia al cargar perfiles:', errorPerfiles);
+            }
+
+            // Crear un mapa rápido para buscar usuarios por ID
+            const userMap = {};
+            if (perfiles) {
+                perfiles.forEach(p => { 
+                    userMap[p.id] = { 
+                        nombre: p.nombre || p.email || 'Usuario Desconocido',
+                        saldo: p.saldo_bc || 0
+                    }; 
+                });
+            }
+
+            // PASO 3: Renderizar filas combinando los datos
             tbody.innerHTML = data.map(item => {
-                // Extraer datos del perfil desde el JOIN
-                const perfil = item.perfiles || {};
-                const usuario = perfil.nombre || perfil.email || item.user_id?.substring(0, 8) || 'Desconocido';
-                const saldoUsuario = perfil.saldo_bc || 0;
+                const userInfo = userMap[item.user_id] || { nombre: item.user_id?.substring(0, 8) + '...', saldo: 0 };
+                const usuario = userInfo.nombre;
+                const saldoUsuario = userInfo.saldo;
                 
-                // Formato de Fecha y Hora
                 const fechaHora = item.created_at 
                     ? new Date(item.created_at).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) 
                     : 'N/A';
