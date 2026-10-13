@@ -183,6 +183,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             perfilUsuario = perfil;
             saldoActual = perfil.saldo_bc || 0;
+            
+            // ✅ ACTUALIZAR SALDO VISUAL AL CARGAR
             document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
 
             if (perfil.estado_kyc !== 'verificado') {
@@ -298,8 +300,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         monto_bc: montoSolicitado,
                         monto_usd: montoUSD,
                         monto_bs: montoBS,
-                        comision_bc: comisionBC,      // Nuevo campo
-                        comision_bs: comisionBS,      // Nuevo campo
+                        comision_bc: comisionBC,
+                        comision_bs: comisionBS,
                         tasa_bcv_usada: tasaBCV,
                         metodo_pago: metodoSeleccionado,
                         datos_pago: datosUsuario,
@@ -311,7 +313,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
 
                 console.log('💰 Actualizando saldo del usuario...');
-                const nuevoSaldo = saldoActual - montoSolicitado; // Se descuenta el monto total solicitado
+                const nuevoSaldo = saldoActual - montoSolicitado;
                 const { error: updateSaldoError } = await db
                     .from('perfiles')
                     .update({ saldo_bc: nuevoSaldo })
@@ -319,7 +321,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 if (updateSaldoError) throw new Error('Error al actualizar saldo: ' + updateSaldoError.message);
 
+                // ✅ ACTUALIZAR VARIABLES Y VISUALIZACIÓN DEL SALDO INMEDIATAMENTE
                 saldoActual = nuevoSaldo;
+                document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
+                
                 console.log('✅ Retiro registrado exitosamente:', retiro);
 
                 // ==========================================
@@ -371,6 +376,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('dynamicForm').style.display = 'none';
         document.getElementById('conversionPreview').style.display = 'none';
         metodoSeleccionado = null;
+        
+        // ✅ REAFIRMAR QUE EL SALDO MOSTRADO SEA EL ACTUALIZADO
+        document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
         
         document.getElementById('contenidoRetiro').style.display = 'block';
         document.getElementById('formRetiro').style.display = 'block';
