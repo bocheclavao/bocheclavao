@@ -198,40 +198,29 @@ if (formRetiro) {
             
             if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
 
-            // ==========================================
-            // C. ACTUALIZACIÓN ATÓMICA DE SALDO (MÉTODO SEGURO)
+                        // ==========================================
+            // C. ACTUALIZACIÓN ATÓMICA DE SALDO (VÍA RPC)
             // ==========================================
             console.log('🛡️ Ejecutando actualización atómica de saldo...');
             
-            // Esta consulta hace TODO en una sola operación atómica:
-            // 1. Resta el monto del saldo
-            // 2. Solo se ejecuta si el saldo actual es >= al monto solicitado
-            // 3. Previene condiciones de carrera completamente
-            const { data: perfilActualizado, error: updateSaldoError } = await db
-                .from('perfiles')
-                .update({ 
-                    saldo_bc: db.raw(`saldo_bc - ${montoSolicitado}`)  // Operación atómica en BD
-                })
-                .eq('id', session.user.id)
-                .gte('saldo_bc', montoSolicitado)  // Condición: solo si hay saldo suficiente
-                .select('saldo_bc')
-                .single();
+            // Llamamos a la función de base de datos que creamos en el Paso 1
+            const { data: rpcResult, error: rpcError } = await db.rpc('procesar_retiro', {
+                user_id_param: session.user.id,
+                monto_param: montoSolicitado
+            });
 
-            if (updateSaldoError) {
-                // Si hay error, verificar si fue por saldo insuficiente
-                if (updateSaldoError.code === 'PGRST116' || updateSaldoError.message.includes('0 rows')) {
-                    throw new Error('❌ Saldo insuficiente. Por favor, recarga la página y verifica tu saldo actual.');
-                }
-                throw new Error('Error crítico al descontar el saldo: ' + updateSaldoError.message);
+            if (rpcError) {
+                throw new Error('Error de base de datos al procesar el retiro: ' + rpcError.message);
             }
 
-            if (!perfilActualizado) {
-                throw new Error('No se pudo verificar la actualización del saldo.');
+            if (!rpcResult || !rpcResult.success) {
+                throw new Error(rpcResult?.error || 'Saldo insuficiente. Por favor, recarga la página.');
             }
 
-            saldoActual = perfilActualizado.saldo_bc;
+            // Actualizar el saldo local y la UI con el valor real devuelto por la BD
+            saldoActual = rpcResult.nuevo_saldo;
             document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
-            console.log('✅ Saldo actualizado atómicamente:', saldoActual);
+            console.log('✅ Saldo actualizado atómicamente en BD:', saldoActual);
             // ==========================================
 
             // D. Enviar Correo
