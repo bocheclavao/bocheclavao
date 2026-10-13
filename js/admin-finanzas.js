@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await cargarRetiros();
 
     // ==========================================
-    // 3. FUNCIONES DE CARGA
+    // 3. FUNCIONES DE CARGA (ENFOQUE INFALIBLE SIN JOINS)
     // ==========================================
     async function cargarEstadisticas() {
         const { count: countDep } = await db.from('depositos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
@@ -55,27 +55,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         const tbody = document.getElementById('tablaDepositos');
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando depósitos...</td></tr>';
 
-        // ⚠️ CORRECCIÓN: Usamos el nombre explícito del constraint: perfiles!depositos_user_id_fkey
-        const { data, error } = await db
-            .from('depositos')
-            .select('*, perfiles!depositos_user_id_fkey(nombre, email)')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error cargando depósitos:', error);
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos. Revisa la consola.</td></tr>';
+        // 1. Obtener todos los depósitos
+        const { data: depositos, error: errDep } = await db.from('depositos').select('*').order('created_at', { ascending: false });
+        if (errDep || !depositos) {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos.</td></tr>';
             return;
         }
 
-        if (!data || data.length === 0) {
+        if (depositos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay depósitos registrados</td></tr>';
             return;
         }
 
-        tbody.innerHTML = data.map(dep => {
-            // Accedemos a los datos anidados de forma segura
-            const perfil = dep.perfiles || {};
-            const usuario = perfil.nombre || perfil.email || 'Usuario Desconocido';
+        // 2. Obtener los perfiles de los usuarios de estos depósitos
+        const userIds = [...new Set(depositos.map(d => d.user_id))]; // IDs únicos
+        const { data: perfiles } = await db.from('perfiles').select('id, nombre, email').in('id', userIds);
+        
+        // 3. Crear un mapa rápido para buscar usuarios por ID
+        const userMap = {};
+        if (perfiles) {
+            perfiles.forEach(p => { userMap[p.id] = p.nombre || p.email || 'Usuario Desconocido'; });
+        }
+
+        // 4. Renderizar la tabla
+        tbody.innerHTML = depositos.map(dep => {
+            const usuario = userMap[dep.user_id] || 'Usuario Desconocido';
             const totalTexto = `$${dep.monto_usd.toFixed(2)} / Bs. ${dep.monto_bs.toFixed(2)}`;
             const fecha = new Date(dep.created_at).toLocaleDateString('es-VE');
             
@@ -109,26 +113,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         const tbody = document.getElementById('tablaRetiros');
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando retiros...</td></tr>';
 
-        // ⚠️ CORRECCIÓN: Usamos el nombre explícito del constraint: perfiles!retiros_user_id_fkey
-        const { data, error } = await db
-            .from('retiros')
-            .select('*, perfiles!retiros_user_id_fkey(nombre, email)')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error cargando retiros:', error);
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos. Revisa la consola.</td></tr>';
+        // 1. Obtener todos los retiros
+        const { data: retiros, error: errRet } = await db.from('retiros').select('*').order('created_at', { ascending: false });
+        if (errRet || !retiros) {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos.</td></tr>';
             return;
         }
 
-        if (!data || data.length === 0) {
+        if (retiros.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay retiros registrados</td></tr>';
             return;
         }
 
-        tbody.innerHTML = data.map(ret => {
-            const perfil = ret.perfiles || {};
-            const usuario = perfil.nombre || perfil.email || 'Usuario Desconocido';
+        // 2. Obtener los perfiles de los usuarios de estos retiros
+        const userIds = [...new Set(retiros.map(r => r.user_id))]; // IDs únicos
+        const { data: perfiles } = await db.from('perfiles').select('id, nombre, email').in('id', userIds);
+        
+        // 3. Crear un mapa rápido para buscar usuarios por ID
+        const userMap = {};
+        if (perfiles) {
+            perfiles.forEach(p => { userMap[p.id] = p.nombre || p.email || 'Usuario Desconocido'; });
+        }
+
+        // 4. Renderizar la tabla
+        tbody.innerHTML = retiros.map(ret => {
+            const usuario = userMap[ret.user_id] || 'Usuario Desconocido';
             const fecha = new Date(ret.created_at).toLocaleDateString('es-VE');
             
             let acciones = '';
