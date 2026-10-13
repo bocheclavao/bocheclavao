@@ -257,35 +257,43 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             } catch (pdfErr) { console.warn('⚠️ Error al generar PDF:', pdfErr); }
 
-            // 5. MOSTRAR ÉXITO (SIEMPRE SE EJECUTA)
+            
+                       // 5. MOSTRAR ÉXITO (SIEMPRE SE EJECUTA)
+            console.log('🎉 Mostrando vista de éxito...');
+            
             document.getElementById('formDeposito').style.display = 'none';
             document.getElementById('successAmount').textContent = cantidad;
             
+            // Agregar botón de descarga de factura
             const successActions = document.querySelector('.success-actions');
             if (successActions) {
+                // Eliminar botón existente si hay
                 const btnExistente = document.getElementById('btnDescargarFactura');
                 if (btnExistente) btnExistente.remove();
+                
+                // Crear nuevo botón
                 const btnDescargar = document.createElement('button');
                 btnDescargar.id = 'btnDescargarFactura';
                 btnDescargar.className = 'btn-secondary';
                 btnDescargar.style.marginTop = '10px';
                 btnDescargar.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar Factura';
                 btnDescargar.onclick = () => {
-                    if (window.facturaPDF) window.facturaPDF.save(`Factura_${deposito.id.substring(0,8)}.pdf`);
-                    else alert('No se pudo generar la factura.');
+                    if (window.facturaPDF) {
+                        window.facturaPDF.save(`Factura_BocheClavao_${deposito.id.substring(0,8)}.pdf`);
+                        console.log('📄 PDF descargado');
+                    } else {
+                        alert('No se pudo generar la factura. Por favor, contacta a soporte.');
+                    }
                 };
+                
+                // Insertar al inicio de los botones
                 successActions.insertBefore(btnDescargar, successActions.firstChild);
+                console.log('✅ Botón de descarga agregado');
             }
+            
             document.getElementById('successView').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        } catch (err) {
-            console.error('❌ Error crítico:', err);
-            mostrarMensaje('❌ Error: ' + err.message, 'error');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
-        }
-    });
+            console.log('✅ Vista de éxito mostrada');
 
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgDeposito');
