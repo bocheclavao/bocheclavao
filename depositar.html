@@ -375,39 +375,40 @@
             </div>
         </form>
 
-        <!-- ==========================================
-             VISTA DE ÉXITO (Oculta por defecto)
-             ========================================== -->
-        <div id="successView" class="success-view" style="display: none;">
-            <div class="success-icon-container">
-                <i class="fas fa-check" style="color: #00ff00;"></i>
-            </div>
-            <h2>¡Solicitud Enviada con Éxito!</h2>
-            <p>
-                Tu reporte de depósito por <strong style="color: #FFD700; font-size: 1.3rem;"><span id="successAmount">0</span> BC</strong> ha sido registrado correctamente en nuestro sistema.
-            </p>
-            
-            <div class="success-info-box">
-                <p>
-                    <i class="fas fa-clock" style="color: #FFD700; margin-right: 8px;"></i>
-                    <strong>Tiempo estimado de revisión:</strong> 15 a 30 minutos.
-                </p>
-                <p>
-                    Una vez validado tu comprobante, las monedas se acreditarán automáticamente en tu saldo. Podrás verificar el estado en tu <a href="historial.html" style="color: #FFD700; text-decoration: underline;">Historial de Transacciones</a>.
-                </p>
-            </div>
+     <!-- ==========================================
+     VISTA DE ÉXITO (Oculta por defecto)
+     ========================================== -->
+<div id="successView" class="success-view" style="display: none;">
+    <div class="success-icon-container">
+        <i class="fas fa-check" style="color: #00ff00;"></i>
+    </div>
+    <h2>¡Solicitud Enviada con Éxito!</h2>
+    <p>
+        Tu reporte de depósito por <strong style="color: #FFD700; font-size: 1.3rem;"><span id="successAmount">0</span> BC</strong> ha sido registrado correctamente en nuestro sistema.
+    </p>
+    
+    <div class="success-info-box">
+        <p>
+            <i class="fas fa-clock" style="color: #FFD700; margin-right: 8px;"></i>
+            <strong>Tiempo estimado de revisión:</strong> 15 a 30 minutos.
+        </p>
+        <p>
+            Una vez validado tu comprobante, las monedas se acreditarán automáticamente en tu saldo. Podrás verificar el estado en tu <a href="historial.html" style="color: #FFD700; text-decoration: underline;">Historial de Transacciones</a>.
+        </p>
+        <p style="margin-top: 10px; font-size: 0.85rem; color: #aaa;">
+            <i class="fas fa-envelope" style="color: #FFD700;"></i> También hemos enviado una factura detallada a tu correo electrónico.
+        </p>
+    </div>
 
-            <div class="success-actions">
-                <button onclick="window.location.href='billetera.html'" class="btn-secondary">
-                    <i class="fas fa-wallet"></i> Ir a mi Billetera
-                </button>
-                <button onclick="nuevoDeposito()" class="btn-primary" style="width: auto; padding: 12px 30px; margin-top: 0;">
-                    <i class="fas fa-plus"></i> Hacer otro depósito
-                </button>
-            </div>
-        </div>
-
-    </div> <!-- Cierre de main-content -->
+    <div class="success-actions">
+        <button onclick="window.location.href='billetera.html'" class="btn-secondary">
+            <i class="fas fa-wallet"></i> Ir a mi Billetera
+        </button>
+        <button onclick="nuevoDeposito()" class="btn-primary" style="width: auto; padding: 12px 30px; margin-top: 0;">
+            <i class="fas fa-plus"></i> Hacer otro depósito
+        </button>
+    </div>
+</div>
 
     <footer class="main-footer">
         <p class="footer-text">
