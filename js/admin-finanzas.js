@@ -37,12 +37,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         const { count: countDep } = await db.from('depositos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
         const { count: countRet } = await db.from('retiros').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
         
-        // Calcular comisión acumulada (aproximado de depósitos aprobados)
-        const { data: depsAprobados } = await db.from('depositos').select('monto_usd, descuento_aplicado').eq('estado', 'aprobado');
+        const { data: depsAprobados } = await db.from('depositos').select('monto_usd').eq('estado', 'aprobado');
         let comisionTotal = 0;
         if (depsAprobados) {
             comisionTotal = depsAprobados.reduce((acc, curr) => {
-                const base = curr.monto_usd / 1.003; // Reverse engineering del total con comisión
+                const base = curr.monto_usd / 1.003; 
                 return acc + (base * 0.003);
             }, 0);
         }
@@ -54,32 +53,36 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function cargarDepositos() {
         const tbody = document.getElementById('tablaDepositos');
-        tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando depósitos...</td></tr>';
 
+        // ⚠️ CORRECCIÓN: Usamos el nombre explícito del constraint: perfiles!depositos_user_id_fkey
         const { data, error } = await db
             .from('depositos')
-            .select('*, perfiles(nombre, email)')
+            .select('*, perfiles!depositos_user_id_fkey(nombre, email)')
             .order('created_at', { ascending: false });
 
-        if (error || !data) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos</td></tr>';
+        if (error) {
+            console.error('Error cargando depósitos:', error);
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos. Revisa la consola.</td></tr>';
             return;
         }
 
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay depósitos registrados</td></tr>';
             return;
         }
 
         tbody.innerHTML = data.map(dep => {
-            const usuario = dep.perfiles?.nombre || dep.perfiles?.email || 'Desconocido';
+            // Accedemos a los datos anidados de forma segura
+            const perfil = dep.perfiles || {};
+            const usuario = perfil.nombre || perfil.email || 'Usuario Desconocido';
             const totalTexto = `$${dep.monto_usd.toFixed(2)} / Bs. ${dep.monto_bs.toFixed(2)}`;
             const fecha = new Date(dep.created_at).toLocaleDateString('es-VE');
             
             let acciones = '';
             if (dep.estado === 'pendiente') {
                 acciones = `
-                    <button class="action-btn btn-view" onclick="verComprobante('${dep.comprobante_url}', '${usuario}')"><i class="fas fa-eye"></i></button>
+                    <button class="action-btn btn-view" onclick="verComprobante('${dep.comprobante_url || ''}', '${usuario}')"><i class="fas fa-eye"></i></button>
                     <button class="action-btn btn-approve" onclick="aprobarDeposito('${dep.id}', ${dep.cantidad_monedas}, '${dep.user_id}')"><i class="fas fa-check"></i></button>
                     <button class="action-btn btn-reject" onclick="rechazarDeposito('${dep.id}')"><i class="fas fa-times"></i></button>
                 `;
@@ -104,25 +107,28 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function cargarRetiros() {
         const tbody = document.getElementById('tablaRetiros');
-        tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando retiros...</td></tr>';
 
+        // ⚠️ CORRECCIÓN: Usamos el nombre explícito del constraint: perfiles!retiros_user_id_fkey
         const { data, error } = await db
             .from('retiros')
-            .select('*, perfiles(nombre, email)')
+            .select('*, perfiles!retiros_user_id_fkey(nombre, email)')
             .order('created_at', { ascending: false });
 
-        if (error || !data) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos</td></tr>';
+        if (error) {
+            console.error('Error cargando retiros:', error);
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos. Revisa la consola.</td></tr>';
             return;
         }
 
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay retiros registrados</td></tr>';
             return;
         }
 
         tbody.innerHTML = data.map(ret => {
-            const usuario = ret.perfiles?.nombre || ret.perfiles?.email || 'Desconocido';
+            const perfil = ret.perfiles || {};
+            const usuario = perfil.nombre || perfil.email || 'Usuario Desconocido';
             const fecha = new Date(ret.created_at).toLocaleDateString('es-VE');
             
             let acciones = '';
@@ -158,11 +164,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!confirm(`¿Aprobar este depósito de ${cantidadBC} BC? Se sumará al saldo del usuario.`)) return;
 
         try {
-            // 1. Actualizar estado del depósito
             const { error: errDep } = await db.from('depositos').update({ estado: 'aprobado' }).eq('id', idDeposito);
             if (errDep) throw errDep;
 
-            // 2. SUMAR SALDO AL USUARIO (Lectura fresca + Update)
             const { data: perfil, error: errPerfil } = await db.from('perfiles').select('saldo_bc').eq('id', userId).single();
             if (errPerfil) throw errPerfil;
 
@@ -213,11 +217,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!confirm(`⚠️ ¿Rechazar este retiro?\n\nEl monto de ${montoBC} BC será DEVUELTO automáticamente al saldo del usuario.`)) return;
         
         try {
-            // 1. Cambiar estado a rechazado
             const { error: errRet } = await db.from('retiros').update({ estado: 'rechazado' }).eq('id', idRetiro);
             if (errRet) throw errRet;
 
-            // 2. DEVOLVER SALDO AL USUARIO (Lectura fresca + Update)
             const { data: perfil, error: errPerfil } = await db.from('perfiles').select('saldo_bc').eq('id', userId).single();
             if (errPerfil) throw errPerfil;
 
@@ -246,7 +248,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     window.verComprobante = function(url, usuario) {
-        if (!url) { alert('Este depósito no tiene comprobante adjunto.'); return; }
+        if (!url || url === 'null' || url === 'undefined') { 
+            alert('Este depósito no tiene comprobante adjunto.'); 
+            return; 
+        }
         document.getElementById('imgComprobante').src = url;
         document.getElementById('infoComprobante').textContent = `Usuario: ${usuario}`;
         document.getElementById('modalComprobante').classList.add('active');
