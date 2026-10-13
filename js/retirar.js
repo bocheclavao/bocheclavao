@@ -129,238 +129,290 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // ==========================================
-    // 6. ENVÍO DEL FORMULARIO (BLINDADO AL 100%)
-    // ==========================================
-    const formRetiro = document.getElementById('formRetiro');
-    if (formRetiro) {
-        formRetiro.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            console.log('🚀 Iniciando proceso de retiro blindado...');
-            
-            if (!metodoSeleccionado) { mostrarMensaje('❌ Debes seleccionar un método de recepción.', 'error'); return; }
-            
-            const montoSolicitado = parseFloat(retMontoInput.value);
-            if (montoSolicitado < 50) { mostrarMensaje('❌ El monto mínimo de retiro es 50 BC.', 'error'); return; }
+   // ==========================================
+// 6. ENVÍO DEL FORMULARIO (ULTRA BLINDADO CON ACTUALIZACIÓN ATÓMICA)
+// ==========================================
+const formRetiro = document.getElementById('formRetiro');
+if (formRetiro) {
+    formRetiro.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        console.log('🚀 Iniciando proceso de retiro ultra-blindado...');
+        
+        if (!metodoSeleccionado) { 
+            mostrarMensaje('❌ Debes seleccionar un método de recepción.', 'error'); 
+            return; 
+        }
+        
+        const montoSolicitado = parseFloat(retMontoInput.value);
+        if (isNaN(montoSolicitado) || montoSolicitado < 50) { 
+            mostrarMensaje('❌ El monto mínimo de retiro es 50 BC.', 'error'); 
+            return; 
+        }
 
-            const btn = document.getElementById('btnRetirar');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
+        const btn = document.getElementById('btnRetirar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
 
-            const comisionBC = montoSolicitado * COMISION_PORCENTAJE;
-            const montoNetoBC = montoSolicitado - comisionBC;
-            const montoUSD = montoNetoBC;
-            const montoBS = montoNetoBC * tasaBCV;
-            const comisionBS = comisionBC * tasaBCV;
+        const comisionBC = montoSolicitado * COMISION_PORCENTAJE;
+        const montoNetoBC = montoSolicitado - comisionBC;
+        const montoUSD = montoNetoBC;
+        const montoBS = montoNetoBC * tasaBCV;
+        const comisionBS = comisionBC * tasaBCV;
 
-            const datosUsuario = {};
-            metodosRetiro[metodoSeleccionado].camposUsuario.forEach(campo => {
-                const elemento = document.getElementById(campo.id);
-                if (elemento) datosUsuario[campo.id] = elemento.value.trim();
-            });
+        const datosUsuario = {};
+        metodosRetiro[metodoSeleccionado].camposUsuario.forEach(campo => {
+            const elemento = document.getElementById(campo.id);
+            if (elemento) datosUsuario[campo.id] = elemento.value.trim();
+        });
 
-            try {
-                // A. Guardar datos bancarios si es la primera vez
-                const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
-                const datosActuales = perfilUsuario[campoPerfil] || {};
-                if (Object.keys(datosActuales).length === 0) {
-                    const { error: updatePerfilError } = await db.from('perfiles').update({ [campoPerfil]: datosUsuario }).eq('id', session.user.id);
-                    if (!updatePerfilError) perfilUsuario[campoPerfil] = datosUsuario;
-                }
-
-                // B. Registrar el retiro en la BD
-                console.log('💾 Registrando retiro en base de datos...');
-                const { data: retiro, error: dbError } = await db.from('retiros').insert({
-                    user_id: session.user.id, monto_bc: montoSolicitado, monto_usd: montoUSD, monto_bs: montoBS,
-                    comision_bc: comisionBC, comision_bs: comisionBS, tasa_bcv_usada: tasaBCV,
-                    metodo_pago: metodoSeleccionado, datos_pago: datosUsuario, estado: 'pendiente'
-                }).select().single();
-                
-                if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
-
-                // ==========================================
-                // C. PROTOCOLO BLINDADO DE ACTUALIZACIÓN DE SALDO (4 PASOS)
-                // ==========================================
-                console.log('🛡️ Iniciando protocolo de actualización de saldo...');
-                
-                // Paso 1: Leer el saldo REAL más reciente de la BD (evita condiciones de carrera)
-                const { data: perfilFresco, error: errorPerfilFresco } = await db
+        try {
+            // A. Guardar datos bancarios si es la primera vez
+            const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
+            const datosActuales = perfilUsuario[campoPerfil] || {};
+            if (Object.keys(datosActuales).length === 0) {
+                const { error: updatePerfilError } = await db
                     .from('perfiles')
-                    .select('saldo_bc')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (errorPerfilFresco) throw new Error('No se pudo verificar el saldo actual: ' + errorPerfilFresco.message);
-
-                const saldoRealEnBD = perfilFresco.saldo_bc || 0;
-
-                // Paso 2: Validar que el saldo real sea suficiente
-                if (saldoRealEnBD < montoSolicitado) {
-                    throw new Error('Saldo insuficiente en el momento de procesar. Por favor, recarga la página.');
-                }
-
-                // Paso 3: Ejecutar la actualización
-                const nuevoSaldoCalculado = saldoRealEnBD - montoSolicitado;
-                const { error: updateSaldoError } = await db
-                    .from('perfiles')
-                    .update({ saldo_bc: nuevoSaldoCalculado })
+                    .update({ [campoPerfil]: datosUsuario })
                     .eq('id', session.user.id);
+                if (!updatePerfilError) perfilUsuario[campoPerfil] = datosUsuario;
+            }
 
-                if (updateSaldoError) {
-                    throw new Error('Error crítico al descontar el saldo: ' + updateSaldoError.message);
+            // B. Registrar el retiro en la BD
+            console.log(' Registrando retiro en base de datos...');
+            const { data: retiro, error: dbError } = await db
+                .from('retiros')
+                .insert({
+                    user_id: session.user.id,
+                    monto_bc: montoSolicitado,
+                    monto_usd: montoUSD,
+                    monto_bs: montoBS,
+                    comision_bc: comisionBC,
+                    comision_bs: comisionBS,
+                    tasa_bcv_usada: tasaBCV,
+                    metodo_pago: metodoSeleccionado,
+                    datos_pago: datosUsuario,
+                    estado: 'pendiente'
+                })
+                .select()
+                .single();
+            
+            if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
+
+            // ==========================================
+            // C. ACTUALIZACIÓN ATÓMICA DE SALDO (MÉTODO SEGURO)
+            // ==========================================
+            console.log('🛡️ Ejecutando actualización atómica de saldo...');
+            
+            // Esta consulta hace TODO en una sola operación atómica:
+            // 1. Resta el monto del saldo
+            // 2. Solo se ejecuta si el saldo actual es >= al monto solicitado
+            // 3. Previene condiciones de carrera completamente
+            const { data: perfilActualizado, error: updateSaldoError } = await db
+                .from('perfiles')
+                .update({ 
+                    saldo_bc: db.raw(`saldo_bc - ${montoSolicitado}`)  // Operación atómica en BD
+                })
+                .eq('id', session.user.id)
+                .gte('saldo_bc', montoSolicitado)  // Condición: solo si hay saldo suficiente
+                .select('saldo_bc')
+                .single();
+
+            if (updateSaldoError) {
+                // Si hay error, verificar si fue por saldo insuficiente
+                if (updateSaldoError.code === 'PGRST116' || updateSaldoError.message.includes('0 rows')) {
+                    throw new Error('❌ Saldo insuficiente. Por favor, recarga la página y verifica tu saldo actual.');
                 }
+                throw new Error('Error crítico al descontar el saldo: ' + updateSaldoError.message);
+            }
 
-                // Paso 4: Verificación final (Leer de nuevo para confirmar que la BD guardó el cambio)
-                const { data: perfilVerificado, error: errorVerificacion } = await db
-                    .from('perfiles')
-                    .select('saldo_bc')
-                    .eq('id', session.user.id)
-                    .single();
+            if (!perfilActualizado) {
+                throw new Error('No se pudo verificar la actualización del saldo.');
+            }
 
-                if (errorVerificacion) {
-                    console.warn('⚠️ No se pudo verificar el saldo tras la actualización, pero el update se ejecutó.');
-                    saldoActual = nuevoSaldoCalculado; // Confiamos en el cálculo local como fallback
-                } else {
-                    saldoActual = perfilVerificado.saldo_bc; // Usamos el valor confirmado por la BD
-                }
+            saldoActual = perfilActualizado.saldo_bc;
+            document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
+            console.log('✅ Saldo actualizado atómicamente:', saldoActual);
+            // ==========================================
 
-                // Actualizar la UI inmediatamente con el saldo verificado
-                document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
-                console.log('✅ Saldo actualizado y VERIFICADO en BD:', saldoActual);
-                // ==========================================
+            // D. Enviar Correo
+            try {
+                console.log('📧 Enviando comprobante por correo...');
+                await db.functions.invoke('enviar-factura', {
+                    body: { 
+                        email: session.user.email, 
+                        nombre: perfilUsuario.nombre || 'Usuario', 
+                        montoBC: montoSolicitado, 
+                        montoUSD: montoUSD.toFixed(2), 
+                        montoBS: montoBS.toFixed(2), 
+                        metodo: metodosRetiro[metodoSeleccionado].nombre, 
+                        fecha: new Date().toLocaleString('es-VE'), 
+                        idTransaccion: retiro.id, 
+                        tipo: 'Retiro' 
+                    }
+                });
+                console.log('✅ Correo enviado');
+            } catch (emailErr) { 
+                console.warn('⚠️ Error al enviar correo:', emailErr); 
+            }
 
-                // D. Enviar Correo
-                try {
-                    console.log('📧 Enviando comprobante por correo...');
-                    await db.functions.invoke('enviar-factura', {
-                        body: { email: session.user.email, nombre: perfilUsuario.nombre || 'Usuario', montoBC: montoSolicitado, montoUSD: montoUSD.toFixed(2), montoBS: montoBS.toFixed(2), metodo: metodosRetiro[metodoSeleccionado].nombre, fecha: new Date().toLocaleString('es-VE'), idTransaccion: retiro.id, tipo: 'Retiro' }
+            // E. Generar PDF
+            try {
+                console.log('📄 Generando PDF de retiro...');
+                if (window.jspdf) {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    doc.setFillColor(255, 215, 0); 
+                    doc.rect(0, 0, 210, 35, 'F');
+                    doc.setTextColor(0, 0, 0); 
+                    doc.setFontSize(24); 
+                    doc.setFont("helvetica", "bold");
+                    doc.text("BOCHE CLAVA'O", 105, 18, null, null, "center");
+                    doc.setFontSize(11); 
+                    doc.setFont("helvetica", "normal"); 
+                    doc.text("COMPROBANTE OFICIAL DE RETIRO", 105, 26, null, null, "center");
+                    
+                    doc.setTextColor(50, 50, 50); 
+                    doc.setFontSize(9);
+                    let yPos = 45; 
+                    const lineHeight = 6;
+                    doc.setFont("helvetica", "bold"); 
+                    doc.text("ID Transacción:", 14, yPos);
+                    doc.setFont("helvetica", "normal"); 
+                    doc.text(retiro.id.substring(0, 8) + '...', 90, yPos); 
+                    yPos += lineHeight;
+                    doc.setFont("helvetica", "bold"); 
+                    doc.text("Fecha:", 14, yPos);
+                    doc.setFont("helvetica", "normal"); 
+                    doc.text(new Date().toLocaleDateString('es-VE'), 90, yPos); 
+                    yPos += lineHeight;
+                    doc.setFont("helvetica", "bold"); 
+                    doc.text("Usuario:", 14, yPos);
+                    const userName = perfilUsuario.nombre || session.user.email;
+                    doc.setFont("helvetica", "normal"); 
+                    doc.text(userName.length > 35 ? userName.substring(0, 35) + '...' : userName, 90, yPos); 
+                    yPos += lineHeight + 3;
+                    
+                    doc.setFillColor(255, 215, 0); 
+                    doc.rect(14, yPos, 182, 7, 'F');
+                    doc.setTextColor(0, 0, 0); 
+                    doc.setFont("helvetica", "bold"); 
+                    doc.setFontSize(11);
+                    doc.text("DETALLES DEL RETIRO", 105, yPos + 4.5, null, null, "center"); 
+                    yPos += 11;
+                    
+                    doc.setFontSize(9); 
+                    doc.setTextColor(50, 50, 50);
+                    const detalles = [
+                        { label: "Método de Recepción:", value: metodosRetiro[metodoSeleccionado].nombre.toUpperCase() },
+                        { label: "Monto Solicitado:", value: `${montoSolicitado} BC` },
+                        { label: "Comisión (0.30%):", value: `-${comisionBC.toFixed(2)} BC` },
+                        { label: "Monto Neto BC:", value: `${montoNetoBC.toFixed(2)} BC` },
+                        { label: "Tasa BCV:", value: `${tasaBCV.toFixed(2)} Bs/USD` },
+                        { label: "", value: "" },
+                        { label: "TOTAL A RECIBIR (USD):", value: `$${montoUSD.toFixed(2)}`, highlight: true },
+                        { label: "TOTAL A RECIBIR (Bs):", value: `Bs. ${montoBS.toFixed(2)}`, highlight: true },
+                        { label: "", value: "" },
+                        { label: "Estado:", value: "PENDIENTE", bold: true, color: [133, 100, 4] }
+                    ];
+
+                    detalles.forEach(item => {
+                        if (item.label === "" && item.value === "") { yPos += 2; return; }
+                        if (item.highlight) { 
+                            doc.setFillColor(255, 248, 220); 
+                            doc.rect(14, yPos - 2.5, 182, 7, 'F'); 
+                        }
+                        doc.setFont("helvetica", item.bold ? "bold" : "normal");
+                        if (item.color) doc.setTextColor(...item.color);
+                        else if (item.highlight) doc.setTextColor(139, 69, 19);
+                        else doc.setTextColor(50, 50, 50);
+                        doc.text(item.label, 16, yPos);
+                        const valorWidth = doc.getStringUnitWidth(item.value) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                        doc.text(item.value, 194 - valorWidth, yPos);
+                        yPos += 6;
                     });
-                    console.log('✅ Correo enviado');
-                } catch (emailErr) { console.warn('⚠️ Error al enviar correo:', emailErr); }
-
-                // E. Generar PDF
-                try {
-                    console.log('📄 Generando PDF de retiro...');
-                    if (window.jspdf) {
-                        const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF();
-                        doc.setFillColor(255, 215, 0); doc.rect(0, 0, 210, 35, 'F');
-                        doc.setTextColor(0, 0, 0); doc.setFontSize(24); doc.setFont("helvetica", "bold");
-                        doc.text("BOCHE CLAVA'O", 105, 18, null, null, "center");
-                        doc.setFontSize(11); doc.setFont("helvetica", "normal"); doc.text("COMPROBANTE OFICIAL DE RETIRO", 105, 26, null, null, "center");
-                        
-                        doc.setTextColor(50, 50, 50); doc.setFontSize(9);
-                        let yPos = 45; const lineHeight = 6;
-                        doc.setFont("helvetica", "bold"); doc.text("ID Transacción:", 14, yPos);
-                        doc.setFont("helvetica", "normal"); doc.text(retiro.id.substring(0, 8) + '...', 90, yPos); yPos += lineHeight;
-                        doc.setFont("helvetica", "bold"); doc.text("Fecha:", 14, yPos);
-                        doc.setFont("helvetica", "normal"); doc.text(new Date().toLocaleDateString('es-VE'), 90, yPos); yPos += lineHeight;
-                        doc.setFont("helvetica", "bold"); doc.text("Usuario:", 14, yPos);
-                        const userName = perfilUsuario.nombre || session.user.email;
-                        doc.setFont("helvetica", "normal"); doc.text(userName.length > 35 ? userName.substring(0, 35) + '...' : userName, 90, yPos); yPos += lineHeight + 3;
-                        
-                        doc.setFillColor(255, 215, 0); doc.rect(14, yPos, 182, 7, 'F');
-                        doc.setTextColor(0, 0, 0); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-                        doc.text("DETALLES DEL RETIRO", 105, yPos + 4.5, null, null, "center"); yPos += 11;
-                        
-                        doc.setFontSize(9); doc.setTextColor(50, 50, 50);
-                        const detalles = [
-                            { label: "Método de Recepción:", value: metodosRetiro[metodoSeleccionado].nombre.toUpperCase() },
-                            { label: "Monto Solicitado:", value: `${montoSolicitado} BC` },
-                            { label: "Comisión (0.30%):", value: `-${comisionBC.toFixed(2)} BC` },
-                            { label: "Monto Neto BC:", value: `${montoNetoBC.toFixed(2)} BC` },
-                            { label: "Tasa BCV:", value: `${tasaBCV.toFixed(2)} Bs/USD` },
-                            { label: "", value: "" },
-                            { label: "TOTAL A RECIBIR (USD):", value: `$${montoUSD.toFixed(2)}`, highlight: true },
-                            { label: "TOTAL A RECIBIR (Bs):", value: `Bs. ${montoBS.toFixed(2)}`, highlight: true },
-                            { label: "", value: "" },
-                            { label: "Estado:", value: "PENDIENTE", bold: true, color: [133, 100, 4] }
-                        ];
-
-                        detalles.forEach(item => {
-                            if (item.label === "" && item.value === "") { yPos += 2; return; }
-                            if (item.highlight) { doc.setFillColor(255, 248, 220); doc.rect(14, yPos - 2.5, 182, 7, 'F'); }
-                            doc.setFont("helvetica", item.bold ? "bold" : "normal");
-                            if (item.color) doc.setTextColor(...item.color);
-                            else if (item.highlight) doc.setTextColor(139, 69, 19);
-                            else doc.setTextColor(50, 50, 50);
-                            doc.text(item.label, 16, yPos);
-                            const valorWidth = doc.getStringUnitWidth(item.value) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-                            doc.text(item.value, 194 - valorWidth, yPos);
-                            yPos += 6;
-                        });
-                        
-                        yPos += 8; doc.setDrawColor(200, 200, 200); doc.line(14, yPos, 196, yPos); yPos += 8;
-                        doc.setFontSize(7); doc.setTextColor(100, 100, 100); doc.setFont("helvetica", "italic");
-                        doc.text("Este documento es un comprobante oficial generado automáticamente.", 105, yPos, null, null, "center"); yPos += 4;
-                        doc.text("Soporte: soporte@bocheclavao.com", 105, yPos, null, null, "center"); yPos += 4;
-                        doc.text("Boche Clava'o © " + new Date().getFullYear(), 105, yPos, null, null, "center");
-
-                        window.facturaRetiroPDF = doc;
-                        console.log('✅ PDF de retiro generado');
-                    }
-                } catch (pdfErr) { console.warn('⚠️ Error al generar PDF:', pdfErr); }
-
-                // F. MOSTRAR VISTA DE ÉXITO
-                console.log('🎉 Mostrando vista de éxito...');
-                try {
-                    const formEl = document.getElementById('formRetiro');
-                    const contenidoEl = document.getElementById('contenidoRetiro');
-                    if (formEl) formEl.style.display = 'none';
-                    if (contenidoEl) contenidoEl.style.display = 'none';
                     
-                    const amountEl = document.getElementById('successAmount');
-                    if (amountEl) amountEl.textContent = montoSolicitado;
-                    
-                    const successActions = document.querySelector('.success-actions');
-                    if (successActions) {
-                        const btnExistente = document.getElementById('btnDescargarComprobanteRetiro');
-                        if (btnExistente) btnExistente.remove();
-                        
-                        const btnDescargar = document.createElement('button');
-                        btnDescargar.id = 'btnDescargarComprobanteRetiro';
-                        btnDescargar.className = 'btn-secondary';
-                        btnDescargar.style.marginTop = '10px';
-                        btnDescargar.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar Comprobante';
-                        btnDescargar.onclick = () => {
-                            if (window.facturaRetiroPDF) {
-                                window.facturaRetiroPDF.save(`Comprobante_Retiro_${retiro.id.substring(0,8)}.pdf`);
-                                console.log('📄 PDF descargado');
-                            } else {
-                                alert('No se pudo generar el comprobante. Contacta a soporte.');
-                            }
-                        };
-                        successActions.insertBefore(btnDescargar, successActions.firstChild);
-                        console.log('✅ Botón de descarga insertado');
-                    }
-                    
-                    const successViewEl = document.getElementById('successView');
-                    if (successViewEl) {
-                        successViewEl.style.display = 'block';
-                        console.log('✅ Vista de éxito mostrada');
-                    }
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                } catch (uiError) {
-                    console.error('❌ ERROR CRÍTICO al mostrar la vista:', uiError);
-                    throw uiError;
+                    yPos += 8; 
+                    doc.setDrawColor(200, 200, 200); 
+                    doc.line(14, yPos, 196, yPos); 
+                    yPos += 8;
+                    doc.setFontSize(7); 
+                    doc.setTextColor(100, 100, 100); 
+                    doc.setFont("helvetica", "italic");
+                    doc.text("Este documento es un comprobante oficial generado automáticamente.", 105, yPos, null, null, "center"); 
+                    yPos += 4;
+                    doc.text("Soporte: soporte@bocheclavao.com", 105, yPos, null, null, "center"); 
+                    yPos += 4;
+                    doc.text("Boche Clava'o © " + new Date().getFullYear(), 105, yPos, null, null, "center");
+
+                    window.facturaRetiroPDF = doc;
+                    console.log('✅ PDF de retiro generado');
                 }
+            } catch (pdfErr) { 
+                console.warn('⚠️ Error al generar PDF:', pdfErr); 
+            }
 
-            } catch (err) {
-                console.error('❌ [ERROR GLOBAL] en el retiro:', err);
-                mostrarMensaje('❌ Error: ' + err.message, 'error');
-                
-                // Restaurar estado en caso de error
+            // F. MOSTRAR VISTA DE ÉXITO
+            console.log('🎉 Mostrando vista de éxito...');
+            try {
                 const formEl = document.getElementById('formRetiro');
                 const contenidoEl = document.getElementById('contenidoRetiro');
-                if (formEl) formEl.style.display = 'block';
-                if (contenidoEl) contenidoEl.style.display = 'block';
+                if (formEl) formEl.style.display = 'none';
+                if (contenidoEl) contenidoEl.style.display = 'none';
                 
-                const btn = document.getElementById('btnRetirar');
-                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Solicitar Retiro'; }
+                const amountEl = document.getElementById('successAmount');
+                if (amountEl) amountEl.textContent = montoSolicitado;
+                
+                const successActions = document.querySelector('.success-actions');
+                if (successActions) {
+                    const btnExistente = document.getElementById('btnDescargarComprobanteRetiro');
+                    if (btnExistente) btnExistente.remove();
+                    
+                    const btnDescargar = document.createElement('button');
+                    btnDescargar.id = 'btnDescargarComprobanteRetiro';
+                    btnDescargar.className = 'btn-secondary';
+                    btnDescargar.style.marginTop = '10px';
+                    btnDescargar.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar Comprobante';
+                    btnDescargar.onclick = () => {
+                        if (window.facturaRetiroPDF) {
+                            window.facturaRetiroPDF.save(`Comprobante_Retiro_${retiro.id.substring(0,8)}.pdf`);
+                            console.log('📄 PDF descargado');
+                        } else {
+                            alert('No se pudo generar el comprobante. Contacta a soporte.');
+                        }
+                    };
+                    successActions.insertBefore(btnDescargar, successActions.firstChild);
+                    console.log('✅ Botón de descarga insertado');
+                }
+                
+                const successViewEl = document.getElementById('successView');
+                if (successViewEl) {
+                    successViewEl.style.display = 'block';
+                    console.log('✅ Vista de éxito mostrada');
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (uiError) {
+                console.error('❌ ERROR CRÍTICO al mostrar la vista:', uiError);
+                throw uiError;
             }
-        });
-    }
 
+        } catch (err) {
+            console.error('❌ [ERROR GLOBAL] en el retiro:', err);
+            mostrarMensaje('❌ Error: ' + err.message, 'error');
+            
+            // Restaurar estado en caso de error
+            const formEl = document.getElementById('formRetiro');
+            const contenidoEl = document.getElementById('contenidoRetiro');
+            if (formEl) formEl.style.display = 'block';
+            if (contenidoEl) contenidoEl.style.display = 'block';
+            
+            const btn = document.getElementById('btnRetirar');
+            if (btn) { 
+                btn.disabled = false; 
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Solicitar Retiro'; 
+            }
+        }
+    });
+}
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgRetiro');
         if (msg) { msg.textContent = texto; msg.className = `message ${tipo}`; }
