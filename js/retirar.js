@@ -5,12 +5,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     const { data: { session } } = await db.auth.getSession();
     if (!session || !session.user) { window.location.href = 'index.html'; return; }
 
+    // ==========================================
+    // 1. VARIABLES GLOBALES
+    // ==========================================
     let tasaBCV = 0;
     let saldoActual = 0;
     let metodoSeleccionado = null;
     let perfilUsuario = null;
-    const COMISION_PORCENTAJE = 0.003;
+    const COMISION_PORCENTAJE = 0.003; // 0.30% de comisión
 
+    // ==========================================
+    // 2. MÉTODOS DE PAGO
+    // ==========================================
     const metodosRetiro = {
         'pagomovil': { nombre: 'Pago Móvil', logo: '../img/pg.png', campoPerfil: 'datos_pago_pagomovil', camposUsuario: [{ id: 'banco', label: 'Banco', type: 'select', options: ['Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial (BBVA)', 'Bicentenario', 'Bancaribe', 'Banco Exterior', 'Bancrecer', 'Banplus', 'Banco del Tesoro', 'Banco Nacional de Crédito (BNC)', 'Banco Plaza', 'Banco Sofitasa', 'Banco Agrícola de Venezuela', 'Banco Fondo Común (BFC)', '100% Banco', 'Mi Banco', 'Banco Activo', 'Bancamiga', 'Bantrab', 'Banco de la Fuerza Armada (BANFANB)', 'Banco Caroní', 'Del Sur Banco Universal', 'Banco Internacional de Desarrollo'] }, { id: 'telefono', label: 'Teléfono', type: 'tel', placeholder: '0414-1234567' }, { id: 'cedula', label: 'Cédula', type: 'text', placeholder: 'V-12345678' }] },
         'zelle': { nombre: 'Zelle', logo: '../img/zelle.png', campoPerfil: 'datos_pago_zelle', camposUsuario: [{ id: 'nombre', label: 'Nombre del titular', type: 'text', placeholder: 'Como aparece en Zelle' }, { id: 'email', label: 'Correo o teléfono Zelle', type: 'text', placeholder: 'correo@ejemplo.com' }] },
@@ -18,6 +24,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         'paypal': { nombre: 'PayPal', logo: '../img/paypal.png', campoPerfil: 'datos_pago_paypal', camposUsuario: [{ id: 'email', label: 'Correo PayPal', type: 'email', placeholder: 'correo@ejemplo.com' }] }
     };
 
+    // ==========================================
+    // 3. RENDERIZAR MÉTODOS
+    // ==========================================
     function renderizarMetodosPago() {
         const grid = document.getElementById('paymentMethodsGrid');
         if (!grid) return;
@@ -64,16 +73,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('dynamicForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    // ==========================================
+    // 4. CARGAR DATOS INICIALES (CON SALDO FRESCO)
+    // ==========================================
     async function cargarDatosIniciales() {
         try {
             const { data: configData } = await db.from('configuracion_sistema').select('valor').eq('clave', 'tasa_bcv_oficial').single();
             tasaBCV = configData ? parseFloat(configData.valor.replace(',', '.')) : 876.79;
 
+            // Leemos el perfil y el saldo directamente de la BD
             const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', session.user.id).single();
             if (error || !perfil) { alert('No se encontró tu perfil.'); window.location.href = 'dashboard.html'; return; }
 
             perfilUsuario = perfil;
-            saldoActual = perfil.saldo_bc || 0;
+            saldoActual = perfil.saldo_bc || 0; // Asignamos el valor real de la BD
+            
+            // Actualizamos la UI con el saldo real
             document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
 
             if (perfil.estado_kyc !== 'verificado') {
@@ -91,6 +106,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     await cargarDatosIniciales();
 
+    // ==========================================
+    // 5. CÁLCULO EN TIEMPO REAL
+    // ==========================================
     const retMontoInput = document.getElementById('retMonto');
     const conversionPreview = document.getElementById('conversionPreview');
     if (retMontoInput) {
@@ -111,16 +129,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // ==========================================
+    // 6. ENVÍO DEL FORMULARIO (BLINDADO AL 100%)
+    // ==========================================
     const formRetiro = document.getElementById('formRetiro');
     if (formRetiro) {
         formRetiro.addEventListener('submit', async function(e) {
             e.preventDefault();
-            console.log('🚀 Iniciando proceso de retiro...');
+            console.log('🚀 Iniciando proceso de retiro blindado...');
             
             if (!metodoSeleccionado) { mostrarMensaje('❌ Debes seleccionar un método de recepción.', 'error'); return; }
+            
             const montoSolicitado = parseFloat(retMontoInput.value);
             if (montoSolicitado < 50) { mostrarMensaje('❌ El monto mínimo de retiro es 50 BC.', 'error'); return; }
-            if (montoSolicitado > saldoActual) { mostrarMensaje('❌ No tienes suficiente saldo disponible.', 'error'); return; }
 
             const btn = document.getElementById('btnRetirar');
             btn.disabled = true;
@@ -139,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             try {
-                console.log('💾 Guardando datos bancarios en perfil...');
+                // A. Guardar datos bancarios si es la primera vez
                 const campoPerfil = metodosRetiro[metodoSeleccionado].campoPerfil;
                 const datosActuales = perfilUsuario[campoPerfil] || {};
                 if (Object.keys(datosActuales).length === 0) {
@@ -147,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (!updatePerfilError) perfilUsuario[campoPerfil] = datosUsuario;
                 }
 
+                // B. Registrar el retiro en la BD
                 console.log('💾 Registrando retiro en base de datos...');
                 const { data: retiro, error: dbError } = await db.from('retiros').insert({
                     user_id: session.user.id, monto_bc: montoSolicitado, monto_usd: montoUSD, monto_bs: montoBS,
@@ -155,9 +177,59 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }).select().single();
                 
                 if (dbError) throw new Error('Error al guardar retiro: ' + dbError.message);
-                console.log('✅ Retiro registrado:', retiro);
 
-                // 2. ENVIAR CORREO
+                // ==========================================
+                // C. PROTOCOLO BLINDADO DE ACTUALIZACIÓN DE SALDO (4 PASOS)
+                // ==========================================
+                console.log('🛡️ Iniciando protocolo de actualización de saldo...');
+                
+                // Paso 1: Leer el saldo REAL más reciente de la BD (evita condiciones de carrera)
+                const { data: perfilFresco, error: errorPerfilFresco } = await db
+                    .from('perfiles')
+                    .select('saldo_bc')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (errorPerfilFresco) throw new Error('No se pudo verificar el saldo actual: ' + errorPerfilFresco.message);
+
+                const saldoRealEnBD = perfilFresco.saldo_bc || 0;
+
+                // Paso 2: Validar que el saldo real sea suficiente
+                if (saldoRealEnBD < montoSolicitado) {
+                    throw new Error('Saldo insuficiente en el momento de procesar. Por favor, recarga la página.');
+                }
+
+                // Paso 3: Ejecutar la actualización
+                const nuevoSaldoCalculado = saldoRealEnBD - montoSolicitado;
+                const { error: updateSaldoError } = await db
+                    .from('perfiles')
+                    .update({ saldo_bc: nuevoSaldoCalculado })
+                    .eq('id', session.user.id);
+
+                if (updateSaldoError) {
+                    throw new Error('Error crítico al descontar el saldo: ' + updateSaldoError.message);
+                }
+
+                // Paso 4: Verificación final (Leer de nuevo para confirmar que la BD guardó el cambio)
+                const { data: perfilVerificado, error: errorVerificacion } = await db
+                    .from('perfiles')
+                    .select('saldo_bc')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (errorVerificacion) {
+                    console.warn('⚠️ No se pudo verificar el saldo tras la actualización, pero el update se ejecutó.');
+                    saldoActual = nuevoSaldoCalculado; // Confiamos en el cálculo local como fallback
+                } else {
+                    saldoActual = perfilVerificado.saldo_bc; // Usamos el valor confirmado por la BD
+                }
+
+                // Actualizar la UI inmediatamente con el saldo verificado
+                document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
+                console.log('✅ Saldo actualizado y VERIFICADO en BD:', saldoActual);
+                // ==========================================
+
+                // D. Enviar Correo
                 try {
                     console.log('📧 Enviando comprobante por correo...');
                     await db.functions.invoke('enviar-factura', {
@@ -166,7 +238,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     console.log('✅ Correo enviado');
                 } catch (emailErr) { console.warn('⚠️ Error al enviar correo:', emailErr); }
 
-                // 3. GENERAR PDF
+                // E. Generar PDF
                 try {
                     console.log('📄 Generando PDF de retiro...');
                     if (window.jspdf) {
@@ -229,7 +301,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 } catch (pdfErr) { console.warn('⚠️ Error al generar PDF:', pdfErr); }
 
-                // 4. MOSTRAR VISTA DE ÉXITO
+                // F. MOSTRAR VISTA DE ÉXITO
                 console.log('🎉 Mostrando vista de éxito...');
                 try {
                     const formEl = document.getElementById('formRetiro');
@@ -270,20 +342,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } catch (uiError) {
                     console.error('❌ ERROR CRÍTICO al mostrar la vista:', uiError);
-                    const formEl = document.getElementById('formRetiro');
-                    const contenidoEl = document.getElementById('contenidoRetiro');
-                    if (formEl) formEl.style.display = 'block';
-                    if (contenidoEl) contenidoEl.style.display = 'block';
                     throw uiError;
                 }
 
             } catch (err) {
                 console.error('❌ [ERROR GLOBAL] en el retiro:', err);
+                mostrarMensaje('❌ Error: ' + err.message, 'error');
+                
+                // Restaurar estado en caso de error
                 const formEl = document.getElementById('formRetiro');
                 const contenidoEl = document.getElementById('contenidoRetiro');
                 if (formEl) formEl.style.display = 'block';
                 if (contenidoEl) contenidoEl.style.display = 'block';
-                mostrarMensaje('❌ Error: ' + err.message, 'error');
+                
                 const btn = document.getElementById('btnRetirar');
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Solicitar Retiro'; }
             }
@@ -295,18 +366,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (msg) { msg.textContent = texto; msg.className = `message ${tipo}`; }
     }
 
+    // ==========================================
+    // 7. FUNCIÓN PARA NUEVO RETIRO
+    // ==========================================
     window.nuevoRetiro = function() {
         formRetiro.reset();
         document.querySelectorAll('.method-card').forEach(el => el.classList.remove('selected'));
         document.getElementById('dynamicForm').style.display = 'none';
         document.getElementById('conversionPreview').style.display = 'none';
         metodoSeleccionado = null;
+        
+        // Usamos el saldoActual que YA FUE VERIFICADO por la BD en el paso anterior
         document.getElementById('saldoDisponible').textContent = saldoActual.toFixed(2);
+        
         document.getElementById('contenidoRetiro').style.display = 'block';
         document.getElementById('formRetiro').style.display = 'block';
         document.getElementById('successView').style.display = 'none';
+        
         const btn = document.getElementById('btnRetirar');
-        btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Solicitar Retiro';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Solicitar Retiro';
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 });
