@@ -10,14 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // ============================================
-    // 🛡️ DIAGNÓSTICO DEL MENSAJE FANTASMA
-    // ============================================
-    const existingMessage = sessionStorage.getItem('auth_message');
-    if (existingMessage && existingMessage.includes('otro dispositivo')) {
-        console.warn('⚠️ ALERTA: El mensaje de "otro dispositivo" YA estaba en sessionStorage al cargar.');
-    }
-
     function construirURL(base) {
         const path = window.location.pathname;
         const repoPath = path.substring(0, path.lastIndexOf('/'));
@@ -40,6 +32,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function resetButton() {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Ingresar';
+        }
+    }
+
     window.togglePasswordVisibility = function() {
         const passwordInput = document.getElementById('password');
         const icon = document.querySelector('.toggle-password');
@@ -56,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (100% BLINDADO)
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (BLINDADO)
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -77,27 +76,21 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 // PASO 1: ¿El correo existe?
                 const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
-                
-                if (existeError) {
-                    console.error('Error verificando correo:', existeError);
-                }
-                
+                if (existeError) console.error('Error verificando correo:', existeError);
                 if (existeData !== true) {
                     showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
                     resetButton();
                     return;
                 }
 
-                // PASO 2: ¿Está suspendido?
+                // PASO 2: Verificar bloqueo por intentos fallidos (Brute Force)
                 const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                
                 if (preError) console.error('Error pre-check:', preError);
-                
                 if (preCheck && preCheck.allowed === false) {
                     const hasta = preCheck.blocked_until 
                         ? new Date(preCheck.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
                         : 'varias horas';
-                    showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
+                    showMessage(`🚫 Cuenta suspendida por intentos fallidos hasta: ${hasta}`, 'error');
                     resetButton();
                     return;
                 }
@@ -108,28 +101,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (authError) {
                     // PASO 4: Registrar intento fallido
                     const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                    
                     if (rpcError) console.error('Error registrando intento:', rpcError);
-
-                    // Diagnóstico en consola para que veas que la BD sí está contando
-                    console.log('📊 DATOS DE INTENTOS:', attemptData);
 
                     if (attemptData && attemptData.allowed === false) {
                         const hasta = attemptData.blocked_until 
                             ? new Date(attemptData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
                             : 'varias horas';
-                        showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
+                        showMessage(`🚫 Cuenta suspendida por intentos fallidos hasta: ${hasta}`, 'error');
                     } else {
                         const intentos = (attemptData && attemptData.attempts) ? attemptData.attempts : 1;
                         const restantes = Math.max(0, 5 - intentos);
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
-                    
                     resetButton();
                     return;
                 }
                 
-                // PASO 5: Login exitoso -> Resetear contador (con try/catch seguro)
+                // ==========================================
+                // 🛡️ NUEVO PASO: Verificar bloqueo ADMINISTRATIVO
+                // ==========================================
+                if (data.user) {
+                    const { data: perfil, error: perfilError } = await db.from('perfiles')
+                        .select('bloqueado, motivo_bloqueo')
+                        .eq('user_id', data.user.id)
+                        .single();
+
+                    if (perfilError) {
+                        console.error('Error verificando perfil:', perfilError);
+                    }
+
+                    // Si el administrador marcó al usuario como bloqueado
+                    if (perfil && perfil.bloqueado === true) {
+                        await db.auth.signOut(); // Cerrar sesión inmediatamente
+                        showMessage(`🚫 Tu cuenta ha sido bloqueada. Motivo: ${perfil.motivo_bloqueo || 'Contacta a soporte.'}`, 'error');
+                        resetButton();
+                        return;
+                    }
+                }
+
+                // PASO 5: Login exitoso -> Resetear contador de intentos
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_success: true });
                 } catch (rpcErr) {
@@ -180,57 +190,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function resetButton() {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Ingresar';
-        }
-    }
-
-    // ============================================
-    // 🔐 LOGIN CON GOOGLE
-    // ============================================
-    window.loginWithGoogle = async function() {
-        showMessage('Conectando con Google...', 'info');
-        try {
-            const redirectURL = construirURL('/dashboard.html');
-            const { data, error } = await db.auth.signInWithOAuth({
-                provider: 'google',
-                options: { redirectTo: redirectURL, queryParams: { access_type: 'offline', prompt: 'consent' } }
-            });
-            if (error) {
-                let mensajeError = error.message;
-                if (error.message.includes('already registered') || error.message.includes('already exists')) {
-                    mensajeError = 'Este correo ya está registrado con otro método.';
-                } else if (error.message.includes('For security purposes')) {
-                    const match = error.message.match(/after (\d+) seconds?/);
-                    mensajeError = `⏱️ Por seguridad, espera ${match ? match[1] : '60'} segundos antes de intentar de nuevo.`;
-                }
-                showMessage(mensajeError, 'error');
-            }
-        } catch (err) {
-            showMessage('Error inesperado: ' + err.message, 'error');
-        }
-    };
-
     // ============================================
     // 🔄 FLUJO DE RECUPERACIÓN
     // ============================================
     window.mostrarRecuperacion = function(event) {
         if (event) event.preventDefault();
         clearMessage();
-        
         if (loginForm) loginForm.style.display = 'none';
-        const forgotPassword = document.querySelector('.forgot-password');
-        const divider = document.querySelector('.divider');
-        const googleBtn = document.querySelector('.btn-google');
-        const registerLink = document.querySelector('.register-link');
-        
-        if (forgotPassword) forgotPassword.style.display = 'none';
-        if (divider) divider.style.display = 'none';
-        if (googleBtn) googleBtn.style.display = 'none';
-        if (registerLink) registerLink.style.display = 'none';
-        
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => el.style.display = 'none');
         document.getElementById('recoveryStep1').style.display = 'block';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -238,18 +205,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.volverAlLogin = function(event) {
         if (event) event.preventDefault();
         clearMessage();
-        
         if (loginForm) loginForm.style.display = 'block';
-        const forgotPassword = document.querySelector('.forgot-password');
-        const divider = document.querySelector('.divider');
-        const googleBtn = document.querySelector('.btn-google');
-        const registerLink = document.querySelector('.register-link');
-        
-        if (forgotPassword) forgotPassword.style.display = 'block';
-        if (divider) divider.style.display = 'block';
-        if (googleBtn) googleBtn.style.display = 'block';
-        if (registerLink) registerLink.style.display = 'block';
-        
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => el.style.display = 'block');
         document.getElementById('recoveryStep1').style.display = 'none';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -303,28 +260,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // 🛡️ VERIFICAR SESIÓN ACTIVA Y SUSPENSIÓN AL CARGAR
+    // 🛡️ VERIFICAR SESIÓN ACTIVA Y BLOQUEO AL CARGAR
     // ============================================
     async function checkSession() {
         try {
             const { data: { session } } = await db.auth.getSession();
             
             if (session && session.user) {
-                const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
-                    p_email: session.user.email,
-                    p_success: true
-                });
+                // 🛡️ Verificar si el usuario fue bloqueado administrativamente mientras tenía la sesión abierta
+                const { data: perfil, error: perfilError } = await db.from('perfiles')
+                    .select('bloqueado, motivo_bloqueo')
+                    .eq('user_id', session.user.id)
+                    .single();
                 
-                if (checkError) console.warn('Error verificando sesión:', checkError);
-                
-                if (checkData && checkData.allowed === false) {
+                if (perfil && perfil.bloqueado === true) {
                     await db.auth.signOut();
-                    const hasta = checkData.blocked_until 
-                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-                        : 'varias horas';
-                    
-                    sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida hasta: ${hasta}.`);
+                    sessionStorage.setItem('auth_message', `🚫 Tu cuenta está bloqueada. Motivo: ${perfil.motivo_bloqueo || 'Contacta a soporte.'}`);
                     sessionStorage.setItem('auth_type', 'error');
+                    window.location.reload(); // Recargar para mostrar el mensaje
                     return;
                 }
 
