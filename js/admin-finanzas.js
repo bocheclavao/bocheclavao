@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!await verificarAccesoAdmin()) return;
 
     // ==========================================
-    // 3. CARGA DE DATOS CON JOINS DIRECTOS
+    // 3. CARGA DE DATOS CON ORDENAMIENTO INTELIGENTE
     // ==========================================
     await cargarEstadisticas();
     await cargarTabla(currentTab);
@@ -62,16 +62,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando datos...</td></tr>';
 
         try {
-            // PASO 1: Obtener los registros principales (SIN JOIN)
             let query = db.from(currentTab).select('*', { count: 'exact' });
 
             if (filterStart) query = query.gte('created_at', `${filterStart}T00:00:00`);
             if (filterEnd) query = query.lte('created_at', `${filterEnd}T23:59:59`);
 
-            const start = (currentPage - 1) * itemsPerPage;
-            const end = start + itemsPerPage - 1;
-
-            const { data, count, error } = await query.range(start, end).order('id', { ascending: false });
+            // Obtenemos todos los datos (sin límite de página aún para poder ordenar correctamente)
+            // Nota: Si tienes miles de registros, este ordenamiento en cliente es eficiente para las primeras páginas.
+            const { data, count, error } = await query.order('created_at', { ascending: false });
 
             if (error) {
                 console.error('Error en consulta:', error);
@@ -81,24 +79,48 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             totalRecords = count || 0;
 
-            if (!data || data.length === 0) {
+            // ==========================================
+            // ORDENAMIENTO INTELIGENTE:
+            // 1. 'pendiente' siempre primero.
+            // 2. Luego 'aprobado' y 'rechazado'.
+            // 3. Dentro de cada grupo, por fecha más reciente primero.
+            // ==========================================
+            if (data) {
+                data.sort((a, b) => {
+                    const prioridad = { 'pendiente': 1, 'aprobado': 2, 'rechazado': 3 };
+                    const prioA = prioridad[a.estado] || 9;
+                    const prioB = prioridad[b.estado] || 9;
+                    
+                    if (prioA !== prioB) {
+                        return prioA - prioB; // Ordenar por prioridad de estado
+                    }
+                    
+                    // Si tienen el mismo estado, ordenar por fecha descendente (más reciente primero)
+                    const dateA = new Date(a.created_at || 0).getTime();
+                    const dateB = new Date(b.created_at || 0).getTime();
+                    return dateB - dateA;
+                });
+            }
+
+            // Aplicar paginación después de ordenar
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedData = data ? data.slice(start, end) : [];
+
+            if (!paginatedData || paginatedData.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No se encontraron registros.</td></tr>';
                 renderizarPaginacion();
                 return;
             }
 
-            // PASO 2: Obtener los perfiles de los usuarios manualmente
-            const userIds = [...new Set(data.map(d => d.user_id))]; // IDs únicos
+            const userIds = [...new Set(paginatedData.map(d => d.user_id))];
             const { data: perfiles, error: errorPerfiles } = await db
                 .from('perfiles')
                 .select('id, nombre, email, saldo_bc')
                 .in('id', userIds);
 
-            if (errorPerfiles) {
-                console.warn('Advertencia al cargar perfiles:', errorPerfiles);
-            }
+            if (errorPerfiles) console.warn('Advertencia al cargar perfiles:', errorPerfiles);
 
-            // Crear un mapa rápido para buscar usuarios por ID
             const userMap = {};
             if (perfiles) {
                 perfiles.forEach(p => { 
@@ -109,8 +131,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
             }
 
-            // PASO 3: Renderizar filas combinando los datos
-            tbody.innerHTML = data.map(item => {
+            tbody.innerHTML = paginatedData.map(item => {
                 const userInfo = userMap[item.user_id] || { nombre: item.user_id?.substring(0, 8) + '...', saldo: 0 };
                 const usuario = userInfo.nombre;
                 const saldoUsuario = userInfo.saldo;
@@ -281,34 +302,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (e.target === this) cerrarModalFicha();
     });
 
-       window.aprobarDeposito = async function(idDeposito, cantidadBC, userId) {
+    // ==========================================
+    // 5. ACCIONES BLINDADAS + CORREOS SEGUROS
+    // ==========================================
+    window.aprobarDeposito = async function(idDeposito, cantidadBC, userId) {
         if (!confirm(`¿Aprobar este depósito de ${cantidadBC} BC? Se sumará al saldo y se notificará al usuario.`)) return;
 
         try {
-            // 1. Obtener datos del usuario
             const { data: userData, error: userErr } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
             if (userErr || !userData) throw new Error('Usuario no encontrado: ' + (userErr?.message || ''));
 
-            // 2. Actualizar estado del depósito
             const { error: errDep } = await db.from('depositos').update({ estado: 'aprobado' }).eq('id', idDeposito);
             if (errDep) throw new Error('Error al actualizar depósito: ' + errDep.message);
 
-            // 3. Sumar al saldo
             const nuevoSaldo = (userData.saldo_bc || 0) + Number(cantidadBC);
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
             if (errUpdate) throw new Error('Error al actualizar saldo: ' + errUpdate.message);
 
-            // 4. ENVIAR CORREO (Con logs detallados para depuración)
+            // Enviar correo de forma segura (no detiene el flujo si falla)
             try {
-                console.log('📧 Intentando enviar correo a:', userData.email);
-                console.log('📦 Datos enviados a la función:', {
-                    email: userData.email,
-                    nombre: userData.nombre || 'Usuario',
-                    tipo: 'deposito_aprobado',
-                    monto: cantidadBC,
-                    id: idDeposito
-                });
-                
                 const { data: emailData, error: emailErr } = await db.functions.invoke('notificar-transaccion', {
                     body: {
                         email: userData.email,
@@ -320,16 +332,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
 
                 if (emailErr) {
-                    console.error('❌ Error de Supabase al invocar la función:', emailErr);
-                    alert('⚠️ Depósito aprobado, pero FALLÓ el envío del correo. Revisa la consola (F12).');
+                    console.error('❌ Error de red al invocar la función de correo:', emailErr);
+                } else if (emailData?.warning) {
+                    console.warn('⚠️ Transacción aprobada, pero hubo un problema con el correo:', emailData.warning);
                 } else {
-                    console.log('✅ Respuesta exitosa de la función de correo:', emailData);
+                    console.log('✅ Correo enviado exitosamente');
                 }
             } catch (emailErr) {
                 console.error('❌ Excepción inesperada al enviar correo:', emailErr);
             }
 
-            alert('✅ Depósito aprobado, saldo actualizado y correo enviado.');
+            alert('✅ Depósito aprobado y saldo actualizado.');
             await cargarEstadisticas();
             ejecutarConsulta();
         } catch (err) {
@@ -338,25 +351,34 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
+    window.rechazarDeposito = async function(idDeposito) {
+        if (!confirm('¿Rechazar este depósito?')) return;
+        try {
+            const { error } = await db.from('depositos').update({ estado: 'rechazado' }).eq('id', idDeposito);
+            if (error) throw error;
+            alert('✅ Depósito rechazado.');
+            await cargarEstadisticas();
+            ejecutarConsulta();
+        } catch (err) {
+            alert('❌ Error: ' + err.message);
+        }
+    };
+
     window.aprobarRetiro = async function(idRetiro) {
         if (!confirm('¿Confirmar que ya realizaste el pago externo y aprobar este retiro? Se notificará al usuario.')) return;
         
         try {
-            // 1. Obtener datos del retiro y del usuario
             const { data: retiroData, error: retiroErr } = await db.from('retiros').select('user_id, monto_bc').eq('id', idRetiro).single();
             if (retiroErr || !retiroData) throw new Error('Retiro no encontrado');
 
             const { data: userData, error: userErr } = await db.from('perfiles').select('email, nombre').eq('id', retiroData.user_id).single();
             if (userErr || !userData) throw new Error('Usuario no encontrado');
 
-            // 2. Actualizar estado del retiro
             const { error: errRet } = await db.from('retiros').update({ estado: 'aprobado' }).eq('id', idRetiro);
             if (errRet) throw new Error('Error al actualizar retiro: ' + errRet.message);
             
-            // 3. ENVIAR CORREO (Con logs detallados)
+            // Enviar correo de forma segura
             try {
-                console.log('📧 Intentando enviar correo de retiro a:', userData.email);
-                
                 const { data: emailData, error: emailErr } = await db.functions.invoke('notificar-transaccion', {
                     body: {
                         email: userData.email,
@@ -368,16 +390,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
 
                 if (emailErr) {
-                    console.error('❌ Error de Supabase al invocar la función:', emailErr);
-                    alert('⚠️ Retiro aprobado, pero FALLÓ el envío del correo. Revisa la consola (F12).');
+                    console.error('❌ Error de red al invocar la función de correo:', emailErr);
+                } else if (emailData?.warning) {
+                    console.warn('⚠️ Transacción aprobada, pero hubo un problema con el correo:', emailData.warning);
                 } else {
-                    console.log('✅ Respuesta exitosa de la función de correo:', emailData);
+                    console.log('✅ Correo enviado exitosamente');
                 }
             } catch (emailErr) {
                 console.error('❌ Excepción inesperada al enviar correo:', emailErr);
             }
 
-            alert('✅ Retiro marcado como APROBADO y correo enviado.');
+            alert('✅ Retiro marcado como APROBADO.');
             await cargarEstadisticas();
             ejecutarConsulta();
         } catch (err) {
@@ -387,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     window.rechazarRetiro = async function(idRetiro, montoBC, userId) {
-        if (!confirm(`️ ¿Rechazar este retiro? Se devolverán ${montoBC} BC al saldo del usuario.`)) return;
+        if (!confirm(`⚠️ ¿Rechazar este retiro? Se devolverán ${montoBC} BC al saldo del usuario.`)) return;
         
         try {
             const { error: errRet } = await db.from('retiros').update({ estado: 'rechazado' }).eq('id', idRetiro);
