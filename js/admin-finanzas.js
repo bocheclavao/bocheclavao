@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!await verificarAccesoAdmin()) return;
 
     // ==========================================
-    // 3. CARGA DE DATOS (CON SALDO DE USUARIO)
+    // 3. CARGA DE DATOS CON JOINS DIRECTOS
     // ==========================================
     await cargarEstadisticas();
     await cargarTabla(currentTab);
@@ -51,8 +51,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('statComision').textContent = '$' + comisionTotal.toFixed(2);
     }
 
-    async function cargarTabla(tipo) {
-        currentTab = tipo;
+    async function cargarTabla(tab) {
+        currentTab = tab;
         currentPage = 1;
         await ejecutarConsulta();
     }
@@ -61,96 +61,106 @@ document.addEventListener('DOMContentLoaded', async function() {
         const tbody = document.getElementById(currentTab === 'depositos' ? 'tablaDepositos' : 'tablaRetiros');
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando datos...</td></tr>';
 
-        let query = db.from(currentTab).select('*', { count: 'exact' });
+        try {
+            // ==========================================
+            // CONSULTA CON JOIN DIRECTO A PERFILES
+            // ==========================================
+            let query = db.from(currentTab).select(`
+                *,
+                perfiles!user_id (
+                    id,
+                    nombre,
+                    email,
+                    saldo_bc
+                )
+            `, { count: 'exact' });
 
-        if (filterStart) query = query.gte('created_at', `${filterStart}T00:00:00`);
-        if (filterEnd) query = query.lte('created_at', `${filterEnd}T23:59:59`);
+            // Aplicar filtros de fecha si existen
+            if (filterStart) query = query.gte('created_at', `${filterStart}T00:00:00`);
+            if (filterEnd) query = query.lte('created_at', `${filterEnd}T23:59:59`);
 
-        const start = (currentPage - 1) * itemsPerPage;
-        const end = start + itemsPerPage - 1;
+            // Paginación
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage - 1;
 
-        const { data, count, error } = await query.range(start, end).order('id', { ascending: false });
+            const { data, count, error } = await query.range(start, end).order('id', { ascending: false });
 
-        if (error || !data) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos.</td></tr>';
-            return;
-        }
-
-        totalRecords = count || 0;
-
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No se encontraron registros.</td></tr>';
-            renderizarPaginacion();
-            return;
-        }
-
-        const userIds = [...new Set(data.map(d => d.user_id))];
-        
-        // CORRECCIÓN: Ahora también traemos el 'saldo_bc' del usuario
-        const { data: perfiles } = await db.from('perfiles').select('id, nombre, email, saldo_bc').in('id', userIds);
-        
-        const userMap = {};
-        if (perfiles) {
-            perfiles.forEach(p => { 
-                userMap[p.id] = { 
-                    nombre: p.nombre || p.email || 'Usuario Desconocido',
-                    saldo: p.saldo_bc || 0
-                }; 
-            });
-        }
-
-        tbody.innerHTML = data.map(item => {
-            const userInfo = userMap[item.user_id] || { nombre: 'Usuario Desconocido', saldo: 0 };
-            const usuario = userInfo.nombre;
-            const saldoUsuario = userInfo.saldo;
-            
-            const fechaHora = item.created_at ? new Date(item.created_at).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
-            
-            let acciones = '';
-            if (item.estado === 'pendiente') {
-                if (currentTab === 'depositos') {
-                    acciones = `
-                        <button class="action-btn btn-view" onclick='mostrarFichaCompleta("deposito", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i></button>
-                        <button class="action-btn btn-approve" onclick="aprobarDeposito('${item.id}', ${item.cantidad_monedas}, '${item.user_id}')"><i class="fas fa-check"></i></button>
-                        <button class="action-btn btn-reject" onclick="rechazarDeposito('${item.id}')"><i class="fas fa-times"></i></button>
-                    `;
-                } else {
-                    acciones = `
-                        <button class="action-btn btn-view" onclick='mostrarFichaCompleta("retiro", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i></button>
-                        <button class="action-btn btn-approve" onclick="aprobarRetiro('${item.id}')"><i class="fas fa-check"></i></button>
-                        <button class="action-btn btn-reject" onclick="rechazarRetiro('${item.id}', ${item.monto_bc}, '${item.user_id}')"><i class="fas fa-undo"></i></button>
-                    `;
-                }
-            } else {
-                const tipoFicha = currentTab === 'depositos' ? 'deposito' : 'retiro';
-                acciones = `<button class="action-btn btn-view" onclick='mostrarFichaCompleta("${tipoFicha}", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i> Ficha</button>`;
+            if (error) {
+                console.error('Error en consulta:', error);
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Error: ${error.message}</td></tr>`;
+                return;
             }
 
-            const montoDisplay = currentTab === 'depositos' 
-                ? `$${(item.monto_usd || 0).toFixed(2)} / Bs. ${(item.monto_bs || 0).toFixed(2)}`
-                : `Bs. ${(item.monto_bs || 0).toFixed(2)}`;
+            totalRecords = count || 0;
 
-            return `
-                <tr>
-                    <td><small>${item.id.substring(0,8)}...</small></td>
-                    <td>
-                        ${usuario}
-                        <br>
-                        <small style="color: #FFD700; font-weight: 600;">
-                            <i class="fas fa-wallet"></i> ${Number(saldoUsuario).toFixed(2)} BC
-                        </small>
-                    </td>
-                    <td><strong>${item.cantidad_monedas || item.monto_bc} BC</strong></td>
-                    <td>${montoDisplay}</td>
-                    <td>${(item.metodo_pago || 'N/A').toUpperCase()}</td>
-                    <td>${fechaHora}</td>
-                    <td><span class="status-badge status-${item.estado}">${item.estado}</span></td>
-                    <td>${acciones}</td>
-                </tr>
-            `;
-        }).join('');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No se encontraron registros.</td></tr>';
+                renderizarPaginacion();
+                return;
+            }
 
-        renderizarPaginacion();
+            // Renderizar filas
+            tbody.innerHTML = data.map(item => {
+                // Extraer datos del perfil desde el JOIN
+                const perfil = item.perfiles || {};
+                const usuario = perfil.nombre || perfil.email || item.user_id?.substring(0, 8) || 'Desconocido';
+                const saldoUsuario = perfil.saldo_bc || 0;
+                
+                // Formato de Fecha y Hora
+                const fechaHora = item.created_at 
+                    ? new Date(item.created_at).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) 
+                    : 'N/A';
+                
+                let acciones = '';
+                if (item.estado === 'pendiente') {
+                    if (currentTab === 'depositos') {
+                        acciones = `
+                            <button class="action-btn btn-view" onclick='mostrarFichaCompleta("deposito", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i></button>
+                            <button class="action-btn btn-approve" onclick="aprobarDeposito('${item.id}', ${item.cantidad_monedas}, '${item.user_id}')"><i class="fas fa-check"></i></button>
+                            <button class="action-btn btn-reject" onclick="rechazarDeposito('${item.id}')"><i class="fas fa-times"></i></button>
+                        `;
+                    } else {
+                        acciones = `
+                            <button class="action-btn btn-view" onclick='mostrarFichaCompleta("retiro", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i></button>
+                            <button class="action-btn btn-approve" onclick="aprobarRetiro('${item.id}')"><i class="fas fa-check"></i></button>
+                            <button class="action-btn btn-reject" onclick="rechazarRetiro('${item.id}', ${item.monto_bc}, '${item.user_id}')"><i class="fas fa-undo"></i></button>
+                        `;
+                    }
+                } else {
+                    const tipoFicha = currentTab === 'depositos' ? 'deposito' : 'retiro';
+                    acciones = `<button class="action-btn btn-view" onclick='mostrarFichaCompleta("${tipoFicha}", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i> Ficha</button>`;
+                }
+
+                const montoDisplay = currentTab === 'depositos' 
+                    ? `$${(item.monto_usd || 0).toFixed(2)} / Bs. ${(item.monto_bs || 0).toFixed(2)}`
+                    : `Bs. ${(item.monto_bs || 0).toFixed(2)}`;
+
+                return `
+                    <tr>
+                        <td><small>${item.id.substring(0,8)}...</small></td>
+                        <td>
+                            ${usuario}
+                            <br>
+                            <small style="color: #FFD700; font-weight: 600;">
+                                <i class="fas fa-wallet"></i> ${Number(saldoUsuario).toFixed(2)} BC
+                            </small>
+                        </td>
+                        <td><strong>${item.cantidad_monedas || item.monto_bc} BC</strong></td>
+                        <td>${montoDisplay}</td>
+                        <td>${(item.metodo_pago || 'N/A').toUpperCase()}</td>
+                        <td>${fechaHora}</td>
+                        <td><span class="status-badge status-${item.estado}">${item.estado}</span></td>
+                        <td>${acciones}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            renderizarPaginacion();
+
+        } catch (err) {
+            console.error('Error en ejecutarConsulta:', err);
+            tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Error: ${err.message}</td></tr>`;
+        }
     }
 
     function renderizarPaginacion() {
@@ -199,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     // ==========================================
-    // 4. MODAL FICHA COMPLETA (CON SALDO)
+    // 4. MODAL FICHA COMPLETA
     // ==========================================
     window.mostrarFichaCompleta = function(tipo, item, usuario, saldoUsuario) {
         document.getElementById('fichaTitulo').textContent = tipo === 'deposito' ? 'Ficha de Depósito' : 'Ficha de Retiro';
@@ -273,16 +283,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { data: userData } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
             if (!userData) throw new Error('Usuario no encontrado');
 
-            // Actualizar estado del depósito
             const { error: errDep } = await db.from('depositos').update({ estado: 'aprobado' }).eq('id', idDeposito);
             if (errDep) throw errDep;
 
-            // Sumar al saldo
             const nuevoSaldo = (userData.saldo_bc || 0) + Number(cantidadBC);
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
             if (errUpdate) throw errUpdate;
 
-            // Enviar correo
             try {
                 await db.functions.invoke('notificar-transaccion', {
                     body: {
@@ -352,7 +359,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     window.rechazarRetiro = async function(idRetiro, montoBC, userId) {
-        if (!confirm(`⚠️ ¿Rechazar este retiro? Se devolverán ${montoBC} BC al saldo del usuario.`)) return;
+        if (!confirm(`️ ¿Rechazar este retiro? Se devolverán ${montoBC} BC al saldo del usuario.`)) return;
         
         try {
             const { error: errRet } = await db.from('retiros').update({ estado: 'rechazado' }).eq('id', idRetiro);
@@ -364,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
             if (errUpdate) throw errUpdate;
 
-            alert(`✅ Retiro rechazado y ${montoBC} BC devueltos al usuario.`);
+            alert(`✅ Retiro rechazado y ${montoBC} BC devueltos.`);
             await cargarEstadisticas();
             ejecutarConsulta();
         } catch (err) {
