@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ==========================================
     let currentPage = 1;
     const itemsPerPage = 20;
-    let currentTab = 'depositos'; // Variable global para saber en qué pestaña estamos
+    let currentTab = 'depositos';
     let filterStart = null;
     let filterEnd = null;
     let totalRecords = 0;
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!await verificarAccesoAdmin()) return;
 
     // ==========================================
-    // 3. CARGA DE DATOS (CON PAGINACIÓN Y FILTROS)
+    // 3. CARGA DE DATOS (CON SALDO DE USUARIO)
     // ==========================================
     await cargarEstadisticas();
     await cargarTabla(currentTab);
@@ -51,24 +51,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('statComision').textContent = '$' + comisionTotal.toFixed(2);
     }
 
-    async function cargarTabla(tab) {
-        currentTab = tab;
-        currentPage = 1; // Resetear a página 1 al cambiar de tabla o filtro
+    async function cargarTabla(tipo) {
+        currentTab = tipo;
+        currentPage = 1;
         await ejecutarConsulta();
     }
 
     async function ejecutarConsulta() {
-        // CORRECCIÓN: Usar currentTab en lugar de tipo
         const tbody = document.getElementById(currentTab === 'depositos' ? 'tablaDepositos' : 'tablaRetiros');
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando datos...</td></tr>';
 
         let query = db.from(currentTab).select('*', { count: 'exact' });
 
-        // Aplicar filtros de fecha si existen
         if (filterStart) query = query.gte('created_at', `${filterStart}T00:00:00`);
         if (filterEnd) query = query.lte('created_at', `${filterEnd}T23:59:59`);
 
-        // Paginación
         const start = (currentPage - 1) * itemsPerPage;
         const end = start + itemsPerPage - 1;
 
@@ -87,36 +84,46 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        // Obtener perfiles de usuario para mostrar nombres
         const userIds = [...new Set(data.map(d => d.user_id))];
-        const { data: perfiles } = await db.from('perfiles').select('id, nombre, email').in('id', userIds);
+        
+        // CORRECCIÓN: Ahora también traemos el 'saldo_bc' del usuario
+        const { data: perfiles } = await db.from('perfiles').select('id, nombre, email, saldo_bc').in('id', userIds);
+        
         const userMap = {};
-        if (perfiles) perfiles.forEach(p => { userMap[p.id] = p.nombre || p.email || 'Usuario Desconocido'; });
+        if (perfiles) {
+            perfiles.forEach(p => { 
+                userMap[p.id] = { 
+                    nombre: p.nombre || p.email || 'Usuario Desconocido',
+                    saldo: p.saldo_bc || 0
+                }; 
+            });
+        }
 
-        // Renderizar filas
         tbody.innerHTML = data.map(item => {
-            const usuario = userMap[item.user_id] || 'Usuario Desconocido';
-            // Formato de Fecha y Hora
+            const userInfo = userMap[item.user_id] || { nombre: 'Usuario Desconocido', saldo: 0 };
+            const usuario = userInfo.nombre;
+            const saldoUsuario = userInfo.saldo;
+            
             const fechaHora = item.created_at ? new Date(item.created_at).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
             
             let acciones = '';
             if (item.estado === 'pendiente') {
                 if (currentTab === 'depositos') {
                     acciones = `
-                        <button class="action-btn btn-view" onclick='mostrarFichaCompleta("deposito", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")})'><i class="fas fa-eye"></i></button>
+                        <button class="action-btn btn-view" onclick='mostrarFichaCompleta("deposito", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i></button>
                         <button class="action-btn btn-approve" onclick="aprobarDeposito('${item.id}', ${item.cantidad_monedas}, '${item.user_id}')"><i class="fas fa-check"></i></button>
                         <button class="action-btn btn-reject" onclick="rechazarDeposito('${item.id}')"><i class="fas fa-times"></i></button>
                     `;
                 } else {
                     acciones = `
-                        <button class="action-btn btn-view" onclick='mostrarFichaCompleta("retiro", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")})'><i class="fas fa-eye"></i></button>
+                        <button class="action-btn btn-view" onclick='mostrarFichaCompleta("retiro", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i></button>
                         <button class="action-btn btn-approve" onclick="aprobarRetiro('${item.id}')"><i class="fas fa-check"></i></button>
                         <button class="action-btn btn-reject" onclick="rechazarRetiro('${item.id}', ${item.monto_bc}, '${item.user_id}')"><i class="fas fa-undo"></i></button>
                     `;
                 }
             } else {
                 const tipoFicha = currentTab === 'depositos' ? 'deposito' : 'retiro';
-                acciones = `<button class="action-btn btn-view" onclick='mostrarFichaCompleta("${tipoFicha}", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")})'><i class="fas fa-eye"></i> Ficha</button>`;
+                acciones = `<button class="action-btn btn-view" onclick='mostrarFichaCompleta("${tipoFicha}", ${JSON.stringify(item).replace(/'/g, "&#39;")}, ${JSON.stringify(usuario).replace(/'/g, "&#39;")}, ${saldoUsuario})'><i class="fas fa-eye"></i> Ficha</button>`;
             }
 
             const montoDisplay = currentTab === 'depositos' 
@@ -126,7 +133,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             return `
                 <tr>
                     <td><small>${item.id.substring(0,8)}...</small></td>
-                    <td>${usuario}</td>
+                    <td>
+                        ${usuario}
+                        <br>
+                        <small style="color: #FFD700; font-weight: 600;">
+                            <i class="fas fa-wallet"></i> ${Number(saldoUsuario).toFixed(2)} BC
+                        </small>
+                    </td>
                     <td><strong>${item.cantidad_monedas || item.monto_bc} BC</strong></td>
                     <td>${montoDisplay}</td>
                     <td>${(item.metodo_pago || 'N/A').toUpperCase()}</td>
@@ -186,9 +199,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     // ==========================================
-    // 4. MODAL FICHA COMPLETA
+    // 4. MODAL FICHA COMPLETA (CON SALDO)
     // ==========================================
-    window.mostrarFichaCompleta = function(tipo, item, usuario) {
+    window.mostrarFichaCompleta = function(tipo, item, usuario, saldoUsuario) {
         document.getElementById('fichaTitulo').textContent = tipo === 'deposito' ? 'Ficha de Depósito' : 'Ficha de Retiro';
         
         const estadoEl = document.getElementById('fichaEstado');
@@ -200,6 +213,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let html = `
             <div class="ficha-row"><span class="label">ID Transacción:</span><span class="value">${item.id}</span></div>
             <div class="ficha-row"><span class="label">Usuario:</span><span class="value">${usuario}</span></div>
+            <div class="ficha-row"><span class="label">Saldo Actual del Usuario:</span><span class="value" style="color: #00ff00; font-weight: 800;">${Number(saldoUsuario).toFixed(2)} BC</span></div>
             <div class="ficha-row"><span class="label">Fecha y Hora:</span><span class="value">${fechaHora}</span></div>
             <div class="ficha-row"><span class="label">Monto en BC:</span><span class="value" style="color: #FFD700;">${item.cantidad_monedas || item.monto_bc} BC</span></div>
             <div class="ficha-row"><span class="label">Método:</span><span class="value">${(item.metodo_pago || 'N/A').toUpperCase()}</span></div>
@@ -218,7 +232,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
         }
 
-        // Agregar datos de pago si existen
         if (item.datos_pago && typeof item.datos_pago === 'object') {
             html += `<div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;"><strong style="color: #FFD700; font-size: 0.9rem;">Datos de Pago Proporcionados:</strong></div>`;
             for (const [key, value] of Object.entries(item.datos_pago)) {
@@ -229,7 +242,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         document.getElementById('fichaBody').innerHTML = html;
 
-        // Manejar imagen (solo para depósitos)
         const imgContainer = document.getElementById('fichaImageContainer');
         if (tipo === 'deposito' && item.comprobante_url && item.comprobante_url !== 'null') {
             document.getElementById('fichaImagen').src = item.comprobante_url;
@@ -247,7 +259,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('modalFicha').classList.remove('active');
     };
 
-    // Cerrar modal al hacer clic fuera
     document.getElementById('modalFicha').addEventListener('click', function(e) {
         if (e.target === this) cerrarModalFicha();
     });
@@ -262,13 +273,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { data: userData } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
             if (!userData) throw new Error('Usuario no encontrado');
 
+            // Actualizar estado del depósito
             const { error: errDep } = await db.from('depositos').update({ estado: 'aprobado' }).eq('id', idDeposito);
             if (errDep) throw errDep;
 
+            // Sumar al saldo
             const nuevoSaldo = (userData.saldo_bc || 0) + Number(cantidadBC);
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
             if (errUpdate) throw errUpdate;
 
+            // Enviar correo
             try {
                 await db.functions.invoke('notificar-transaccion', {
                     body: {
@@ -338,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     window.rechazarRetiro = async function(idRetiro, montoBC, userId) {
-        if (!confirm(`⚠️ ¿Rechazar este retiro? Se devolverán ${montoBC} BC al usuario.`)) return;
+        if (!confirm(`⚠️ ¿Rechazar este retiro? Se devolverán ${montoBC} BC al saldo del usuario.`)) return;
         
         try {
             const { error: errRet } = await db.from('retiros').update({ estado: 'rechazado' }).eq('id', idRetiro);
@@ -350,7 +364,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
             if (errUpdate) throw errUpdate;
 
-            alert(`✅ Retiro rechazado y ${montoBC} BC devueltos.`);
+            alert(`✅ Retiro rechazado y ${montoBC} BC devueltos al usuario.`);
             await cargarEstadisticas();
             ejecutarConsulta();
         } catch (err) {
