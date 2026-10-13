@@ -151,22 +151,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('previewImage').src = '';
     }
 
-      document.getElementById('formDeposito').addEventListener('submit', async function(e) {
+    // ==========================================
+    // ENVÍO DEL FORMULARIO
+    // ==========================================
+    document.getElementById('formDeposito').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Validación 1: Cantidad
         if (!paqueteSeleccionado && !document.getElementById('customAmount').value) { 
             mostrarMensaje('❌ Ingresa una cantidad de monedas.', 'error'); 
             return; 
         }
-        
-        // Validación 2: Método de pago seleccionado
         if (!metodoSeleccionado) { 
             mostrarMensaje('❌ Selecciona un método de pago.', 'error'); 
             return; 
         }
-        
-        // Validación 3: Archivo obligatorio (si el método lo requiere)
         if (metodosPago[metodoSeleccionado].requiereArchivo) {
             if (!fileInput || !fileInput.files[0]) {
                 mostrarMensaje('❌ Debes subir el comprobante de pago (captura de pantalla).', 'error');
@@ -175,7 +173,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
         
-        // Validación 4: Todos los campos del formulario deben estar llenos
         const camposObligatorios = document.querySelectorAll('#userFormFields input[required], #userFormFields select[required]');
         for (let campo of camposObligatorios) {
             if (!campo.value.trim()) {
@@ -210,7 +207,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         try {
-            // 1. SUBIR ARCHIVO
             let comprobanteUrl = null;
             if (fileInput && fileInput.files[0]) {
                 const archivo = fileInput.files[0];
@@ -222,10 +218,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 const { data: urlData } = db.storage.from('comprobantes').getPublicUrl(nombreArchivo);
                 comprobanteUrl = urlData.publicUrl;
-                console.log('✅ Comprobante subido:', comprobanteUrl);
             }
 
-            // 2. GUARDAR EN BD
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Registrando depósito...';
             const { data: deposito, error: dbError } = await db.from('depositos').insert({
                 user_id: session.user.id, 
@@ -243,7 +237,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (dbError) throw new Error('Error al guardar: ' + dbError.message);
             console.log('✅ Depósito registrado:', deposito);
 
-            // 3. ENVIAR CORREO
             try {
                 console.log('📧 Enviando correo...');
                 await db.functions.invoke('enviar-factura', {
@@ -260,17 +253,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
                 console.log('✅ Correo enviado');
             } catch (emailErr) { 
-                console.warn('️ Error al enviar correo:', emailErr); 
+                console.warn('⚠️ Error al enviar correo:', emailErr); 
             }
 
-            // 4. GENERAR PDF
             try {
                 console.log('📄 Generando PDF...');
                 if (window.jspdf) {
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF();
-                    
-                    // Encabezado
                     doc.setFillColor(255, 215, 0); 
                     doc.rect(0, 0, 210, 40, 'F');
                     doc.setTextColor(0, 0, 0); 
@@ -280,18 +270,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     doc.setFontSize(12); 
                     doc.setFont("helvetica", "normal"); 
                     doc.text("Comprobante de Depósito", 105, 30, null, null, "center");
-                    
-                    // Info básica
                     doc.setTextColor(50, 50, 50); 
                     doc.setFontSize(10);
                     doc.text(`ID Transacción: ${deposito.id}`, 14, 55);
                     doc.text(`Fecha: ${new Date().toLocaleString('es-VE')}`, 14, 62);
                     doc.text(`Usuario: ${userData.nombre || session.user.email}`, 14, 69);
-                    
                     doc.setDrawColor(200, 200, 200); 
                     doc.line(14, 75, 196, 75);
-                    
-                    // Detalles
                     doc.setFontSize(12); 
                     doc.setFont("helvetica", "bold"); 
                     doc.text("Detalles del Depósito", 14, 90);
@@ -319,7 +304,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         y += 10;
                     });
 
-                    // Pie
                     doc.setFontSize(8); 
                     doc.setTextColor(100, 100, 100);
                     doc.text("Este documento es un comprobante generado automáticamente.", 105, 280, null, null, "center");
@@ -334,20 +318,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.warn('⚠️ Error al generar PDF:', pdfErr); 
             }
 
-                    // 5. MOSTRAR VISTA DE ÉXITO
             console.log('🎉 Mostrando vista de éxito...');
-            
             document.getElementById('formDeposito').style.display = 'none';
             document.getElementById('successAmount').textContent = cantidad;
             
-            // Insertar botón de descarga
             const successActions = document.querySelector('.success-actions');
             if (successActions) {
-                // Remover botón existente si hay
                 const btnExistente = document.getElementById('btnDescargarFactura');
                 if (btnExistente) btnExistente.remove();
                 
-                // Crear nuevo botón
                 const btnDescargar = document.createElement('button');
                 btnDescargar.id = 'btnDescargarFactura';
                 btnDescargar.className = 'btn-secondary';
@@ -361,8 +340,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         alert('No se pudo generar la factura. Contacta a soporte.');
                     }
                 };
-                
-                // Insertar al inicio
                 successActions.insertBefore(btnDescargar, successActions.firstChild);
                 console.log('✅ Botón de descarga insertado');
             } else {
@@ -387,30 +364,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             msg.textContent = texto; 
             msg.className = `message ${tipo}`; 
         }
-    }
-
-    window.nuevoDeposito = function() {
-        document.getElementById('formDeposito').reset();
-        resetearFileUpload();
-        document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-        document.getElementById('companyDataBox').style.display = 'none';
-        document.getElementById('dynamicForm').style.display = 'none';
-        paqueteSeleccionado = null; 
-        metodoSeleccionado = null;
-        document.getElementById('customAmount').value = '';
-        document.getElementById('totalUSD').textContent = '0.00';
-        document.getElementById('totalVES').textContent = '0.00';
-        document.getElementById('formDeposito').style.display = 'block';
-        document.getElementById('successView').style.display = 'none';
-        const btn = document.getElementById('btnDepositar');
-        btn.disabled = false; 
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-});
-    function mostrarMensaje(texto, tipo) {
-        const msg = document.getElementById('msgDeposito');
-        if (msg) { msg.textContent = texto; msg.className = `message ${tipo}`; }
     }
 
     window.nuevoDeposito = function() {
