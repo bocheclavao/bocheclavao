@@ -516,7 +516,125 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .single();
             
             if (dbError) throw new Error('Error al guardar: ' + dbError.message);
+                        // C. MOSTRAR VISTA DE ÉXITO Y GENERAR FACTURA
             console.log('✅ Depósito registrado:', deposito);
+                        // C. ENVIAR CORREO AUTOMÁTICO (Edge Function)
+            try {
+                console.log('📧 Enviando factura por correo...');
+                const { data: emailData, error: emailError } = await db.functions.invoke('enviar-factura', {
+                    body: {
+                        email: session.user.email,
+                        nombre: userData.nombre || 'Usuario',
+                        montoBC: cantidad,
+                        montoUSD: totalUSD.toFixed(2),
+                        montoBS: totalVES.toFixed(2),
+                        metodo: metodosPago[metodoSeleccionado].nombre,
+                        fecha: new Date().toLocaleString('es-VE'),
+                        idTransaccion: deposito.id
+                    }
+                });
+
+                if (emailError) {
+                    console.warn('⚠️ No se pudo enviar el correo automáticamente:', emailError.message);
+                    // No lanzamos error aquí para no bloquear la experiencia de usuario
+                } else {
+                    console.log('✅ Correo enviado exitosamente:', emailData);
+                }
+            } catch (emailErr) {
+                console.error('Error invocando función de correo:', emailErr);
+            }
+
+            // ... (Aquí continúa el código de generación de PDF que pegaste en el PASO 1.2) ...
+
+            // 1. Generar el PDF usando jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Encabezado
+            doc.setFillColor(255, 215, 0); // Color dorado
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(22);
+            doc.setFont("helvetica", "bold");
+            doc.text("BOCHE CLAVA'O", 105, 20, null, null, "center");
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Comprobante de Transacción", 105, 30, null, null, "center");
+
+            // Información de la Factura
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(10);
+            doc.text(`ID Transacción: ${deposito.id}`, 14, 55);
+            doc.text(`Fecha: ${new Date().toLocaleString('es-VE')}`, 14, 62);
+            doc.text(`Usuario: ${userData.nombre || session.user.email}`, 14, 69);
+
+            // Línea separadora
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, 75, 196, 75);
+
+            // Detalles de la transacción
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Detalles del Depósito", 14, 90);
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            let y = 105;
+            const lineHeight = 10;
+
+            const detalles = [
+                { label: "Método de Pago:", value: metodosPago[metodoSeleccionado].nombre.toUpperCase() },
+                { label: "Cantidad de Monedas:", value: `${cantidad} BC` },
+                { label: "Tasa BCV Aplicada:", value: `${tasaBCV.toFixed(4)} Bs/USD` },
+                { label: "Subtotal:", value: `$${(cantidad * (1 - (paqueteSeleccionado?.descuento || 0))).toFixed(2)}` },
+                { label: "Comisión Plataforma (0.30%):", value: `$${(cantidad * (1 - (paqueteSeleccionado?.descuento || 0)) * 0.003).toFixed(2)}` },
+                { label: "TOTAL PAGADO (USD):", value: `$${totalUSD.toFixed(2)}` },
+                { label: "TOTAL PAGADO (VES):", value: `Bs. ${totalVES.toFixed(2)}` },
+                { label: "Estado:", value: "PENDIENTE DE REVISIÓN" }
+            ];
+
+            detalles.forEach(item => {
+                doc.setFont("helvetica", "bold");
+                doc.text(item.label, 14, y);
+                doc.setFont("helvetica", "normal");
+                // Alinear valor a la derecha
+                const valorWidth = doc.getStringUnitWidth(item.value) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                doc.text(item.value, 196 - valorWidth, y);
+                y += lineHeight;
+            });
+
+            // Pie de página
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Este documento es un comprobante generado automáticamente. Conserve esta factura para sus registros.", 105, 280, null, null, "center");
+            doc.text("Soporte: soporte@bocheclavao.com", 105, 285, null, null, "center");
+
+            // Guardar el PDF en una variable global para poder descargarlo después
+            window.facturaPDF = doc;
+
+            // 2. Mostrar la vista de éxito en el HTML
+            document.getElementById('formDeposito').style.display = 'none';
+            document.getElementById('successAmount').textContent = cantidad;
+            
+            // Agregar botón de descarga dinámicamente en la vista de éxito
+            const successActions = document.querySelector('.success-actions');
+            if (successActions && !document.getElementById('btnDescargarFactura')) {
+                const btnDescargar = document.createElement('button');
+                btnDescargar.id = 'btnDescargarFactura';
+                btnDescargar.className = 'btn-secondary';
+                btnDescargar.style.marginTop = '10px';
+                btnDescargar.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar Factura';
+                btnDescargar.onclick = () => {
+                    if (window.facturaPDF) {
+                        window.facturaPDF.save(`Factura_BocheClavao_${deposito.id.substring(0,8)}.pdf`);
+                    }
+                };
+                // Insertar antes del primer botón existente
+                successActions.insertBefore(btnDescargar, successActions.firstChild);
+            }
+
+            document.getElementById('successView').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
             // C. MOSTRAR VISTA DE ÉXITO PROFESIONAL
             document.getElementById('formDeposito').style.display = 'none';
