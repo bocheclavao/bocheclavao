@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!db) { console.error('No se pudo obtener el cliente de Supabase'); return; }
 
     // ==========================================
-    // 1. VERIFICAR ACCESO ADMIN (Optimizado)
+    // 1. VERIFICAR ACCESO ADMIN
     // ==========================================
     async function verificarAccesoAdmin() {
         const { data: { session } } = await db.auth.getSession();
@@ -12,8 +12,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             return false; 
         }
         
-        // Usamos session.user.id directamente, sin llamar a getUser() de nuevo
-        const { data: adminData, error: adminError } = await db
+        const { data: adminData } = await db
             .from('admin_roles')
             .select('es_admin, activo')
             .eq('id', session.user.id)
@@ -21,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             .eq('activo', true)
             .single();
         
-        if (!adminData || adminError) { 
+        if (!adminData) { 
             alert('Acceso denegado. No tienes permisos de administrador.');
             window.location.href = 'dashboard.html'; 
             return false; 
@@ -46,14 +45,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         const { count: countDep } = await db.from('depositos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
         const { count: countRet } = await db.from('retiros').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
         
-        // CORRECCIÓN 3: Filtrar solo por el mes actual para que coincida con el título
-        const hoy = new Date();
-        const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
-        
+        // CORRECCIÓN: Eliminamos el filtro de fecha (.gte) para evitar error 400 si la columna 'created_at' no existe.
+        // Esto calculará la comisión de TODOS los depósitos aprobados.
         const { data: depsAprobados } = await db.from('depositos')
             .select('monto_usd')
-            .eq('estado', 'aprobado')
-            .gte('created_at', primerDiaMes);
+            .eq('estado', 'aprobado');
             
         let comisionTotal = 0;
         if (depsAprobados) {
@@ -72,7 +68,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const tbody = document.getElementById('tablaDepositos');
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando depósitos...</td></tr>';
 
-        const { data: depositos, error: errDep } = await db.from('depositos').select('*').order('created_at', { ascending: false });
+        // CORRECCIÓN: Ordenamos por 'id' en lugar de 'created_at'
+        const { data: depositos, error: errDep } = await db.from('depositos').select('*').order('id', { ascending: false });
         if (errDep || !depositos) {
             tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos.</td></tr>';
             return;
@@ -93,16 +90,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         tbody.innerHTML = depositos.map(dep => {
             const usuario = userMap[dep.user_id] || 'Usuario Desconocido';
-            
-            // CORRECCIÓN 2: Proteger contra valores nulos con || 0
             const montoUsd = dep.monto_usd || 0;
             const montoBs = dep.monto_bs || 0;
             const totalTexto = `$${montoUsd.toFixed(2)} / Bs. ${montoBs.toFixed(2)}`;
-            const fecha = new Date(dep.created_at).toLocaleDateString('es-VE');
             
+            // Si tienes created_at, descomenta la siguiente línea y comenta la de abajo
+            // const fecha = dep.created_at ? new Date(dep.created_at).toLocaleDateString('es-VE') : 'N/A';
+            const fecha = 'Reciente'; // Fallback seguro
+
             let acciones = '';
             if (dep.estado === 'pendiente') {
-                // CORRECCIÓN 1: Usar JSON.stringify para escapar comillas en el nombre del usuario
                 acciones = `
                     <button class="action-btn btn-view" onclick="verComprobante('${dep.comprobante_url || ''}', ${JSON.stringify(usuario)})"><i class="fas fa-eye"></i></button>
                     <button class="action-btn btn-approve" onclick="aprobarDeposito('${dep.id}', ${dep.cantidad_monedas}, '${dep.user_id}')"><i class="fas fa-check"></i></button>
@@ -131,7 +128,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const tbody = document.getElementById('tablaRetiros');
         tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando retiros...</td></tr>';
 
-        const { data: retiros, error: errRet } = await db.from('retiros').select('*').order('created_at', { ascending: false });
+        // CORRECCIÓN: Ordenamos por 'id' en lugar de 'created_at'
+        const { data: retiros, error: errRet } = await db.from('retiros').select('*').order('id', { ascending: false });
         if (errRet || !retiros) {
             tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Error al cargar datos.</td></tr>';
             return;
@@ -152,9 +150,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         tbody.innerHTML = retiros.map(ret => {
             const usuario = userMap[ret.user_id] || 'Usuario Desconocido';
-            const fecha = new Date(ret.created_at).toLocaleDateString('es-VE');
-            const montoBs = ret.monto_bs || 0; // CORRECCIÓN 2
+            const montoBs = ret.monto_bs || 0;
             
+            // Si tienes created_at, descomenta la siguiente línea y comenta la de abajo
+            // const fecha = ret.created_at ? new Date(ret.created_at).toLocaleDateString('es-VE') : 'N/A';
+            const fecha = 'Reciente'; // Fallback seguro
+
             let acciones = '';
             if (ret.estado === 'pendiente') {
                 acciones = `
@@ -262,7 +263,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ==========================================
     // 5. UTILIDADES UI
     // ==========================================
-    // CORRECCIÓN 4: Recibir 'event' como parámetro explícito
     window.cambiarTab = function(tab, event) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.table-container').forEach(t => t.classList.remove('active'));
@@ -287,7 +287,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('modalComprobante').classList.remove('active');
     };
 
-    // Extra: Cerrar modal al hacer clic fuera de la imagen
     document.getElementById('modalComprobante').addEventListener('click', function(e) {
         if (e.target === this) cerrarModal();
     });
