@@ -152,22 +152,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ==========================================
-    // ENVÍO DEL FORMULARIO
+    // ENVÍO DEL FORMULARIO (BLINDADO)
     // ==========================================
     document.getElementById('formDeposito').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         if (!paqueteSeleccionado && !document.getElementById('customAmount').value) { 
-            mostrarMensaje('❌ Ingresa una cantidad de monedas.', 'error'); 
-            return; 
+            mostrarMensaje('❌ Ingresa una cantidad de monedas.', 'error'); return; 
         }
         if (!metodoSeleccionado) { 
-            mostrarMensaje('❌ Selecciona un método de pago.', 'error'); 
-            return; 
+            mostrarMensaje('❌ Selecciona un método de pago.', 'error'); return; 
         }
         if (metodosPago[metodoSeleccionado].requiereArchivo) {
             if (!fileInput || !fileInput.files[0]) {
-                mostrarMensaje('❌ Debes subir el comprobante de pago (captura de pantalla).', 'error');
+                mostrarMensaje('❌ Debes subir el comprobante de pago.', 'error');
                 document.getElementById('fileUploadGroup').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
@@ -207,6 +205,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         try {
+            // 1. SUBIR ARCHIVO
             let comprobanteUrl = null;
             if (fileInput && fileInput.files[0]) {
                 const archivo = fileInput.files[0];
@@ -214,185 +213,141 @@ document.addEventListener('DOMContentLoaded', async function() {
                 btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Subiendo comprobante...';
                 
                 const { error: uploadError } = await db.storage.from('comprobantes').upload(nombreArchivo, archivo, { cacheControl: '3600', upsert: false });
-                if (uploadError) throw new Error('Error al subir comprobante: ' + uploadError.message);
+                if (uploadError) throw new Error('Error al subir: ' + uploadError.message);
                 
                 const { data: urlData } = db.storage.from('comprobantes').getPublicUrl(nombreArchivo);
                 comprobanteUrl = urlData.publicUrl;
             }
 
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Registrando depósito...';
+            // 2. GUARDAR EN BD
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Registrando...';
             const { data: deposito, error: dbError } = await db.from('depositos').insert({
-                user_id: session.user.id, 
-                cantidad_monedas: cantidad, 
-                monto_usd: totalUSD, 
-                monto_bs: totalVES,
-                tasa_bcv_usada: tasaBCV, 
-                descuento_aplicado: paqueteSeleccionado ? paqueteSeleccionado.descuento * 100 : 0,
-                metodo_pago: metodoSeleccionado, 
-                datos_pago: datosPagoSeguros, 
-                comprobante_url: comprobanteUrl, 
-                estado: 'pendiente'
+                user_id: session.user.id, cantidad_monedas: cantidad, monto_usd: totalUSD, monto_bs: totalVES,
+                tasa_bcv_usada: tasaBCV, descuento_aplicado: paqueteSeleccionado ? paqueteSeleccionado.descuento * 100 : 0,
+                metodo_pago: metodoSeleccionado, datos_pago: datosPagoSeguros, comprobante_url: comprobanteUrl, estado: 'pendiente'
             }).select().single();
             
             if (dbError) throw new Error('Error al guardar: ' + dbError.message);
             console.log('✅ Depósito registrado:', deposito);
 
+            // 3. ENVIAR CORREO (No detiene el proceso si falla)
             try {
                 console.log('📧 Enviando correo...');
                 await db.functions.invoke('enviar-factura', {
-                    body: { 
-                        email: session.user.email, 
-                        nombre: userData.nombre || 'Usuario', 
-                        montoBC: cantidad, 
-                        montoUSD: totalUSD.toFixed(2), 
-                        montoBS: totalVES.toFixed(2), 
-                        metodo: metodosPago[metodoSeleccionado].nombre, 
-                        fecha: new Date().toLocaleString('es-VE'), 
-                        idTransaccion: deposito.id 
-                    }
+                    body: { email: session.user.email, nombre: userData.nombre || 'Usuario', montoBC: cantidad, montoUSD: totalUSD.toFixed(2), montoBS: totalVES.toFixed(2), metodo: metodosPago[metodoSeleccionado].nombre, fecha: new Date().toLocaleString('es-VE'), idTransaccion: deposito.id }
                 });
                 console.log('✅ Correo enviado');
             } catch (emailErr) { 
                 console.warn('⚠️ Error al enviar correo:', emailErr); 
             }
 
-            // 4. GENERAR PDF CON HEADER DORADO (COMO EL CORREO)
+            // 4. GENERAR PDF (No detiene el proceso si falla)
             try {
-                console.log('📄 Generando PDF con logo...');
+                console.log('📄 Generando PDF...');
                 if (window.jspdf) {
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF();
-                    
-                    // Header dorado (igual que el correo)
-                    doc.setFillColor(255, 215, 0); // Color #FFD700
-                    doc.rect(0, 0, 210, 35, 'F');
-                    
-                    // Título
-                    doc.setTextColor(0, 0, 0); 
-                    doc.setFontSize(24); 
-                    doc.setFont("helvetica", "bold");
+                    doc.setFillColor(255, 215, 0); doc.rect(0, 0, 210, 35, 'F');
+                    doc.setTextColor(0, 0, 0); doc.setFontSize(24); doc.setFont("helvetica", "bold");
                     doc.text("BOCHE CLAVA'O", 105, 22, null, null, "center");
-                    
-                    doc.setFontSize(11); 
-                    doc.setFont("helvetica", "normal"); 
-                    doc.text("Comprobante de Depósito", 105, 30, null, null, "center");
-                    
-                    // Info básica
-                    doc.setTextColor(50, 50, 50); 
-                    doc.setFontSize(10);
-                    doc.text(`ID Transacción: ${deposito.id}`, 14, 50);
+                    doc.setFontSize(11); doc.setFont("helvetica", "normal"); doc.text("Comprobante de Depósito", 105, 30, null, null, "center");
+                    doc.setTextColor(50, 50, 50); doc.setFontSize(10);
+                    doc.text(`ID: ${deposito.id}`, 14, 50);
                     doc.text(`Fecha: ${new Date().toLocaleString('es-VE')}`, 14, 57);
                     doc.text(`Usuario: ${userData.nombre || session.user.email}`, 14, 64);
-                    
-                    // Línea separadora
-                    doc.setDrawColor(200, 200, 200); 
-                    doc.line(14, 70, 196, 70);
-                    
-                    // Detalles
-                    doc.setFontSize(13); 
-                    doc.setFont("helvetica", "bold"); 
-                    doc.text("Detalles del Depósito", 14, 85);
-                    doc.setFont("helvetica", "normal"); 
-                    doc.setFontSize(10);
+                    doc.setDrawColor(200, 200, 200); doc.line(14, 70, 196, 70);
+                    doc.setFontSize(13); doc.setFont("helvetica", "bold"); doc.text("Detalles", 14, 85);
+                    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
                     
                     let y = 100;
-                    const detalles = [
-                        { label: "Método de Pago:", value: metodosPago[metodoSeleccionado].nombre.toUpperCase() },
-                        { label: "Cantidad de Monedas:", value: `${cantidad} BC` },
-                        { label: "Tasa BCV Aplicada:", value: `${tasaBCV.toFixed(4)} Bs/USD` },
-                        { label: "Subtotal:", value: `$${precioBaseUSD.toFixed(2)}` },
-                        { label: "Comisión Plataforma (0.30%):", value: `$${(precioBaseUSD * 0.003).toFixed(2)}` },
-                        { label: "TOTAL PAGADO (USD):", value: `$${totalUSD.toFixed(2)}` },
-                        { label: "TOTAL PAGADO (VES):", value: `Bs. ${totalVES.toFixed(2)}` },
-                        { label: "Estado:", value: "PENDIENTE DE REVISIÓN" }
-                    ];
-
-                    detalles.forEach(item => {
-                        doc.setFont("helvetica", "bold"); 
-                        doc.text(item.label, 14, y);
+                    [{ label: "Método:", value: metodosPago[metodoSeleccionado].nombre.toUpperCase() },
+                     { label: "Monedas:", value: `${cantidad} BC` },
+                     { label: "Tasa BCV:", value: `${tasaBCV.toFixed(4)} Bs/USD` },
+                     { label: "Subtotal:", value: `$${precioBaseUSD.toFixed(2)}` },
+                     { label: "Comisión (0.30%):", value: `$${(precioBaseUSD * 0.003).toFixed(2)}` },
+                     { label: "TOTAL USD:", value: `$${totalUSD.toFixed(2)}` },
+                     { label: "TOTAL VES:", value: `Bs. ${totalVES.toFixed(2)}` },
+                     { label: "Estado:", value: "PENDIENTE" }
+                    ].forEach(item => {
+                        doc.setFont("helvetica", "bold"); doc.text(item.label, 14, y);
                         doc.setFont("helvetica", "normal");
-                        const valorWidth = doc.getStringUnitWidth(item.value) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-                        doc.text(item.value, 196 - valorWidth, y);
+                        const w = doc.getStringUnitWidth(item.value) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+                        doc.text(item.value, 196 - w, y);
                         y += 9;
                     });
-
-                    // Footer
-                    doc.setFontSize(8); 
-                    doc.setTextColor(100, 100, 100);
-                    doc.text("Este documento es un comprobante generado automáticamente.", 105, 275, null, null, "center");
-                    doc.text("Soporte: soporte@bocheclavao.com", 105, 280, null, null, "center");
-
+                    doc.setFontSize(8); doc.setTextColor(100, 100, 100);
+                    doc.text("Comprobante automático. Soporte: soporte@bocheclavao.com", 105, 280, null, null, "center");
                     window.facturaPDF = doc;
-                    console.log('✅ PDF generado con header dorado');
-                } else {
-                    console.warn('⚠️ jsPDF no está cargado');
+                    console.log('✅ PDF generado');
                 }
-            } catch (pdfErr) { 
-                console.warn('⚠️ Error al generar PDF:', pdfErr); 
-            }
+            } catch (pdfErr) { console.warn('⚠️ Error PDF:', pdfErr); }
 
-            // 5. MOSTRAR VISTA DE ÉXITO CON LOGS MEJORADOS
-            console.log(' Iniciando muestra de vista de éxito...');
-            
-            // Ocultar formulario
-            document.getElementById('formDeposito').style.display = 'none';
-            document.getElementById('successAmount').textContent = cantidad;
-            
-            // Insertar botón de descarga
-            const successActions = document.querySelector('.success-actions');
-            console.log('🔍 Buscando .success-actions:', successActions);
-            
-            if (successActions) {
-                // Remover botón existente si hay
-                const btnExistente = document.getElementById('btnDescargarFactura');
-                if (btnExistente) {
-                    console.log('️ Removiendo botón existente');
-                    btnExistente.remove();
+            // 5. MOSTRAR VISTA DE ÉXITO (A PRUEBA DE FALLAS)
+            console.log('🎉 [PASO 5] Mostrando vista de éxito...');
+            try {
+                const formEl = document.getElementById('formDeposito');
+                if (formEl) formEl.style.display = 'none';
+                
+                const amountEl = document.getElementById('successAmount');
+                if (amountEl) amountEl.textContent = cantidad;
+                
+                const successActions = document.querySelector('.success-actions');
+                if (successActions) {
+                    const btnExistente = document.getElementById('btnDescargarFactura');
+                    if (btnExistente) btnExistente.remove();
+                    
+                    const btnDescargar = document.createElement('button');
+                    btnDescargar.id = 'btnDescargarFactura';
+                    btnDescargar.className = 'btn-secondary';
+                    btnDescargar.style.marginTop = '10px';
+                    btnDescargar.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar Factura';
+                    btnDescargar.onclick = () => {
+                        if (window.facturaPDF) window.facturaPDF.save(`Factura_${deposito.id.substring(0,8)}.pdf`);
+                        else alert('No se pudo generar la factura.');
+                    };
+                    successActions.insertBefore(btnDescargar, successActions.firstChild);
+                    console.log('✅ Botón de descarga insertado');
+                } else {
+                    console.error('❌ ERROR: No se encontró .success-actions en el HTML');
                 }
                 
-                // Crear nuevo botón
-                const btnDescargar = document.createElement('button');
-                btnDescargar.id = 'btnDescargarFactura';
-                btnDescargar.className = 'btn-secondary';
-                btnDescargar.style.marginTop = '10px';
-                btnDescargar.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar Factura';
-                btnDescargar.onclick = () => {
-                    console.log(' Click en descargar PDF');
-                    if (window.facturaPDF) {
-                        window.facturaPDF.save(`Factura_BocheClavao_${deposito.id.substring(0,8)}.pdf`);
-                        console.log('✅ PDF descargado');
-                    } else {
-                        alert('No se pudo generar la factura. Contacta a soporte.');
-                    }
-                };
+                const successViewEl = document.getElementById('successView');
+                if (successViewEl) {
+                    successViewEl.style.display = 'block';
+                    console.log('✅ Vista de éxito mostrada');
+                } else {
+                    console.error('❌ ERROR: No se encontró #successView en el HTML');
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 
-                // Insertar al inicio
-                successActions.insertBefore(btnDescargar, successActions.firstChild);
-                console.log('✅ Botón de descarga insertado correctamente');
-            } else {
-                console.error('❌ ERROR CRÍTICO: No se encontró .success-actions en el HTML');
-                console.log('HTML actual:', document.querySelector('.success-view')?.innerHTML);
+            } catch (uiError) {
+                console.error('❌ ERROR CRÍTICO al mostrar la vista:', uiError);
+                // RESTAURAR EL FORMULARIO SI ALGO FALLÓ AQUÍ
+                const formEl = document.getElementById('formDeposito');
+                if (formEl) formEl.style.display = 'block';
+                throw uiError;
             }
-            
-            // Mostrar vista de éxito
-            document.getElementById('successView').style.display = 'block';
-            console.log('✅ Vista de éxito mostrada');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
 
         } catch (err) {
-            console.error('❌ Error crítico:', err);
+            console.error('❌ [ERROR GLOBAL] en el depósito:', err);
+            
+            // ASEGURAR QUE EL FORMULARIO SEA VISIBLE DE NUEVO (Evita la pantalla negra)
+            const formEl = document.getElementById('formDeposito');
+            if (formEl) formEl.style.display = 'block';
+            
             mostrarMensaje('❌ Error: ' + err.message, 'error');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+            
+            const btn = document.getElementById('btnDepositar');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+            }
         }
     });
 
     function mostrarMensaje(texto, tipo) {
         const msg = document.getElementById('msgDeposito');
-        if (msg) { 
-            msg.textContent = texto; 
-            msg.className = `message ${tipo}`; 
-        }
+        if (msg) { msg.textContent = texto; msg.className = `message ${tipo}`; }
     }
 
     window.nuevoDeposito = function() {
@@ -401,16 +356,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         document.getElementById('companyDataBox').style.display = 'none';
         document.getElementById('dynamicForm').style.display = 'none';
-        paqueteSeleccionado = null; 
-        metodoSeleccionado = null;
+        paqueteSeleccionado = null; metodoSeleccionado = null;
         document.getElementById('customAmount').value = '';
         document.getElementById('totalUSD').textContent = '0.00';
         document.getElementById('totalVES').textContent = '0.00';
         document.getElementById('formDeposito').style.display = 'block';
         document.getElementById('successView').style.display = 'none';
         const btn = document.getElementById('btnDepositar');
-        btn.disabled = false; 
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 });
