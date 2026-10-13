@@ -68,7 +68,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (filterEnd) query = query.lte('created_at', `${filterEnd}T23:59:59`);
 
             // Obtenemos todos los datos (sin límite de página aún para poder ordenar correctamente)
-            // Nota: Si tienes miles de registros, este ordenamiento en cliente es eficiente para las primeras páginas.
             const { data, count, error } = await query.order('created_at', { ascending: false });
 
             if (error) {
@@ -303,23 +302,29 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // ==========================================
-    // 5. ACCIONES BLINDADAS + CORREOS SEGUROS
+    // 5. ACCIONES BLINDADAS + CORREOS DETALLADOS
     // ==========================================
     window.aprobarDeposito = async function(idDeposito, cantidadBC, userId) {
         if (!confirm(`¿Aprobar este depósito de ${cantidadBC} BC? Se sumará al saldo y se notificará al usuario.`)) return;
 
         try {
-            const { data: userData, error: userErr } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
-            if (userErr || !userData) throw new Error('Usuario no encontrado: ' + (userErr?.message || ''));
+            // 1. Obtener datos completos del depósito y del usuario para el correo
+            const { data: depositoData, error: depErr } = await db.from('depositos').select('*').eq('id', idDeposito).single();
+            if (depErr || !depositoData) throw new Error('Depósito no encontrado');
 
+            const { data: userData, error: userErr } = await db.from('perfiles').select('email, nombre, saldo_bc').eq('id', userId).single();
+            if (userErr || !userData) throw new Error('Usuario no encontrado');
+
+            // 2. Actualizar estado del depósito
             const { error: errDep } = await db.from('depositos').update({ estado: 'aprobado' }).eq('id', idDeposito);
             if (errDep) throw new Error('Error al actualizar depósito: ' + errDep.message);
 
+            // 3. Sumar al saldo
             const nuevoSaldo = (userData.saldo_bc || 0) + Number(cantidadBC);
             const { error: errUpdate } = await db.from('perfiles').update({ saldo_bc: nuevoSaldo }).eq('id', userId);
             if (errUpdate) throw new Error('Error al actualizar saldo: ' + errUpdate.message);
 
-            // Enviar correo de forma segura (no detiene el flujo si falla)
+            // 4. Enviar correo de forma segura con TODOS los detalles
             try {
                 const { data: emailData, error: emailErr } = await db.functions.invoke('notificar-transaccion', {
                     body: {
@@ -327,6 +332,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         nombre: userData.nombre || 'Usuario',
                         tipo: 'deposito_aprobado',
                         monto: cantidadBC,
+                        montoUSD: (depositoData.monto_usd || 0).toFixed(2),
+                        montoBS: (depositoData.monto_bs || 0).toFixed(2),
+                        metodo: (depositoData.metodo_pago || 'Desconocido').toUpperCase(),
+                        fecha: new Date(depositoData.created_at).toLocaleString('es-VE'),
                         id: idDeposito
                     }
                 });
@@ -368,16 +377,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!confirm('¿Confirmar que ya realizaste el pago externo y aprobar este retiro? Se notificará al usuario.')) return;
         
         try {
-            const { data: retiroData, error: retiroErr } = await db.from('retiros').select('user_id, monto_bc').eq('id', idRetiro).single();
+            // 1. Obtener datos completos del retiro y del usuario para el correo
+            const { data: retiroData, error: retiroErr } = await db.from('retiros').select('*').eq('id', idRetiro).single();
             if (retiroErr || !retiroData) throw new Error('Retiro no encontrado');
 
             const { data: userData, error: userErr } = await db.from('perfiles').select('email, nombre').eq('id', retiroData.user_id).single();
             if (userErr || !userData) throw new Error('Usuario no encontrado');
 
+            // 2. Actualizar estado del retiro
             const { error: errRet } = await db.from('retiros').update({ estado: 'aprobado' }).eq('id', idRetiro);
             if (errRet) throw new Error('Error al actualizar retiro: ' + errRet.message);
             
-            // Enviar correo de forma segura
+            // 3. Enviar correo de forma segura con TODOS los detalles
             try {
                 const { data: emailData, error: emailErr } = await db.functions.invoke('notificar-transaccion', {
                     body: {
@@ -385,6 +396,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         nombre: userData.nombre || 'Usuario',
                         tipo: 'retiro_aprobado',
                         monto: retiroData.monto_bc,
+                        montoUSD: (retiroData.monto_usd || 0).toFixed(2),
+                        montoBS: (retiroData.monto_bs || 0).toFixed(2),
+                        metodo: (retiroData.metodo_pago || 'Desconocido').toUpperCase(),
+                        fecha: new Date(retiroData.created_at).toLocaleString('es-VE'),
                         id: idRetiro
                     }
                 });
