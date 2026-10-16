@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                         ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                        : 'hub-juegos.html';
+                        : ;
                     window.location.href = redirectUrl;
                 }, 1500);
                 
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
-            const redirectURL = construirURL('/dashboard.html');
+            const redirectURL = construirURL('/'hub-juegos.html');
             const { data, error } = await db.auth.signInWithOAuth({
                 provider: 'google',
                 options: { redirectTo: redirectURL, queryParams: { access_type: 'offline', prompt: 'consent' } }
