@@ -303,20 +303,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     .eq('id', session.user.id) 
                     .single();
 
-                // 2. Si existe el perfil y la columna 'bloqueado' es true
+                          // 2. Si existe el perfil y la columna 'bloqueado' es true
                 if (perfil && perfil.bloqueado === true) {
                     console.warn('⚠️ Usuario bloqueado detectado. Cerrando sesión...');
                     
                     // Cerrar sesión inmediatamente
                     await db.auth.signOut();
                     
-                    // Guardar el mensaje de bloqueo para mostrarlo en el login
+                    // Guardar el mensaje de bloqueo
                     const motivo = perfil.motivo_bloqueo || 'Sin motivo especificado por el administrador.';
                     sessionStorage.setItem('auth_message', `🚫 TU CUENTA HA SIDO BLOQUEADA\n\nMotivo: ${motivo}\n\nContacta a soporte si crees que esto es un error.`);
                     sessionStorage.setItem('auth_type', 'error');
                     
-                    // Recargar la página para limpiar el estado y mostrar el mensaje de error
-                    window.location.reload();
+                    // 🛡️ CAMBIO CRÍTICO: Usar href en lugar de reload() para forzar una navegación limpia
+                    window.location.href = 'index.html'; 
                     return; // Detenemos la ejecución aquí
                 }
 
