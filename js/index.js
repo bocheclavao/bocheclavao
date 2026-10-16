@@ -1,28 +1,29 @@
-document.addEventListener('DOMContentLoaded', async function() {
-    const db = window.supabaseClient;
-    if (!db) {
-        console.error('No se pudo obtener el cliente de Supabase');
-        return;
-    }
-
+document.addEventListener('DOMContentLoaded', function() {
     const messageDiv = document.getElementById('message');
     const loginForm = document.getElementById('loginForm');
     const submitBtn = document.getElementById('submitBtn');
-
-    // Verificar si viene de un bloqueo (parámetro URL)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('blocked') === 'true') {
-        // Limpiar el parámetro de la URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        // Mostrar modal de bloqueo
-        if (typeof mostrarModalBloqueo === 'function') {
-            mostrarModalBloqueo('Violar las políticas, normas y condiciones de la plataforma.');
-        }
-        return; // No continuar con el resto del código
+    const db = window.supabaseClient;
+    
+    if (!db) {
+        console.error('No se pudo obtener el cliente de Supabase');
+        showMessage('Error: No se pudo conectar con el servidor', 'error');
+        return;
     }
 
-    // Función para mostrar mensajes
+    // ============================================
+    // 🛡️ DIAGNÓSTICO DEL MENSAJE FANTASMA
+    // ============================================
+    const existingMessage = sessionStorage.getItem('auth_message');
+    if (existingMessage && existingMessage.includes('otro dispositivo')) {
+        console.warn('⚠️ ALERTA: El mensaje de "otro dispositivo" YA estaba en sessionStorage al cargar.');
+    }
+
+    function construirURL(base) {
+        const path = window.location.pathname;
+        const repoPath = path.substring(0, path.lastIndexOf('/'));
+        return window.location.origin + repoPath + base;
+    }
+
     function showMessage(text, type) {
         if (messageDiv) {
             messageDiv.textContent = text;
@@ -39,15 +40,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    function resetButton() {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Ingresar';
+    window.togglePasswordVisibility = function() {
+        const passwordInput = document.getElementById('password');
+        const icon = document.querySelector('.toggle-password');
+        if (!passwordInput || !icon) return;
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
         }
-    }
+    };
 
     // ============================================
-    //  LOGIN CON EMAIL Y CONTRASEÑA
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (100% BLINDADO)
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -66,34 +75,102 @@ document.addEventListener('DOMContentLoaded', async function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // Intentar login
-                const { data, error: authError } = await db.auth.signInWithPassword({ email, password });
+                // PASO 1: ¿El correo existe?
+                const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
+                
+                if (existeError) {
+                    console.error('Error verificando correo:', existeError);
+                }
+                
+                if (existeData !== true) {
+                    showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
+                    resetButton();
+                    return;
+                }
+
+                // PASO 2: ¿Está suspendido?
+                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
+                
+                if (preError) console.error('Error pre-check:', preError);
+                
+                if (preCheck && preCheck.allowed === false) {
+                    const hasta = preCheck.blocked_until 
+                        ? new Date(preCheck.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                        : 'varias horas';
+                    showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
+                    resetButton();
+                    return;
+                }
+
+                // PASO 3: Intentar login con Supabase Auth
+                const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
-                    showMessage('❌ Correo o contraseña incorrectos.', 'error');
-                    resetButton();
-                    return;
-                }
-                
-                // Verificar si está bloqueado
-                const { data: perfil } = await db.from('perfiles')
-                    .select('bloqueado, motivo_bloqueo')
-                    .eq('id', data.user.id)
-                    .single();
-                
-                if (perfil && perfil.bloqueado === true) {
-                    // ESTÁ BLOQUEADO - Cerrar sesión y mostrar modal
-                    await db.auth.signOut();
+                    // PASO 4: Registrar intento fallido
+                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
                     
-                    if (typeof mostrarModalBloqueo === 'function') {
-                        mostrarModalBloqueo(perfil.motivo_bloqueo || 'Violar las políticas, normas y condiciones de la plataforma.');
+                    if (rpcError) console.error('Error registrando intento:', rpcError);
+
+                    // Diagnóstico en consola para que veas que la BD sí está contando
+                    console.log('📊 DATOS DE INTENTOS:', attemptData);
+
+                    if (attemptData && attemptData.allowed === false) {
+                        const hasta = attemptData.blocked_until 
+                            ? new Date(attemptData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                            : 'varias horas';
+                        showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
+                    } else {
+                        const intentos = (attemptData && attemptData.attempts) ? attemptData.attempts : 1;
+                        const restantes = Math.max(0, 5 - intentos);
+                        showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
+                    
                     resetButton();
                     return;
                 }
                 
-                // Login exitoso y NO bloqueado - Redirigir al hub
-                window.location.href = 'hub-juegos.html';
+                // PASO 5: Login exitoso -> Resetear contador (con try/catch seguro)
+                try {
+                    await db.rpc('check_login_attempt', { p_email: email, p_success: true });
+                } catch (rpcErr) {
+                    console.warn('No se pudo resetear contador:', rpcErr.message || rpcErr);
+                }
+
+                if (data.user && !data.user.email_confirmed_at) {
+                    await db.auth.signOut();
+                    showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
+                    resetButton();
+                    return;
+                }
+                
+                if (data.user) {
+                    try {
+                        const sessionToken = Date.now().toString(36) + Math.random().toString(36).substr(2);
+                        await db.from('active_sessions').upsert({
+                            user_id: data.user.id,
+                            session_token: sessionToken,
+                            last_active: new Date().toISOString(),
+                            device_info: navigator.userAgent.substring(0, 200)
+                        });
+                        localStorage.setItem('session_token', sessionToken);
+                    } catch (sessionErr) {
+                        console.error('Error registrando sesión:', sessionErr);
+                    }
+                }
+
+                try {
+                    await db.auth.signOut({ scope: 'others' });
+                } catch (e) {
+                    // Ignorar error si no hay otras sesiones
+                }
+                
+                showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+                setTimeout(() => {
+                    const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
+                        ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
+                        : 'dashboard.html';
+                    window.location.href = redirectUrl;
+                }, 1500);
                 
             } catch (err) {
                 console.error('Error inesperado:', err);
@@ -103,22 +180,33 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    function resetButton() {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Ingresar';
+        }
+    }
+
     // ============================================
     // 🔐 LOGIN CON GOOGLE
     // ============================================
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
-            const redirectURL = window.location.origin + window.location.pathname.replace('index.html', '') + 'hub-juegos.html';
-            const { error } = await db.auth.signInWithOAuth({
+            const redirectURL = construirURL('/dashboard.html');
+            const { data, error } = await db.auth.signInWithOAuth({
                 provider: 'google',
-                options: { 
-                    redirectTo: redirectURL,
-                    queryParams: { access_type: 'offline', prompt: 'consent' } 
-                }
+                options: { redirectTo: redirectURL, queryParams: { access_type: 'offline', prompt: 'consent' } }
             });
             if (error) {
-                showMessage('Error: ' + error.message, 'error');
+                let mensajeError = error.message;
+                if (error.message.includes('already registered') || error.message.includes('already exists')) {
+                    mensajeError = 'Este correo ya está registrado con otro método.';
+                } else if (error.message.includes('For security purposes')) {
+                    const match = error.message.match(/after (\d+) seconds?/);
+                    mensajeError = `⏱️ Por seguridad, espera ${match ? match[1] : '60'} segundos antes de intentar de nuevo.`;
+                }
+                showMessage(mensajeError, 'error');
             }
         } catch (err) {
             showMessage('Error inesperado: ' + err.message, 'error');
@@ -131,8 +219,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.mostrarRecuperacion = function(event) {
         if (event) event.preventDefault();
         clearMessage();
+        
         if (loginForm) loginForm.style.display = 'none';
-        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'none'; });
+        const forgotPassword = document.querySelector('.forgot-password');
+        const divider = document.querySelector('.divider');
+        const googleBtn = document.querySelector('.btn-google');
+        const registerLink = document.querySelector('.register-link');
+        
+        if (forgotPassword) forgotPassword.style.display = 'none';
+        if (divider) divider.style.display = 'none';
+        if (googleBtn) googleBtn.style.display = 'none';
+        if (registerLink) registerLink.style.display = 'none';
+        
         document.getElementById('recoveryStep1').style.display = 'block';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -140,8 +238,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.volverAlLogin = function(event) {
         if (event) event.preventDefault();
         clearMessage();
+        
         if (loginForm) loginForm.style.display = 'block';
-        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'block'; });
+        const forgotPassword = document.querySelector('.forgot-password');
+        const divider = document.querySelector('.divider');
+        const googleBtn = document.querySelector('.btn-google');
+        const registerLink = document.querySelector('.register-link');
+        
+        if (forgotPassword) forgotPassword.style.display = 'block';
+        if (divider) divider.style.display = 'block';
+        if (googleBtn) googleBtn.style.display = 'block';
+        if (registerLink) registerLink.style.display = 'block';
+        
         document.getElementById('recoveryStep1').style.display = 'none';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -158,25 +266,88 @@ document.addEventListener('DOMContentLoaded', async function() {
         recoveryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('recoveryEmail').value.trim();
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!emailRegex.test(email)) {
                 showMessage('Por favor, ingresa un correo electrónico válido.', 'error');
                 return;
             }
+            
             showMessage('Enviando enlace de recuperación...', 'info');
+            
             try {
-                const redirectURL = window.location.origin + window.location.pathname.replace('index.html', '') + 'recuperar-contrasena.html';
-                const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: redirectURL });
+                const redirectURL = construirURL('/recuperar-contrasena.html');
+                const { data, error } = await db.auth.resetPasswordForEmail(email, { redirectTo: redirectURL });
+                
                 if (error) {
-                    showMessage('Error: ' + error.message, 'error');
+                    let mensajeError = error.message;
+                    if (error.message.includes('User not found') || error.message.includes('no user found')) {
+                        mensajeError = 'Este correo no está registrado en nuestro sistema.';
+                    } else if (error.message.includes('For security purposes') || error.message.includes('rate limit')) {
+                        const match = error.message.match(/after (\d+) seconds?/);
+                        mensajeError = `⏱️ Por seguridad, espera ${match ? match[1] : '60'} segundos antes de solicitar otro enlace.`;
+                    }
+                    showMessage(mensajeError, 'error');
                     return;
                 }
+                
                 document.getElementById('recoveryStep1').style.display = 'none';
                 document.getElementById('recoveryStep2').style.display = 'block';
                 document.getElementById('recoveryEmailDisplay').textContent = email;
                 showMessage('✅ Enlace enviado. Revisa tu correo.', 'success');
+                
             } catch (err) {
                 showMessage('Error inesperado: ' + err.message, 'error');
             }
         });
+    }
+
+    // ============================================
+    // 🛡️ VERIFICAR SESIÓN ACTIVA Y SUSPENSIÓN AL CARGAR
+    // ============================================
+    async function checkSession() {
+        try {
+            const { data: { session } } = await db.auth.getSession();
+            
+            if (session && session.user) {
+                const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
+                    p_email: session.user.email,
+                    p_success: true
+                });
+                
+                if (checkError) console.warn('Error verificando sesión:', checkError);
+                
+                if (checkData && checkData.allowed === false) {
+                    await db.auth.signOut();
+                    const hasta = checkData.blocked_until 
+                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                        : 'varias horas';
+                    
+                    sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida hasta: ${hasta}.`);
+                    sessionStorage.setItem('auth_type', 'error');
+                    return;
+                }
+
+                const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
+                    ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
+                    : 'dashboard.html';
+                window.location.href = redirectUrl;
+            }
+        } catch (err) {
+            console.warn('No se pudo verificar sesión:', err);
+        }
+    }
+    checkSession();
+
+    // ============================================
+    // 📩 MOSTRAR MENSAJE DE EXPULSIÓN SI EXISTE
+    // ============================================
+    const logoutReason = sessionStorage.getItem('auth_message');
+    const logoutType = sessionStorage.getItem('auth_type') || 'info';
+    
+    if (logoutReason) {
+        showMessage(logoutReason, logoutType);
+        sessionStorage.removeItem('auth_message');
+        sessionStorage.removeItem('auth_type');
     }
 });
