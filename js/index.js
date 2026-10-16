@@ -1,50 +1,58 @@
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
-    if (!db) return;
+    if (!db) {
+        console.error('No se pudo obtener el cliente de Supabase');
+        return;
+    }
 
     const messageDiv = document.getElementById('message');
     const loginForm = document.getElementById('loginForm');
     const submitBtn = document.getElementById('submitBtn');
 
-    // 1. Verificar si viene redirigido por estar bloqueado desde otro módulo
+    // Verificar si viene de un bloqueo (parámetro URL)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('blocked') === 'true') {
-        await db.auth.signOut(); // Asegurar cierre de sesión
-        mostrarModalBloqueo('Violar las políticas, normas y condiciones de la plataforma.');
+        // Limpiar el parámetro de la URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Mostrar modal de bloqueo
+        if (typeof mostrarModalBloqueo === 'function') {
+            mostrarModalBloqueo('Violar las políticas, normas y condiciones de la plataforma.');
+        }
+        return; // No continuar con el resto del código
     }
 
-    // 2. Si ya hay sesión activa y NO está bloqueado, redirigir al hub (evita que vean el login)
-    const { data: { session } } = await db.auth.getSession();
-    if (session && session.user) {
-        const { data: perfil } = await db.from('perfiles').select('bloqueado').eq('id', session.user.id).single();
-        if (perfil && !perfil.bloqueado) {
-            window.location.href = 'hub-juegos.html';
-            return;
-        } else {
-            await db.auth.signOut(); // Si hay sesión pero está bloqueado, la cerramos
+    // Función para mostrar mensajes
+    function showMessage(text, type) {
+        if (messageDiv) {
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
         }
     }
 
-    // Función para mostrar el modal personalizado
-    function mostrarModalBloqueo(motivo) {
-        const modal = document.getElementById('modalBloqueo');
-        const motivoText = document.getElementById('motivoBloqueoText');
-        if (modal && motivoText) {
-            motivoText.textContent = motivo || 'Violar las políticas, normas y condiciones de la plataforma.';
-            modal.style.display = 'flex';
+    function clearMessage() {
+        if (messageDiv) {
+            messageDiv.textContent = '';
+            messageDiv.className = 'message';
+            messageDiv.style.display = 'none';
         }
     }
 
-    // Hacer la función global para que el botón del HTML funcione
-    window.cerrarModalBloqueo = function() {
-        const modal = document.getElementById('modalBloqueo');
-        if (modal) modal.style.display = 'none';
-    };
+    function resetButton() {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Ingresar';
+        }
+    }
 
-    // 3. Manejar Login con Correo/Contraseña
+    // ============================================
+    //  LOGIN CON EMAIL Y CONTRASEÑA
+    // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
@@ -55,9 +63,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Verificando...';
+            showMessage('Iniciando sesión...', 'info');
             
             try {
-                // Intentar login primero
+                // Intentar login
                 const { data, error: authError } = await db.auth.signInWithPassword({ email, password });
                 
                 if (authError) {
@@ -66,21 +75,24 @@ document.addEventListener('DOMContentLoaded', async function() {
                     return;
                 }
                 
-                // Si el login fue exitoso, verificar inmediatamente si está bloqueado
-                const { data: perfil, error: perfilError } = await db.from('perfiles')
+                // Verificar si está bloqueado
+                const { data: perfil } = await db.from('perfiles')
                     .select('bloqueado, motivo_bloqueo')
                     .eq('id', data.user.id)
                     .single();
                 
                 if (perfil && perfil.bloqueado === true) {
-                    // ESTÁ BLOQUEADO: Cerrar sesión y mostrar modal (NO redirigir)
+                    // ESTÁ BLOQUEADO - Cerrar sesión y mostrar modal
                     await db.auth.signOut();
-                    mostrarModalBloqueo(perfil.motivo_bloqueo || 'Violar las políticas, normas y condiciones de la plataforma.');
+                    
+                    if (typeof mostrarModalBloqueo === 'function') {
+                        mostrarModalBloqueo(perfil.motivo_bloqueo || 'Violar las políticas, normas y condiciones de la plataforma.');
+                    }
                     resetButton();
-                    return; 
+                    return;
                 }
                 
-                // Login exitoso y NO bloqueado: Redirigir al hub
+                // Login exitoso y NO bloqueado - Redirigir al hub
                 window.location.href = 'hub-juegos.html';
                 
             } catch (err) {
@@ -91,34 +103,80 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // 4. Manejar Login con Google
+    // ============================================
+    // 🔐 LOGIN CON GOOGLE
+    // ============================================
     window.loginWithGoogle = async function() {
-        // Redirigir de vuelta a hub-juegos.html, donde el auth-guard verificará el bloqueo
-        const redirectURL = window.location.origin + window.location.pathname.replace('index.html', '') + 'hub-juegos.html';
-        const { error } = await db.auth.signInWithOAuth({
-            provider: 'google',
-            options: { 
-                redirectTo: redirectURL,
-                queryParams: { access_type: 'offline', prompt: 'consent' } 
+        showMessage('Conectando con Google...', 'info');
+        try {
+            const redirectURL = window.location.origin + window.location.pathname.replace('index.html', '') + 'hub-juegos.html';
+            const { error } = await db.auth.signInWithOAuth({
+                provider: 'google',
+                options: { 
+                    redirectTo: redirectURL,
+                    queryParams: { access_type: 'offline', prompt: 'consent' } 
+                }
+            });
+            if (error) {
+                showMessage('Error: ' + error.message, 'error');
             }
-        });
-        if (error) {
-            showMessage('Error: ' + error.message, 'error');
+        } catch (err) {
+            showMessage('Error inesperado: ' + err.message, 'error');
         }
     };
 
-    function resetButton() {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Ingresar';
-        }
-    }
-
-    function showMessage(text, type) {
-        if (messageDiv) {
-            messageDiv.textContent = text;
-            messageDiv.className = 'message ' + type;
-            messageDiv.style.display = 'block';
-        }
+    // ============================================
+    // 🔄 FLUJO DE RECUPERACIÓN
+    // ============================================
+    window.mostrarRecuperacion = function(event) {
+        if (event) event.preventDefault();
+        clearMessage();
+        if (loginForm) loginForm.style.display = 'none';
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'none'; });
+        document.getElementById('recoveryStep1').style.display = 'block';
+        document.getElementById('recoveryStep2').style.display = 'none';
+    };
+    
+    window.volverAlLogin = function(event) {
+        if (event) event.preventDefault();
+        clearMessage();
+        if (loginForm) loginForm.style.display = 'block';
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'block'; });
+        document.getElementById('recoveryStep1').style.display = 'none';
+        document.getElementById('recoveryStep2').style.display = 'none';
+    };
+    
+    window.volverAlRecoveryStep1 = function(event) {
+        if (event) event.preventDefault();
+        clearMessage();
+        document.getElementById('recoveryStep1').style.display = 'block';
+        document.getElementById('recoveryStep2').style.display = 'none';
+    };
+    
+    const recoveryForm = document.getElementById('recoveryForm');
+    if (recoveryForm) {
+        recoveryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('recoveryEmail').value.trim();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showMessage('Por favor, ingresa un correo electrónico válido.', 'error');
+                return;
+            }
+            showMessage('Enviando enlace de recuperación...', 'info');
+            try {
+                const redirectURL = window.location.origin + window.location.pathname.replace('index.html', '') + 'recuperar-contrasena.html';
+                const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: redirectURL });
+                if (error) {
+                    showMessage('Error: ' + error.message, 'error');
+                    return;
+                }
+                document.getElementById('recoveryStep1').style.display = 'none';
+                document.getElementById('recoveryStep2').style.display = 'block';
+                document.getElementById('recoveryEmailDisplay').textContent = email;
+                showMessage('✅ Enlace enviado. Revisa tu correo.', 'success');
+            } catch (err) {
+                showMessage('Error inesperado: ' + err.message, 'error');
+            }
+        });
     }
 });
