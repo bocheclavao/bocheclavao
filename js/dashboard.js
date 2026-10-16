@@ -546,8 +546,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         else if (rol === 'patrocinador') window.location.href = 'dashboard-patrocinador.html';
     };
 
-    // ============================================
-    // 🔒 9. PROTEGER RUTA (🛡️ CORREGIDO Y BLINDADO)
+     // ============================================
+    // 🔒 9. PROTEGER RUTA (🛡️ 100% BLINDADA)
     // ============================================
     async function protegerRuta() {
         const { data: { session }, error } = await db.auth.getSession();
@@ -559,31 +559,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         try {
-            // 🛡️ NUEVO: VERIFICAR SUSPENSIÓN DE CUENTA (Anti-bypass de Google)
-            // Esto se ejecuta DESPUÉS de que Google devuelve el email, pero ANTES de cargar el dashboard
-            const userEmail = session.user.email;
-            const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
-                p_email: userEmail,
-                p_success: true // Usamos true porque ya está autenticado, pero queremos saber si está bloqueado
-            });
+            const user = session.user;
 
-            // 2. Si la cuenta está bloqueada, expulsar inmediatamente
-            if (checkData && checkData.allowed === false) {
-                console.warn(`🚫 Acceso denegado en Dashboard: Cuenta suspendida (${userEmail})`);
+            // 🛡️ NUEVO: VERIFICAR BLOQUEO PERMANENTE DEL ADMIN (Anti-bypass de Google)
+            const { data: perfil, error: perfilError } = await db
+                .from('perfiles')
+                .select('bloqueado, motivo_bloqueo')
+                .eq('id', user.id)
+                .single();
+
+            // 2. Si la cuenta está bloqueada permanentemente, expulsar inmediatamente
+            if (perfil && perfil.bloqueado === true) {
+                console.warn(`🚫 Acceso denegado en Dashboard: Cuenta bloqueada permanentemente (${user.email})`);
                 
                 // Cerrar sesión forzosamente en todos los dispositivos
                 await db.auth.signOut({ scope: 'global' });
                 localStorage.removeItem('session_token');
                 
-                // Calcular mensaje de tiempo restante
-                const hasta = checkData.blocked_until 
-                    ? new Date(checkData.blocked_until).toLocaleString('es-ES', { 
-                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-                      }) 
-                    : 'varias horas';
+                const motivo = perfil.motivo_bloqueo || 'Violación de las políticas de la plataforma.';
                 
                 // Guardar mensaje para que index.html lo muestre
-                sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida por seguridad hasta: ${hasta}.`);
+                sessionStorage.setItem('auth_message', `🚫 TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE\n\nMotivo: ${motivo}\n\nContacta a soporte si crees que esto es un error.`);
                 sessionStorage.setItem('auth_type', 'error');
                 
                 // Redirigir al login y DETENER la ejecución
@@ -591,22 +587,42 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return; 
             }
 
-            // ✅ SI LLEGA AQUÍ, el usuario NO está suspendido. Continuar carga normal.
+            // 3. Verificar suspensión temporal por intentos fallidos (Brute Force)
+            const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
+                p_email: user.email,
+                p_success: true
+            });
+
+            if (checkData && checkData.allowed === false) {
+                console.warn(`🚫 Acceso denegado: Cuenta suspendida temporalmente (${user.email})`);
+                await db.auth.signOut({ scope: 'global' });
+                localStorage.removeItem('session_token');
+                
+                const hasta = checkData.blocked_until 
+                    ? new Date(checkData.blocked_until).toLocaleString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                    : 'varias horas';
+                
+                sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida por seguridad hasta: ${hasta}.`);
+                sessionStorage.setItem('auth_type', 'error');
+                window.location.href = 'index.html';
+                return; 
+            }
+
+            // ✅ SI LLEGA AQUÍ, el usuario NO está suspendido ni bloqueado. Continuar carga normal.
             await registrarMiSesion();
             
-            const { data: { user }, error: userError } = await db.auth.getUser();
-            if (userError || !user) throw new Error('No se pudo obtener la información del usuario');
-
-            currentUser = user;
-            const perfil = await cargarOCrearPerfil(user);
-            estadoKyc = perfil?.estado_kyc || null;
+            const perfilCompleto = await cargarOCrearPerfil(user);
+            estadoKyc = perfilCompleto?.estado_kyc || null;
             
-            mostrarDatos(user, perfil);
+            mostrarDatos(user, perfilCompleto);
             await cargarStreamEnVivo();
             setupInteractionListeners();
             
             loadingState.style.display = 'none';
             contentState.style.display = 'block';
+            
+            // Iniciar Realtime después de cargar
+            iniciarRealtime();
             
         } catch (err) {
             console.error('Error crítico en la guardia de seguridad:', err);
