@@ -326,4 +326,20 @@
     <script src="../js/auth-guard.js"></script>
     <script src="../js/index.js"></script>
 </body>
+    <script>
+// Funciones del modal de bloqueo
+function mostrarModalBloqueo(motivo) {
+    const modal = document.getElementById('modalBloqueo');
+    const motivoEl = document.getElementById('motivoBloqueo');
+    if (modal && motivoEl) {
+        motivoEl.innerHTML = '<strong>Motivo:</strong> ' + (motivo || 'Violar las políticas, normas y condiciones de la plataforma.');
+        modal.style.display = 'flex';
+    }
+}
+
+function cerrarModalBloqueo() {
+    const modal = document.getElementById('modalBloqueo');
+    if (modal) modal.style.display = 'none';
+}
+</script>
 </html>
