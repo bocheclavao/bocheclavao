@@ -287,65 +287,78 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ============================================
-    // 🛡️ VERIFICAR SESIÓN ACTIVA Y SUSPENSIÓN AL CARGAR
+       // ============================================
+    // 🛡️ VERIFICAR SESIÓN ACTIVA Y BLOQUEO (Funciona para Google y Email)
     // ============================================
     async function checkSession() {
         try {
             const { data: { session } } = await db.auth.getSession();
             
             if (session && session.user) {
-                // 🚨 PASO 1: Verificar bloqueo permanente primero (NUEVO)
-                const { data: banned } = await db
-                    .from('lista_bloqueo')
-                    .select('email')
-                    .eq('email', session.user.email)
-                    .maybeSingle();
+                // 1. Consultar si el usuario está bloqueado en la tabla 'perfiles'
+                // Nota: session.user.id es el UUID, que coincide con la columna 'id' de tu tabla perfiles
+                const { data: perfil, error: perfilError } = await db
+                    .from('perfiles')
+                    .select('bloqueado, motivo_bloqueo')
+                    .eq('id', session.user.id) 
+                    .single();
 
-                if (banned) {
-                    await db.auth.signOut();
-                    showMessage('❌ Esta cuenta ha sido eliminada permanentemente.', 'error');
-                    return;
-                }
-
-                // PASO 2: Verificar suspensión temporal
-                const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
-                    p_email: session.user.email,
-                    p_success: true
-                });
-                
-                if (checkError) console.warn('Error verificando sesión:', checkError);
-                
-                if (checkData && checkData.allowed === false) {
-                    await db.auth.signOut();
-                    const hasta = checkData.blocked_until 
-                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-                        : 'varias horas';
+                // 2. Si existe el perfil y la columna 'bloqueado' es true
+                if (perfil && perfil.bloqueado === true) {
+                    console.warn('⚠️ Usuario bloqueado detectado. Cerrando sesión...');
                     
-                    sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida hasta: ${hasta}.`);
+                    // Cerrar sesión inmediatamente
+                    await db.auth.signOut();
+                    
+                    // Guardar el mensaje de bloqueo para mostrarlo en el login
+                    const motivo = perfil.motivo_bloqueo || 'Sin motivo especificado por el administrador.';
+                    sessionStorage.setItem('auth_message', `🚫 TU CUENTA HA SIDO BLOQUEADA\n\nMotivo: ${motivo}\n\nContacta a soporte si crees que esto es un error.`);
                     sessionStorage.setItem('auth_type', 'error');
-                    return;
+                    
+                    // Recargar la página para limpiar el estado y mostrar el mensaje de error
+                    window.location.reload();
+                    return; // Detenemos la ejecución aquí
                 }
 
+                // 3. Si NO está bloqueado, proceder con la redirección normal
                 const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                     ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                    : 'hub-juegos.html'; // 👈 REDIRECCIÓN CORRECTA
-                window.location.href = redirectUrl;
+                    : 'hub-juegos.html'; // O 'dashboard.html', según tu flujo
+                
+                // Evitar recargas infinitas si ya estamos en la página de destino
+                if (!window.location.href.includes(redirectUrl)) {
+                    window.location.href = redirectUrl;
+                }
             }
         } catch (err) {
-            console.warn('No se pudo verificar sesión:', err);
+            console.warn('No se pudo verificar la sesión:', err);
         }
     }
+    
+    // Ejecutar la verificación al cargar la página
     checkSession();
 
     // ============================================
-    // 📩 MOSTRAR MENSAJE DE EXPULSIÓN SI EXISTE
+    // 📩 MOSTRAR MENSAJE DE EXPULSIÓN O BLOQUEO SI EXISTE
     // ============================================
     const logoutReason = sessionStorage.getItem('auth_message');
     const logoutType = sessionStorage.getItem('auth_type') || 'info';
     
     if (logoutReason) {
         showMessage(logoutReason, logoutType);
+        
+        // Ocultar el formulario de login si está bloqueado para que no intente ingresar de nuevo
+        if (logoutType === 'error' && logoutReason.includes('BLOQUEADA')) {
+            const loginForm = document.getElementById('loginForm');
+            const googleBtn = document.querySelector('.btn-google');
+            const recoveryLink = document.querySelector('.forgot-password');
+            
+            if (loginForm) loginForm.style.display = 'none';
+            if (googleBtn) googleBtn.style.display = 'none';
+            if (recoveryLink) recoveryLink.style.display = 'none';
+        }
+        
+        // Limpiar el mensaje para que no aparezca en futuras visitas si ya se resolvió
         sessionStorage.removeItem('auth_message');
         sessionStorage.removeItem('auth_type');
     }
