@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Menú de Juegos - Boche Clava'o</title>
+    <title>Precision Sport IA - Sala de Juegos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="../img/moneda.png">
+    <link rel="icon" type="image/png" href="img/moneda.png">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -88,7 +88,7 @@
             backdrop-filter: blur(5px);
         }
 
-        /* Estado Activo (Boche Clava'o) */
+        /* Estado Activo (Precision Sport IA) */
         .game-card.active {
             border-color: #FFD700;
             cursor: pointer;
@@ -229,8 +229,9 @@
 
     <nav class="navbar">
         <a href="dashboard.html" class="navbar-brand">
-            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
-            <span class="navbar-title">Boche Clava'o</span>
+            <!-- Asegúrate de tener logo.png en la carpeta img -->
+            <img src="img/logo.png" alt="Logo" class="navbar-logo">
+            <span class="navbar-title">Precision Sport IA</span>
         </a>
         <button class="btn-logout" onclick="cerrarSesion()">
             <i class="fas fa-sign-out-alt"></i> Salir
@@ -244,13 +245,13 @@
         </div>
 
         <div class="games-grid">
-            <!-- JUEGO 1: ACTIVO (Boche Clava'o) -->
+            <!-- JUEGO 1: ACTIVO (Precision Sport IA) -->
             <div class="game-card active" onclick="window.location.href='dashboard.html'">
                 <div class="game-icon">
-                    <!-- Asegúrate de que la imagen boche.png esté en la carpeta img -->
-                    <img src="../img/boche.png" alt="Boche Clava'o" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-crown\'></i>'">
+                    <!-- Asegúrate de que la imagen boche.png (o tu nuevo logo) esté en la carpeta img -->
+                    <img src="img/boche.png" alt="Precision Sport IA" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-crown\'></i>'">
                 </div>
-                <h3 class="game-title">Boche Clava'o</h3>
+                <h3 class="game-title">Precision Sport IA</h3>
                 <p class="game-desc">La experiencia principal. Compite, patrocina y gana.</p>
                 <span class="game-btn">Jugar Ahora <i class="fas fa-arrow-right"></i></span>
             </div>
@@ -260,7 +261,7 @@
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-dice"></i></div>
                 <h3 class="game-title">PATA DE MINGO</h3>
-                <p class="game-desc">«El juego donde el que queda a pata e' mingo, gana»..</p>
+                <p class="game-desc">«El juego donde el que queda a pata e' mingo, gana».</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
 
@@ -269,7 +270,7 @@
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-slot-machine"></i></div>
                 <h3 class="game-title">Bolas Criollas</h3>
-                <p class="game-desc"> el deporte que une a la familia y amigos en cada rincón de Venezuela».</p>
+                <p class="game-desc">El deporte que une a la familia y amigos en cada rincón.</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
 
@@ -277,8 +278,8 @@
             <div class="game-card disabled">
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-cards"></i></div>
-                <h3 class="game-title">juego</h3>
-                <p class="game-desc"></p>
+                <h3 class="game-title">Póker Deportivo</h3>
+                <p class="game-desc">Estrategia y suerte en la mesa virtual.</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
 
@@ -286,8 +287,8 @@
             <div class="game-card disabled">
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-flag-checkered"></i></div>
-                <h3 class="game-title">juego</h3>
-                <p class="game-desc"></p>
+                <h3 class="game-title">Carreras</h3>
+                <p class="game-desc">Apuesta por tu favorito en la pista virtual.</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
 
@@ -295,8 +296,8 @@
             <div class="game-card disabled">
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-bingo"></i></div>
-                <h3 class="game-title">juego</h3>
-                <p class="game-desc"></p>
+                <h3 class="game-title">Bingo Nocturno</h3>
+                <p class="game-desc">Salas en vivo con premios acumulados.</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
 
@@ -304,8 +305,8 @@
             <div class="game-card disabled">
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-ticket-alt"></i></div>
-                <h3 class="game-title">Juego</h3>
-                <p class="game-desc"></p>
+                <h3 class="game-title">Raspa y Gana</h3>
+                <p class="game-desc">Tarjetas virtuales con premios instantáneos.</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
 
@@ -313,8 +314,8 @@
             <div class="game-card disabled">
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-trophy"></i></div>
-                <h3 class="game-title">juego</h3>
-                <p class="game-desc"></p>
+                <h3 class="game-title">Torneos</h3>
+                <p class="game-desc">Competiciones semanales con las mejores recompensas.</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
         </div>
@@ -328,11 +329,13 @@
         </p>
     </footer>
 
+    <!-- 📦 SCRIPTS EXTERNOS (Rutas corregidas a 'js/' en lugar de '../js/') -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/config.js"></script>
-    <script src="../js/auth-guard.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth-guard.js"></script>
+    
     <script>
-        // Función simple para cerrar sesión
+        // Función simple para cerrar sesión desde el botón del navbar
         async function cerrarSesion() {
             if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
                 const db = window.supabaseClient;
@@ -342,17 +345,6 @@
                 window.location.href = 'index.html';
             }
         }
-
-        // Verificar sesión al cargar (opcional, por seguridad)
-        document.addEventListener('DOMContentLoaded', async function() {
-            const db = window.supabaseClient;
-            if (db) {
-                const { data: { session } } = await db.auth.getSession();
-                if (!session) {
-                    window.location.href = 'index.html';
-                }
-            }
-        });
     </script>
 </body>
 </html>
