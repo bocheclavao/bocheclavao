@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                         ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                        : 'dashboard.html';
+                        : 'hub-juegos.html';
                     window.location.href = redirectUrl;
                 }, 1500);
                 
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                     ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                    : 'dashboard.html';
+                    : 'hub-juegos.html';
                 window.location.href = redirectUrl;
             }
         } catch (err) {
