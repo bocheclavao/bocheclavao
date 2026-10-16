@@ -585,13 +585,52 @@
             overscroll-behavior: none;
             -webkit-overflow-scrolling: auto;
         }
+                /* Botón Volver al Hub */
+        .btn-volver-navbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #FFD700;
+            text-decoration: none;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+        }
+        .btn-volver-navbar:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: #FFD700;
+            transform: translateX(-3px);
+        }
+        
+        /* En móviles, ocultamos el texto "Volver" para ahorrar espacio */
+        @media (max-width: 768px) {
+            .btn-volver-navbar .btn-text {
+                display: none;
+            }
+            .btn-volver-navbar {
+                margin-right: 10px;
+                padding: 8px 12px;
+            }
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
-            <span class="navbar-title">Boche Clava'o</span>
+       <nav class="navbar">
+        <!-- Grupo izquierdo: Botón Volver + Logo -->
+        <div style="display: flex; align-items: center;">
+            <a href="hub-juegos.html" class="btn-volver-navbar" title="Volver al Hub de Juegos">
+                <i class="fas fa-arrow-left"></i> <span class="btn-text">Volver</span>
+            </a>
+            <div class="navbar-brand">
+                <img src="../img/logo.png" alt="Logo" class="navbar-logo">
+                <span class="navbar-title">Boche Clava'o</span>
+            </div>
         </div>
 
        <div class="balance-container">
