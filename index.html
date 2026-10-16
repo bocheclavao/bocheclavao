@@ -154,7 +154,32 @@
     transform: translateY(-3px); 
     box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
 }
-    
+    /* Contenedor relativo para el campo de contraseña */
+.password-container {
+    position: relative;
+}
+
+/* Dar espacio a la derecha del input para que el texto no tape el icono */
+.password-container input {
+    padding-right: 45px; 
+}
+
+/* Estilo del icono del ojo */
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    z-index: 10;
+}
+
+/* Efecto al pasar el mouse por encima (color dorado de tu marca) */
+.toggle-password:hover {
+    color: #FFD700; 
+}
     </style>
 
     
@@ -199,8 +224,9 @@
                           <div class="form-group">
     <input type="email" id="email" name="email" autocomplete="username" required placeholder="Correo electrónico">
 </div>
-<div class="form-group">
-    <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Contraseña">
+<div class="form-group password-container">
+    <input type="password" id="password" required placeholder="Contraseña">
+    <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility()" title="Mostrar contraseña"></i>
 </div>
                             <div class="forgot-password">
                                 <a onclick="mostrarRecuperacion(event)">¿Olvidaste tu contraseña?</a>
