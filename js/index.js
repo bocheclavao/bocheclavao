@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // 🔐 LOGIN CON EMAIL CONTRASEA (100% BLINDADO)
+    // 🔐 LOGIN CON EMAIL CONTRASEA BLINDADO)
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
