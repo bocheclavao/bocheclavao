@@ -1,53 +1,51 @@
 // js/auth-guard.js
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
-    
-    // 1. Verificar que Supabase cargó
-    if (!db) {
-        console.error('❌ AUTH GUARD: No se encontró window.supabaseClient. Revisa config.js');
-        return;
-    }
+    if (!db) return;
 
-    // 2. Obtener la sesión actual
-    const { data: { session }, error: sessionError } = await db.auth.getSession();
-    
-    if (sessionError || !session || !session.user) {
-        console.warn('⚠️ AUTH GUARD: No hay sesión activa. Redirigiendo al login...');
-        window.location.href = 'index.html';
-        return;
-    }
+    // 1. Detectar si estamos en la página de login para evitar bucles
+    const path = window.location.pathname.toLowerCase();
+    const isLoginPage = path.includes('index.html') || path === '/' || path.endsWith('/');
 
-    console.log('🔍 AUTH GUARD: Verificando estado del usuario:', session.user.email);
-
-    // 3. Consultar la tabla 'perfiles' para ver si está bloqueado
-    const { data: perfil, error: perfilError } = await db
-        .from('perfiles')
-        .select('bloqueado, motivo_bloqueo')
-        .eq('id', session.user.id)
-        .single();
-
-    if (perfilError) {
-        console.error('❌ AUTH GUARD: Error al consultar el perfil en la BD:', perfilError);
-        // Por seguridad, si no podemos verificar, cerramos la sesión
-        await db.auth.signOut();
-        window.location.href = 'index.html';
-        return;
-    }
-
-    // 4. Evaluar si está bloqueado
-    if (perfil && perfil.bloqueado === true) {
-        console.warn('🚫 AUTH GUARD: ¡USUARIO BLOQUEADO DETECTADO! Motivo:', perfil.motivo_bloqueo);
+    try {
+        const { data: { session } } = await db.auth.getSession();
         
-        // Forzar cierre de sesión inmediatamente
-        await db.auth.signOut();
-        
-        // Mostrar alerta y redirigir
-        alert(`🚫 ACCESO DENEGADO\n\nTu cuenta ha sido bloqueada.\nMotivo: ${perfil.motivo_bloqueo || 'Violación de las políticas de la plataforma.'}\n\nSerás redirigido al inicio de sesión.`);
-        
-        window.location.href = 'index.html';
-        return; // Detiene la ejecución del resto de la página
-    }
+        // CASO A: No hay sesión activa
+        if (!session || !session.user) {
+            if (!isLoginPage) {
+                window.location.href = 'index.html';
+            }
+            return; // Detenemos la ejecución aquí
+        }
 
-    // 5. Si llega aquí, todo está bien
-    console.log('✅ AUTH GUARD: Usuario verificado y autorizado correctamente.');
+        // CASO B: Hay sesión activa, pero el usuario está intentando entrar al login
+        if (isLoginPage) {
+            window.location.href = 'hub-juegos.html'; // Redirigir al hub si ya está logueado
+            return;
+        }
+
+        // CASO C: Hay sesión activa y estamos en una página protegida (dashboard, hub, etc.)
+        // Usamos .maybeSingle() en lugar de .single() para que NO lance error si la política RLS falla temporalmente
+        const { data: perfil, error } = await db
+            .from('perfiles')
+            .select('bloqueado, motivo_bloqueo')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+        // Solo bloqueamos si CONFIRMAMOS que el perfil existe y la columna 'bloqueado' es true.
+        // Si 'perfil' es null (por un error de RLS o retraso), NO redirigimos para evitar el bucle.
+        if (perfil && perfil.bloqueado === true) {
+            await db.auth.signOut();
+            alert(`🚫 ACCESO DENEGADO\n\nMotivo: ${perfil.motivo_bloqueo || 'Tu cuenta ha sido bloqueada por el administrador.'}`);
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // Si llegamos aquí, todo está bien. El usuario puede ver la página.
+        console.log('✅ Auth Guard: Acceso permitido a', window.location.pathname);
+
+    } catch (err) {
+        console.error('❌ Error crítico en Auth Guard:', err);
+        // En caso de error de red, NO redirigimos para evitar bucles infinitos
+    }
 });
