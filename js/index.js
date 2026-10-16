@@ -303,22 +303,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     .eq('id', session.user.id) 
                     .single();
 
-                          // 2. Si existe el perfil y la columna 'bloqueado' es true
-                if (perfil && perfil.bloqueado === true) {
-                    console.warn('⚠️ Usuario bloqueado detectado. Cerrando sesión...');
-                    
-                    // Cerrar sesión inmediatamente
-                    await db.auth.signOut();
-                    
-                    // Guardar el mensaje de bloqueo
-                    const motivo = perfil.motivo_bloqueo || 'Sin motivo especificado por el administrador.';
-                    sessionStorage.setItem('auth_message', `🚫 TU CUENTA HA SIDO BLOQUEADA\n\nMotivo: ${motivo}\n\nContacta a soporte si crees que esto es un error.`);
-                    sessionStorage.setItem('auth_type', 'error');
-                    
-                    // 🛡️ CAMBIO CRÍTICO: Usar href en lugar de reload() para forzar una navegación limpia
-                    window.location.href = 'index.html'; 
-                    return; // Detenemos la ejecución aquí
-                }
+          if (perfil && perfil.bloqueado === true) {
+    await db.auth.signOut();
+    
+    const motivo = perfil.motivo_bloqueo || 'Violación de las políticas de la plataforma';
+    
+    // Mensaje con formato HTML profesional
+    const mensajeHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px;">
+            <i class="fas fa-shield-alt" style="font-size: 2.5rem; color: #ff4444; margin-bottom: 5px;"></i>
+            <strong style="font-size: 1.2rem; color: #ff4444; letter-spacing: 1px;">ACCESO DENEGADO</strong>
+            <p style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: #ffffff; text-align: center;">
+                Tu cuenta ha sido suspendida por el administrador del sistema.<br>
+                <strong style="color: #FFD700;">Motivo:</strong> ${motivo}
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 0.8rem; color: #999; text-align: center; border-top: 1px solid #333; padding-top: 10px; width: 100%;">
+                Si crees que esto es un error, por favor contacta a nuestro equipo de soporte.
+            </p>
+        </div>
+    `;
+    
+    sessionStorage.setItem('auth_message', mensajeHTML);
+    sessionStorage.setItem('auth_type', 'error');
+    window.location.reload();
+    return;
+}
 
                 // 3. Si NO está bloqueado, proceder con la redirección normal
                 const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
