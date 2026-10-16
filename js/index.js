@@ -10,14 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // ============================================
-    // 🛡️ DIAGNÓSTICO DEL MENSAJE FANTASMA
-    // ============================================
-    const existingMessage = sessionStorage.getItem('auth_message');
-    if (existingMessage && existingMessage.includes('otro dispositivo')) {
-        console.warn('⚠️ ALERTA: El mensaje de "otro dispositivo" YA estaba en sessionStorage al cargar.');
-    }
-
     function construirURL(base) {
         const path = window.location.pathname;
         const repoPath = path.substring(0, path.lastIndexOf('/'));
@@ -55,6 +47,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    function resetButton() {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Ingresar';
+        }
+    }
+
     // ============================================
     // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (100% BLINDADO)
     // ============================================
@@ -69,18 +68,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('Por favor, completa todos los campos.', 'error');
                 return;
             }
-            // 🚨 NUEVO: Verificar si el correo está en la lista de bloqueo permanente
-const { data: banned, error: banError } = await db
-    .from('lista_bloqueo')
-    .select('email')
-    .eq('email', email)
-    .single();
 
-if (banned) {
-    showMessage('❌ Esta cuenta ha sido eliminada permanentemente y no puede acceder al sistema.', 'error');
-    resetButton(); // Tu función para reactivar el botón
-    return; // Detiene la ejecución, NO intenta hacer login
-}
+            // 🚨 PASO 0: Verificar si el correo está en la lista de bloqueo permanente
+            // Usamos .maybeSingle() para evitar errores si el usuario NO está bloqueado (0 filas)
+            const { data: banned, error: banError } = await db
+                .from('lista_bloqueo')
+                .select('email')
+                .eq('email', email)
+                .maybeSingle();
+
+            if (banError && banError.code !== 'PGRST116') {
+                console.error('Error verificando lista de bloqueo:', banError);
+            }
+
+            if (banned) {
+                showMessage('❌ Esta cuenta ha sido eliminada permanentemente y no puede acceder al sistema.', 'error');
+                resetButton();
+                return; // Detiene la ejecución, NO intenta hacer login
+            }
             
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Verificando...';
@@ -90,9 +95,7 @@ if (banned) {
                 // PASO 1: ¿El correo existe?
                 const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
                 
-                if (existeError) {
-                    console.error('Error verificando correo:', existeError);
-                }
+                if (existeError) console.error('Error verificando correo:', existeError);
                 
                 if (existeData !== true) {
                     showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
@@ -100,7 +103,7 @@ if (banned) {
                     return;
                 }
 
-                // PASO 2: ¿Está suspendido?
+                // PASO 2: ¿Está suspendido temporalmente?
                 const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
                 
                 if (preError) console.error('Error pre-check:', preError);
@@ -123,9 +126,6 @@ if (banned) {
                     
                     if (rpcError) console.error('Error registrando intento:', rpcError);
 
-                    // Diagnóstico en consola para que veas que la BD sí está contando
-                    console.log('📊 DATOS DE INTENTOS:', attemptData);
-
                     if (attemptData && attemptData.allowed === false) {
                         const hasta = attemptData.blocked_until 
                             ? new Date(attemptData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
@@ -141,7 +141,7 @@ if (banned) {
                     return;
                 }
                 
-                // PASO 5: Login exitoso -> Resetear contador (con try/catch seguro)
+                // PASO 5: Login exitoso -> Resetear contador
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_success: true });
                 } catch (rpcErr) {
@@ -180,7 +180,7 @@ if (banned) {
                 setTimeout(() => {
                     const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                         ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                        : 'hub-juegos.html';
+                        : 'hub-juegos.html'; // 👈 REDIRECCIÓN CORRECTA
                     window.location.href = redirectUrl;
                 }, 1500);
                 
@@ -192,20 +192,13 @@ if (banned) {
         });
     }
 
-    function resetButton() {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Ingresar';
-        }
-    }
-
     // ============================================
     // 🔐 LOGIN CON GOOGLE
     // ============================================
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
-            const redirectURL = construirURL('/hub-juegos.html'); 
+            const redirectURL = construirURL('/hub-juegos.html'); // 👈 REDIRECCIÓN CORRECTA
             const { data, error } = await db.auth.signInWithOAuth({
                 provider: 'google',
                 options: { redirectTo: redirectURL, queryParams: { access_type: 'offline', prompt: 'consent' } }
@@ -231,18 +224,8 @@ if (banned) {
     window.mostrarRecuperacion = function(event) {
         if (event) event.preventDefault();
         clearMessage();
-        
         if (loginForm) loginForm.style.display = 'none';
-        const forgotPassword = document.querySelector('.forgot-password');
-        const divider = document.querySelector('.divider');
-        const googleBtn = document.querySelector('.btn-google');
-        const registerLink = document.querySelector('.register-link');
-        
-        if (forgotPassword) forgotPassword.style.display = 'none';
-        if (divider) divider.style.display = 'none';
-        if (googleBtn) googleBtn.style.display = 'none';
-        if (registerLink) registerLink.style.display = 'none';
-        
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'none'; });
         document.getElementById('recoveryStep1').style.display = 'block';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -250,18 +233,8 @@ if (banned) {
     window.volverAlLogin = function(event) {
         if (event) event.preventDefault();
         clearMessage();
-        
         if (loginForm) loginForm.style.display = 'block';
-        const forgotPassword = document.querySelector('.forgot-password');
-        const divider = document.querySelector('.divider');
-        const googleBtn = document.querySelector('.btn-google');
-        const registerLink = document.querySelector('.register-link');
-        
-        if (forgotPassword) forgotPassword.style.display = 'block';
-        if (divider) divider.style.display = 'block';
-        if (googleBtn) googleBtn.style.display = 'block';
-        if (registerLink) registerLink.style.display = 'block';
-        
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'block'; });
         document.getElementById('recoveryStep1').style.display = 'none';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -322,6 +295,20 @@ if (banned) {
             const { data: { session } } = await db.auth.getSession();
             
             if (session && session.user) {
+                // 🚨 PASO 1: Verificar bloqueo permanente primero (NUEVO)
+                const { data: banned } = await db
+                    .from('lista_bloqueo')
+                    .select('email')
+                    .eq('email', session.user.email)
+                    .maybeSingle();
+
+                if (banned) {
+                    await db.auth.signOut();
+                    showMessage('❌ Esta cuenta ha sido eliminada permanentemente.', 'error');
+                    return;
+                }
+
+                // PASO 2: Verificar suspensión temporal
                 const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
                     p_email: session.user.email,
                     p_success: true
@@ -342,7 +329,7 @@ if (banned) {
 
                 const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                     ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                    : 'hub-juegos.html';
+                    : 'hub-juegos.html'; // 👈 REDIRECCIÓN CORRECTA
                 window.location.href = redirectUrl;
             }
         } catch (err) {
