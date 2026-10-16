@@ -69,6 +69,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('Por favor, completa todos los campos.', 'error');
                 return;
             }
+            // 🚨 NUEVO: Verificar si el correo está en la lista de bloqueo permanente
+const { data: banned, error: banError } = await db
+    .from('lista_bloqueo')
+    .select('email')
+    .eq('email', email)
+    .single();
+
+if (banned) {
+    showMessage('❌ Esta cuenta ha sido eliminada permanentemente y no puede acceder al sistema.', 'error');
+    resetButton(); // Tu función para reactivar el botón
+    return; // Detiene la ejecución, NO intenta hacer login
+}
             
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Verificando...';
