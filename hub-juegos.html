@@ -6,7 +6,7 @@
     <title>Precision Sport IA - Sala de Juegos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="img/moneda.png">
+    <link rel="icon" type="image/png" href="../img/moneda.png">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,7 +23,7 @@
             flex-direction: column;
         }
 
-        /* Navbar simple */
+        /* Navbar */
         .navbar {
             background: rgba(10, 10, 10, 0.95);
             backdrop-filter: blur(10px);
@@ -40,13 +40,31 @@
         .navbar-logo { max-width: 50px; height: auto; }
         .navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
         
-        .btn-logout {
-            background: transparent; border: 1px solid #444; color: #ccc;
-            padding: 8px 16px; border-radius: 8px; cursor: pointer;
-            font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 0.85rem;
-            display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
+        .navbar-actions { display: flex; align-items: center; gap: 10px; }
+
+        .btn-navbar {
+            background: transparent; 
+            border: 1px solid #444; 
+            color: #ccc;
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            font-family: 'Montserrat', sans-serif; 
+            font-weight: 600; 
+            font-size: 0.85rem;
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            transition: all 0.3s ease;
+            text-decoration: none;
         }
-        .btn-logout:hover { border-color: #ff4444; color: #ff4444; }
+        .btn-navbar:hover { border-color: #FFD700; color: #FFD700; transform: translateY(-2px); }
+        
+        .btn-admin { border-color: #00aaff; color: #00aaff; }
+        .btn-admin:hover { border-color: #00aaff; color: #00aaff; background: rgba(0, 170, 255, 0.1); }
+        
+        .btn-logout { border-color: #ff4444; color: #ff4444; }
+        .btn-logout:hover { border-color: #ff4444; color: #ff4444; background: rgba(255, 68, 68, 0.1); }
 
         /* Contenido Principal */
         .main-content { 
@@ -88,7 +106,6 @@
             backdrop-filter: blur(5px);
         }
 
-        /* Estado Activo (Precision Sport IA) */
         .game-card.active {
             border-color: #FFD700;
             cursor: pointer;
@@ -100,17 +117,13 @@
             background: rgba(255, 215, 0, 0.05);
         }
 
-        /* Estado Deshabilitado (Próximamente) */
         .game-card.disabled {
             opacity: 0.5;
             cursor: not-allowed;
             filter: grayscale(0.8);
         }
-        .game-card.disabled:hover {
-            transform: none;
-        }
+        .game-card.disabled:hover { transform: none; }
 
-        /* Badge de Próximamente */
         .badge-coming-soon {
             position: absolute;
             top: 15px;
@@ -144,18 +157,9 @@
             background: rgba(255, 215, 0, 0.15);
             box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
         }
-        .game-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .game-icon i {
-            font-size: 2.5rem;
-            color: #FFD700;
-        }
-        .game-card.disabled .game-icon i {
-            color: #666;
-        }
+        .game-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .game-icon i { font-size: 2.5rem; color: #FFD700; }
+        .game-card.disabled .game-icon i { color: #666; }
 
         .game-title {
             font-size: 1.3rem;
@@ -219,6 +223,8 @@
             .game-desc { font-size: 0.75rem; margin-bottom: 15px; }
             .game-btn { padding: 8px 15px; font-size: 0.75rem; }
             .page-header h1 { font-size: 1.5rem; }
+            .btn-navbar { padding: 6px 10px; font-size: 0.75rem; }
+            .btn-navbar .btn-text { display: none; }
         }
         @media (max-width: 400px) {
             .games-grid { grid-template-columns: 1fr; }
@@ -229,13 +235,21 @@
 
     <nav class="navbar">
         <a href="dashboard.html" class="navbar-brand">
-            <!-- Asegúrate de tener logo.png en la carpeta img -->
-            <img src="img/logo.png" alt="Logo" class="navbar-logo">
+            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
             <span class="navbar-title">Precision Sport IA</span>
         </a>
-        <button class="btn-logout" onclick="cerrarSesion()">
-            <i class="fas fa-sign-out-alt"></i> Salir
-        </button>
+        
+        <div class="navbar-actions">
+            <!-- Botón de Panel Admin (oculto por defecto, se muestra con JS si es admin) -->
+            <button id="btnAdmin" class="btn-navbar btn-admin" onclick="irAPanelAdmin()" style="display: none;">
+                <i class="fas fa-user-shield"></i> <span class="btn-text">Panel Admin</span>
+            </button>
+            
+            <!-- Botón de Salir -->
+            <button id="btnSalir" class="btn-navbar btn-logout" onclick="cerrarSesion()">
+                <i class="fas fa-sign-out-alt"></i> <span class="btn-text">Salir</span>
+            </button>
+        </div>
     </nav>
 
     <div class="main-content">
@@ -245,13 +259,12 @@
         </div>
 
         <div class="games-grid">
-            <!-- JUEGO 1: ACTIVO (Precision Sport IA) -->
+            <!-- JUEGO 1: ACTIVO -->
             <div class="game-card active" onclick="window.location.href='dashboard.html'">
                 <div class="game-icon">
-                    <!-- Asegúrate de que la imagen boche.png (o tu nuevo logo) esté en la carpeta img -->
-                    <img src="img/boche.png" alt="Precision Sport IA" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-crown\'></i>'">
+                    <img src="../img/boche.png" alt="Precision Sport IA" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-crown\'></i>'">
                 </div>
-                <h3 class="game-title">Boche Clava'o</h3>
+                <h3 class="game-title">Precision Sport IA</h3>
                 <p class="game-desc">La experiencia principal. Compite, patrocina y gana.</p>
                 <span class="game-btn">Jugar Ahora <i class="fas fa-arrow-right"></i></span>
             </div>
@@ -329,175 +342,10 @@
         </p>
     </footer>
 
-       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!--  SCRIPTS EXTERNOS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
     <script src="../js/auth-guard.js"></script>
-    <script>
-        const db = window.supabaseClient;
-        let sessionCheckActive = false;
-
-        // ============================================
-        // 🚨 1. MODAL DE SESIÓN DUPLICADA
-        // ============================================
-        function crearModalSesionDuplicada() {
-            const existing = document.getElementById('duplicateSessionModal');
-            if (existing) existing.remove();
-
-            const modal = document.createElement('div');
-            modal.id = 'duplicateSessionModal';
-            modal.style.cssText = `
-                display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0, 0, 0, 0.95); z-index: 999999;
-                justify-content: center; align-items: center; padding: 20px;
-                font-family: 'Montserrat', sans-serif;
-            `;
-            
-            modal.innerHTML = `
-                <div style="background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); border: 2px solid #ff0000; border-radius: 16px; padding: 40px 30px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(255, 0, 0, 0.4); animation: modalAppear 0.4s ease;">
-                    <style>
-                        @keyframes modalAppear { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-                        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-                    </style>
-                    <div style="width: 80px; height: 80px; background: rgba(255, 0, 0, 0.15); border: 2px solid #ff0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5rem; animation: pulse 2s infinite;">
-                        <i class="fas fa-shield-alt" style="color: #ff0000;"></i>
-                    </div>
-                    <h2 style="color: #ff0000; font-size: 1.4rem; margin-bottom: 15px; font-weight: 800;">⚠️ Sesión Duplicada Detectada</h2>
-                    <p style="color: #cccccc; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px;">Se ha iniciado sesión en otro dispositivo. Esta sesión se cerrará automáticamente por motivos de seguridad.</p>
-                    <button id="closeSessionBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;">
-                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión Ahora
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            document.getElementById('closeSessionBtn').addEventListener('click', async () => {
-                if (db) await db.auth.signOut({ scope: 'global' });
-                localStorage.removeItem('session_token');
-                window.location.href = 'index.html';
-            });
-            
-            return modal;
-        }
-
-        function mostrarAlertaSesionDuplicada() {
-            const modal = document.getElementById('duplicateSessionModal') || crearModalSesionDuplicada();
-            if (modal && modal.style.display !== 'flex') {
-                modal.style.display = 'flex';
-                
-                // Cierre automático después de 8 segundos si el usuario no interactúa
-                setTimeout(async () => {
-                    if (modal.style.display === 'flex') {
-                        if (db) await db.auth.signOut({ scope: 'global' });
-                        localStorage.removeItem('session_token');
-                        window.location.href = 'index.html';
-                    }
-                }, 8000);
-            }
-        }
-
-        // ============================================
-        // 🔐 2. GESTIÓN DE SESIONES
-        // ============================================
-        async function registrarMiSesion(user) {
-            try {
-                if (!user || !user.access_token) return;
-                const token = user.access_token;
-                localStorage.setItem('session_token', token);
-                
-                if (db) {
-                    await db.rpc('registrar_mi_sesion', { p_token: token });
-                    console.log('✅ Mi sesión registrada en BD');
-                }
-            } catch (e) {
-                console.warn('No se pudo registrar sesión:', e.message);
-            }
-        }
-
-        async function verificarSesionActiva(user) {
-            if (!db || sessionCheckActive || !user) return;
-            sessionCheckActive = true;
-            
-            try {
-                const miToken = localStorage.getItem('session_token');
-                if (!miToken) {
-                    await registrarMiSesion(user);
-                    return;
-                }
-
-                const { data, error } = await db
-                    .from('active_sessions')
-                    .select('session_token')
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-                
-                if (error || !data) {
-                    await registrarMiSesion(user);
-                    return;
-                }
-
-                if (data.session_token !== miToken) {
-                    console.warn('⚠️ Sesión duplicada detectada en Hub de Juegos');
-                    mostrarAlertaSesionDuplicada();
-                } else {
-                    try {
-                        await db.from('active_sessions')
-                            .update({ last_active: new Date().toISOString() })
-                            .eq('user_id', user.id);
-                    } catch (e) { /* silencioso */ }
-                }
-            } catch (err) {
-                console.error('Error verificando sesión:', err);
-            } finally {
-                sessionCheckActive = false;
-            }
-        }
-
-        // ============================================
-        // 🚀 3. INICIALIZACIÓN AL CARGAR
-        // ============================================
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (!db) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            const { data: { session } } = await db.auth.getSession();
-            
-            if (!session || !session.user) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            // Registrar sesión y verificar duplicidad inmediatamente al cargar el Hub
-            await registrarMiSesion(session);
-            await verificarSesionActiva(session.user);
-
-            // Escuchar cambios de autenticación en tiempo real (por si cierran sesión en otra pestaña)
-            db.auth.onAuthStateChange((event, currentSession) => {
-                if (event === 'SIGNED_IN' && currentSession) {
-                    registrarMiSesion(currentSession);
-                } else if (event === 'SIGNED_OUT' || !currentSession) {
-                    localStorage.removeItem('session_token');
-                    if (!window.location.pathname.includes('index.html')) {
-                        sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
-                        sessionStorage.setItem('auth_type', 'info');
-                        window.location.href = 'index.html';
-                    }
-                }
-            });
-        });
-
-        // ============================================
-        // 🚪 4. CERRAR SESIÓN MANUAL (Botón del Navbar)
-        // ============================================
-        async function cerrarSesion() {
-            if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-                if (db) {
-                    await db.auth.signOut({ scope: 'global' });
-                }
-                localStorage.removeItem('session_token');
-                window.location.href = 'index.html';
-            }
-        }
-    </script>
+    <script src="../js/hub-juegos.js"></script>
+</body>
+</html>
