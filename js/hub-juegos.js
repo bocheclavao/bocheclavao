@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const btnSalir = document.getElementById('btnSalir');
 
     // ============================================
-    // 🔐 VERIFICAR SESIÓN AL CARGAR
+    // 🔐 1. VERIFICAR SESIÓN AL CARGAR
     // ============================================
     const { data: { session } } = await db.auth.getSession();
     
@@ -23,36 +23,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🛡️ VERIFICAR SI ES ADMINISTRADOR
-    // ============================================
-    async function verificarSiEsAdmin(userId) {
-        try {
-            const { data, error } = await db
-                .from('admin_roles')
-                .select('es_admin, activo')
-                .eq('id', userId)
-                .eq('es_admin', true)
-                .eq('activo', true)
-                .maybeSingle();
-            
-            if (error || !data) return false;
-            return true;
-        } catch (err) {
-            console.error('Error verificando admin:', err);
-            return false;
-        }
-    }
-
-    const esAdmin = await verificarSiEsAdmin(session.user.id);
-    
-    if (esAdmin && btnAdmin) {
-        btnAdmin.style.display = 'flex';
-    } else if (btnAdmin) {
-        btnAdmin.style.display = 'none';
-    }
-
-    // ============================================
-    // 🚨 MODAL DE SESIÓN DUPLICADA
+    // 🚨 2. GESTIÓN DE SESIÓN DUPLICADA (Movido aquí)
     // ============================================
     let sessionCheckActive = false;
 
@@ -89,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.appendChild(modal);
         
         document.getElementById('closeSessionBtn').addEventListener('click', async () => {
-            if (db) await db.auth.signOut({ scope: 'global' });
+            await db.auth.signOut({ scope: 'global' });
             localStorage.removeItem('session_token');
             window.location.href = 'index.html';
         });
@@ -97,58 +68,53 @@ document.addEventListener('DOMContentLoaded', async function() {
         return modal;
     }
 
+    const duplicateModal = crearModalSesionDuplicada();
+
     function mostrarAlertaSesionDuplicada() {
-        const modal = document.getElementById('duplicateSessionModal') || crearModalSesionDuplicada();
-        if (modal && modal.style.display !== 'flex') {
-            modal.style.display = 'flex';
-            
-            setTimeout(async () => {
-                if (modal.style.display === 'flex') {
-                    if (db) await db.auth.signOut({ scope: 'global' });
-                    localStorage.removeItem('session_token');
-                    window.location.href = 'index.html';
-                }
-            }, 8000);
-        }
+        if (duplicateModal.style.display === 'flex') return;
+        duplicateModal.style.display = 'flex';
+        
+        setTimeout(async () => {
+            if (duplicateModal.style.display === 'flex') {
+                await db.auth.signOut({ scope: 'global' });
+                localStorage.removeItem('session_token');
+                window.location.href = 'index.html';
+            }
+        }, 8000);
     }
 
-    // ============================================
-    // 🔐 GESTIÓN DE SESIONES
-    // ============================================
-    async function registrarMiSesion(user) {
+    async function registrarMiSesion() {
         try {
-            if (!user || !user.access_token) return;
-            const token = user.access_token;
+            if (!session || !session.access_token) return;
+            const token = session.access_token;
             localStorage.setItem('session_token', token);
             
-            if (db) {
-                await db.rpc('registrar_mi_sesion', { p_token: token });
-                console.log('✅ Mi sesión registrada en BD');
-            }
+            await db.rpc('registrar_mi_sesion', { p_token: token });
+            console.log('✅ Mi sesión registrada en BD desde Hub');
         } catch (e) {
-            console.warn('No se pudo registrar sesión:', e.message);
+            console.warn('⚠️ No se pudo registrar sesión (RPC puede no existir):', e.message);
         }
     }
 
-    async function verificarSesionActiva(user) {
-        if (!db || sessionCheckActive || !user) return;
+    async function verificarSesionActiva() {
+        if (sessionCheckActive || !session || !session.user) return;
         sessionCheckActive = true;
         
         try {
             const miToken = localStorage.getItem('session_token');
             if (!miToken) {
-                await registrarMiSesion(user);
+                await registrarMiSesion();
                 return;
             }
 
             const { data, error } = await db
                 .from('active_sessions')
                 .select('session_token')
-                .eq('user_id', user.id)
+                .eq('user_id', session.user.id)
                 .maybeSingle();
             
             if (error || !data) {
-                await registrarMiSesion(user);
+                await registrarMiSesion();
                 return;
             }
 
@@ -159,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 try {
                     await db.from('active_sessions')
                         .update({ last_active: new Date().toISOString() })
-                        .eq('user_id', user.id);
+                        .eq('user_id', session.user.id);
                 } catch (e) { /* silencioso */ }
             }
         } catch (err) {
@@ -169,15 +135,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // ============================================
-    // 🚀 INICIALIZACIÓN
-    // ============================================
-    await registrarMiSesion(session);
-    await verificarSesionActiva(session.user);
+    function setupInteractionListeners() {
+        let lastCheck = 0;
+        const checkOnInteraction = async () => {
+            const now = Date.now();
+            if (now - lastCheck < 2000) return;
+            lastCheck = now;
+            await verificarSesionActiva();
+        };
+        document.addEventListener('click', checkOnInteraction);
+        document.addEventListener('touchstart', checkOnInteraction);
+        document.addEventListener('scroll', checkOnInteraction);
+        document.addEventListener('keypress', checkOnInteraction);
+    }
 
+    // Ejecutar verificaciones de sesión inmediatamente
+    await registrarMiSesion();
+    await verificarSesionActiva();
+    setupInteractionListeners();
+
+    // Escuchar cambios de autenticación en tiempo real
     db.auth.onAuthStateChange((event, currentSession) => {
         if (event === 'SIGNED_IN' && currentSession) {
-            registrarMiSesion(currentSession);
+            registrarMiSesion();
         } else if (event === 'SIGNED_OUT' || !currentSession) {
             localStorage.removeItem('session_token');
             if (!window.location.pathname.includes('index.html')) {
@@ -189,7 +169,35 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // ============================================
-    // 🚪 CERRAR SESIÓN
+    // 🛡️ 3. VERIFICAR SI ES ADMINISTRADOR
+    // ============================================
+    async function verificarSiEsAdmin(userId) {
+        try {
+            const { data, error } = await db
+                .from('admin_roles')
+                .select('es_admin, activo')
+                .eq('id', userId)
+                .eq('es_admin', true)
+                .eq('activo', true)
+                .maybeSingle();
+            
+            if (error || !data) return false;
+            return true;
+        } catch (err) {
+            console.error('Error verificando admin:', err);
+            return false;
+        }
+    }
+
+    const esAdmin = await verificarSiEsAdmin(session.user.id);
+    if (esAdmin && btnAdmin) {
+        btnAdmin.style.display = 'flex';
+    } else if (btnAdmin) {
+        btnAdmin.style.display = 'none';
+    }
+
+    // ============================================
+    // 🚪 4. CERRAR SESIÓN MANUAL
     // ============================================
     window.cerrarSesion = async function() {
         if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
