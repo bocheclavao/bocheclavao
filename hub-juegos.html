@@ -10,7 +10,6 @@
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Montserrat', sans-serif;
             background-color: #000000;
@@ -22,8 +21,6 @@
             display: flex;
             flex-direction: column;
         }
-
-        /* Navbar */
         .navbar {
             background: rgba(10, 10, 10, 0.95);
             backdrop-filter: blur(10px);
@@ -43,19 +40,10 @@
         .navbar-actions { display: flex; align-items: center; gap: 10px; }
 
         .btn-navbar {
-            background: transparent; 
-            border: 1px solid #444; 
-            color: #ccc;
-            padding: 8px 16px; 
-            border-radius: 8px; 
-            cursor: pointer;
-            font-family: 'Montserrat', sans-serif; 
-            font-weight: 600; 
-            font-size: 0.85rem;
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            transition: all 0.3s ease;
+            background: transparent; border: 1px solid #444; color: #ccc;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
             text-decoration: none;
         }
         .btn-navbar:hover { border-color: #FFD700; color: #FFD700; transform: translateY(-2px); }
@@ -66,154 +54,55 @@
         .btn-logout { border-color: #ff4444; color: #ff4444; }
         .btn-logout:hover { border-color: #ff4444; color: #ff4444; background: rgba(255, 68, 68, 0.1); }
 
-        /* Contenido Principal */
-        .main-content { 
-            flex: 1; 
-            padding: 40px 20px; 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            width: 100%; 
-        }
-
+        .main-content { flex: 1; padding: 40px 20px; max-width: 1200px; margin: 0 auto; width: 100%; }
         .page-header { text-align: center; margin-bottom: 40px; }
-        .page-header h1 { 
-            font-size: 2rem; 
-            font-weight: 900; 
-            color: #FFD700; 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
-            margin-bottom: 10px; 
-        }
+        .page-header h1 { font-size: 2rem; font-weight: 900; color: #FFD700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
         .page-header p { color: #999; font-size: 1rem; }
 
-        /* Grid de Juegos */
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 25px;
-        }
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; }
 
-        /* Tarjeta de Juego */
         .game-card {
-            background: rgba(15, 15, 15, 0.9);
-            border: 2px solid #222;
-            border-radius: 20px;
-            padding: 30px 20px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            backdrop-filter: blur(5px);
+            background: rgba(15, 15, 15, 0.9); border: 2px solid #222; border-radius: 20px;
+            padding: 30px 20px; text-align: center; position: relative; overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); backdrop-filter: blur(5px);
         }
-
-        .game-card.active {
-            border-color: #FFD700;
-            cursor: pointer;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
-        }
-        .game-card.active:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 40px rgba(255, 215, 0, 0.25);
-            background: rgba(255, 215, 0, 0.05);
-        }
-
-        .game-card.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            filter: grayscale(0.8);
-        }
+        .game-card.active { border-color: #FFD700; cursor: pointer; box-shadow: 0 0 30px rgba(255, 215, 0, 0.15); }
+        .game-card.active:hover { transform: translateY(-8px); box-shadow: 0 15px 40px rgba(255, 215, 0, 0.25); background: rgba(255, 215, 0, 0.05); }
+        .game-card.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.8); }
         .game-card.disabled:hover { transform: none; }
 
         .badge-coming-soon {
-            position: absolute;
-            top: 15px;
-            right: -30px;
-            background: #ff4444;
-            color: #fff;
-            font-size: 0.7rem;
-            font-weight: 800;
-            padding: 5px 35px;
-            transform: rotate(45deg);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 2px 10px rgba(255, 68, 68, 0.4);
-            z-index: 10;
+            position: absolute; top: 15px; right: -30px; background: #ff4444; color: #fff;
+            font-size: 0.7rem; font-weight: 800; padding: 5px 35px; transform: rotate(45deg);
+            text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 2px 10px rgba(255, 68, 68, 0.4); z-index: 10;
         }
 
         .game-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            border-radius: 50%;
-            background: rgba(255, 215, 0, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            border: 2px solid #333;
+            width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%;
+            background: rgba(255, 215, 0, 0.1); display: flex; align-items: center;
+            justify-content: center; overflow: hidden; border: 2px solid #333;
         }
-        .game-card.active .game-icon {
-            border-color: #FFD700;
-            background: rgba(255, 215, 0, 0.15);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
-        }
+        .game-card.active .game-icon { border-color: #FFD700; background: rgba(255, 215, 0, 0.15); box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
         .game-icon img { width: 100%; height: 100%; object-fit: cover; }
         .game-icon i { font-size: 2.5rem; color: #FFD700; }
         .game-card.disabled .game-icon i { color: #666; }
 
-        .game-title {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: #ffffff;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
+        .game-title { font-size: 1.3rem; font-weight: 800; color: #ffffff; margin-bottom: 8px; text-transform: uppercase; }
         .game-card.active .game-title { color: #FFD700; }
-
-        .game-desc {
-            font-size: 0.85rem;
-            color: #999;
-            line-height: 1.5;
-            margin-bottom: 20px;
-        }
+        .game-desc { font-size: 0.85rem; color: #999; line-height: 1.5; margin-bottom: 20px; }
 
         .game-btn {
-            display: inline-block;
-            padding: 10px 25px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            text-decoration: none;
+            display: inline-block; padding: 10px 25px; border-radius: 8px; font-size: 0.85rem;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s ease; text-decoration: none;
         }
-        .game-card.active .game-btn {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #000;
-        }
-        .game-card.active .game-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-        }
-        .game-card.disabled .game-btn {
-            background: #333;
-            color: #666;
-            cursor: not-allowed;
-        }
+        .game-card.active .game-btn { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
+        .game-card.active .game-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); }
+        .game-card.disabled .game-btn { background: #333; color: #666; cursor: not-allowed; }
 
-        /* Footer */
-        .main-footer {
-            background: #050505;
-            border-top: 1px solid #222;
-            padding: 30px 20px;
-            text-align: center;
-            margin-top: auto;
-        }
+        .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
         .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
         .footer-text span { color: #FFD700; font-weight: 600; }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .games-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
             .game-card { padding: 20px 15px; }
@@ -226,9 +115,7 @@
             .btn-navbar { padding: 6px 10px; font-size: 0.75rem; }
             .btn-navbar .btn-text { display: none; }
         }
-        @media (max-width: 400px) {
-            .games-grid { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 400px) { .games-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -240,13 +127,10 @@
         </a>
         
         <div class="navbar-actions">
-            <!-- Botón de Panel Admin (oculto por defecto, se muestra con JS si es admin) -->
-            <button id="btnAdmin" class="btn-navbar btn-admin" onclick="irAPanelAdmin()" style="display: none;">
+            <button id="btnAdmin" class="btn-navbar btn-admin" onclick="window.irAPanelAdmin()" style="display: none;">
                 <i class="fas fa-user-shield"></i> <span class="btn-text">Panel Admin</span>
             </button>
-            
-            <!-- Botón de Salir -->
-            <button id="btnSalir" class="btn-navbar btn-logout" onclick="cerrarSesion()">
+            <button id="btnSalir" class="btn-navbar btn-logout" onclick="window.cerrarSesion()">
                 <i class="fas fa-sign-out-alt"></i> <span class="btn-text">Salir</span>
             </button>
         </div>
@@ -259,7 +143,6 @@
         </div>
 
         <div class="games-grid">
-            <!-- JUEGO 1: ACTIVO -->
             <div class="game-card active" onclick="window.location.href='dashboard.html'">
                 <div class="game-icon">
                     <img src="../img/boche.png" alt="Precision Sport IA" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-crown\'></i>'">
@@ -269,7 +152,6 @@
                 <span class="game-btn">Jugar Ahora <i class="fas fa-arrow-right"></i></span>
             </div>
 
-            <!-- JUEGO 2: PRÓXIMAMENTE -->
             <div class="game-card disabled">
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-dice"></i></div>
@@ -278,57 +160,11 @@
                 <span class="game-btn">En Desarrollo</span>
             </div>
 
-            <!-- JUEGO 3: PRÓXIMAMENTE -->
             <div class="game-card disabled">
                 <div class="badge-coming-soon">Próximamente</div>
                 <div class="game-icon"><i class="fas fa-slot-machine"></i></div>
                 <h3 class="game-title">Bolas Criollas</h3>
                 <p class="game-desc">El deporte que une a la familia y amigos en cada rincón.</p>
-                <span class="game-btn">En Desarrollo</span>
-            </div>
-
-            <!-- JUEGO 4: PRÓXIMAMENTE -->
-            <div class="game-card disabled">
-                <div class="badge-coming-soon">Próximamente</div>
-                <div class="game-icon"><i class="fas fa-cards"></i></div>
-                <h3 class="game-title">Póker Deportivo</h3>
-                <p class="game-desc">Estrategia y suerte en la mesa virtual.</p>
-                <span class="game-btn">En Desarrollo</span>
-            </div>
-
-            <!-- JUEGO 5: PRÓXIMAMENTE -->
-            <div class="game-card disabled">
-                <div class="badge-coming-soon">Próximamente</div>
-                <div class="game-icon"><i class="fas fa-flag-checkered"></i></div>
-                <h3 class="game-title">Carreras</h3>
-                <p class="game-desc">Apuesta por tu favorito en la pista virtual.</p>
-                <span class="game-btn">En Desarrollo</span>
-            </div>
-
-            <!-- JUEGO 6: PRÓXIMAMENTE -->
-            <div class="game-card disabled">
-                <div class="badge-coming-soon">Próximamente</div>
-                <div class="game-icon"><i class="fas fa-bingo"></i></div>
-                <h3 class="game-title">Bingo Nocturno</h3>
-                <p class="game-desc">Salas en vivo con premios acumulados.</p>
-                <span class="game-btn">En Desarrollo</span>
-            </div>
-
-            <!-- JUEGO 7: PRÓXIMAMENTE -->
-            <div class="game-card disabled">
-                <div class="badge-coming-soon">Próximamente</div>
-                <div class="game-icon"><i class="fas fa-ticket-alt"></i></div>
-                <h3 class="game-title">Raspa y Gana</h3>
-                <p class="game-desc">Tarjetas virtuales con premios instantáneos.</p>
-                <span class="game-btn">En Desarrollo</span>
-            </div>
-
-            <!-- JUEGO 8: PRÓXIMAMENTE -->
-            <div class="game-card disabled">
-                <div class="badge-coming-soon">Próximamente</div>
-                <div class="game-icon"><i class="fas fa-trophy"></i></div>
-                <h3 class="game-title">Torneos</h3>
-                <p class="game-desc">Competiciones semanales con las mejores recompensas.</p>
                 <span class="game-btn">En Desarrollo</span>
             </div>
         </div>
@@ -342,7 +178,7 @@
         </p>
     </footer>
 
-    <!--  SCRIPTS EXTERNOS -->
+    <!-- SCRIPTS EXTERNOS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
     <script src="../js/auth-guard.js"></script>
