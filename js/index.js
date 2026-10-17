@@ -55,8 +55,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    function resetButton() {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Ingresar';
+        }
+    }
+
     // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA (100% BLINDADO)
+    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA
     // ============================================
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -77,20 +84,16 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 // PASO 1: ¿El correo existe?
                 const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
-                
-                if (existeError) {
-                    console.error('Error verificando correo:', existeError);
-                }
+                if (existeError) console.error('Error verificando correo:', existeError);
                 
                 if (existeData !== true) {
                     showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
                     resetButton();
                     return;
                 }
-
+                
                 // PASO 2: ¿Está suspendido?
                 const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                
                 if (preError) console.error('Error pre-check:', preError);
                 
                 if (preCheck && preCheck.allowed === false) {
@@ -101,19 +104,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     resetButton();
                     return;
                 }
-
+                
                 // PASO 3: Intentar login con Supabase Auth
                 const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
                     // PASO 4: Registrar intento fallido
                     const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                    
                     if (rpcError) console.error('Error registrando intento:', rpcError);
-
-                    // Diagnóstico en consola para que veas que la BD sí está contando
+                    
                     console.log('📊 DATOS DE INTENTOS:', attemptData);
-
+                    
                     if (attemptData && attemptData.allowed === false) {
                         const hasta = attemptData.blocked_until 
                             ? new Date(attemptData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
@@ -129,13 +130,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // PASO 5: Login exitoso -> Resetear contador (con try/catch seguro)
+                // PASO 5: Login exitoso -> Resetear contador
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_success: true });
                 } catch (rpcErr) {
                     console.warn('No se pudo resetear contador:', rpcErr.message || rpcErr);
                 }
-
+                
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
                     showMessage('Debes confirmar tu correo antes de iniciar sesión.', 'error');
@@ -157,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.error('Error registrando sesión:', sessionErr);
                     }
                 }
-
+                
                 try {
                     await db.auth.signOut({ scope: 'others' });
                 } catch (e) {
@@ -166,9 +167,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 setTimeout(() => {
+                    // 🎯 REDIRECCIÓN AL HUB DE JUEGOS
                     const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                         ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                        : ;
+                        : 'hub-juegos.html';
                     window.location.href = redirectUrl;
                 }, 1500);
                 
@@ -180,24 +182,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function resetButton() {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Ingresar';
-        }
-    }
-
     // ============================================
     // 🔐 LOGIN CON GOOGLE
     // ============================================
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
-            const redirectURL = construirURL('/'hub-juegos.html');
+            // 🎯 REDIRECCIÓN AL HUB DE JUEGOS DESPUÉS DEL LOGIN CON GOOGLE
+            const redirectURL = construirURL('/hub-juegos.html');
+            
             const { data, error } = await db.auth.signInWithOAuth({
                 provider: 'google',
-                options: { redirectTo: redirectURL, queryParams: { access_type: 'offline', prompt: 'consent' } }
+                options: { 
+                    redirectTo: redirectURL, 
+                    queryParams: { access_type: 'offline', prompt: 'consent' } 
+                }
             });
+            
             if (error) {
                 let mensajeError = error.message;
                 if (error.message.includes('already registered') || error.message.includes('already exists')) {
@@ -219,18 +220,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.mostrarRecuperacion = function(event) {
         if (event) event.preventDefault();
         clearMessage();
-        
         if (loginForm) loginForm.style.display = 'none';
-        const forgotPassword = document.querySelector('.forgot-password');
-        const divider = document.querySelector('.divider');
-        const googleBtn = document.querySelector('.btn-google');
-        const registerLink = document.querySelector('.register-link');
-        
-        if (forgotPassword) forgotPassword.style.display = 'none';
-        if (divider) divider.style.display = 'none';
-        if (googleBtn) googleBtn.style.display = 'none';
-        if (registerLink) registerLink.style.display = 'none';
-        
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'none'; });
         document.getElementById('recoveryStep1').style.display = 'block';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -238,18 +229,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.volverAlLogin = function(event) {
         if (event) event.preventDefault();
         clearMessage();
-        
         if (loginForm) loginForm.style.display = 'block';
-        const forgotPassword = document.querySelector('.forgot-password');
-        const divider = document.querySelector('.divider');
-        const googleBtn = document.querySelector('.btn-google');
-        const registerLink = document.querySelector('.register-link');
-        
-        if (forgotPassword) forgotPassword.style.display = 'block';
-        if (divider) divider.style.display = 'block';
-        if (googleBtn) googleBtn.style.display = 'block';
-        if (registerLink) registerLink.style.display = 'block';
-        
+        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'block'; });
         document.getElementById('recoveryStep1').style.display = 'none';
         document.getElementById('recoveryStep2').style.display = 'none';
     };
@@ -303,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // 🛡️ VERIFICAR SESIÓN ACTIVA Y SUSPENSIÓN AL CARGAR
+    // 🛡️ VERIFICAR SESIÓN ACTIVA AL CARGAR
     // ============================================
     async function checkSession() {
         try {
@@ -328,15 +309,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
+                // 🎯 SI YA TIENE SESIÓN Y NO ESTÁ BLOQUEADO, MANDAR AL HUB
                 const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                     ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
                     : 'hub-juegos.html';
-                window.location.href = redirectUrl;
+                
+                // Evitar recarga infinita si ya estamos en la página de destino
+                if (!window.location.href.includes(redirectUrl)) {
+                    window.location.href = redirectUrl;
+                }
             }
         } catch (err) {
             console.warn('No se pudo verificar sesión:', err);
         }
     }
+    
     checkSession();
 
     // ============================================
