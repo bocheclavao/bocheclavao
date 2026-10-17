@@ -165,12 +165,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Ignorar error si no hay otras sesiones
                 }
                 
-                showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+                           showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 setTimeout(() => {
-                    // 🎯 REDIRECCIÓN AL HUB DE JUEGOS
                     const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
                         ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                        : 'hub-juegos.html';
+                        : 'hub-juegos.html'; // <--- CORREGIDO
                     window.location.href = redirectUrl;
                 }, 1500);
                 
