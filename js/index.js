@@ -62,10 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ============================================
-    // 🔐 LOGIN CON EMAIL Y CONTRASEÑA
-    // ============================================
-    if (loginForm) {
+        if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -82,20 +79,12 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // PASO 1: ¿El correo existe?
-                const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
-                if (existeError) console.error('Error verificando correo:', existeError);
-                
-                if (existeData !== true) {
-                    showMessage('❌ Este correo no está registrado en nuestro sistema.', 'error');
-                    resetButton();
-                    return;
-                }
-                
-                // PASO 2: ¿Está suspendido?
-                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                if (preError) console.error('Error pre-check:', preError);
-                
+                // PASO 1: Verificar si está bloqueado (SIN gastar intentos)
+                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
+                    p_email: email, 
+                    p_action: 'check' 
+                });
+
                 if (preCheck && preCheck.allowed === false) {
                     const hasta = preCheck.blocked_until 
                         ? new Date(preCheck.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
@@ -105,15 +94,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // PASO 3: Intentar login con Supabase Auth
+                // PASO 2: Intentar login REAL con Supabase Auth
                 const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
-                    // PASO 4: Registrar intento fallido
-                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { p_email: email, p_success: false });
-                    if (rpcError) console.error('Error registrando intento:', rpcError);
-                    
-                    console.log('📊 DATOS DE INTENTOS:', attemptData);
+                    // PASO 3: Registrar el intento fallido REAL (Aquí sí se resta la oportunidad)
+                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
+                        p_email: email, 
+                        p_action: 'fail' 
+                    });
                     
                     if (attemptData && attemptData.allowed === false) {
                         const hasta = attemptData.blocked_until 
@@ -121,8 +110,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             : 'varias horas';
                         showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     } else {
-                        const intentos = (attemptData && attemptData.attempts) ? attemptData.attempts : 1;
-                        const restantes = Math.max(0, 5 - intentos);
+                        const intentos = attemptData?.attempts || 1;
+                        const restantes = Math.max(0, 4 - intentos); // 4 oportunidades totales
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
                     
@@ -130,12 +119,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // PASO 5: Login exitoso -> Resetear contador
-                try {
-                    await db.rpc('check_login_attempt', { p_email: email, p_success: true });
-                } catch (rpcErr) {
-                    console.warn('No se pudo resetear contador:', rpcErr.message || rpcErr);
-                }
+                // PASO 4: Login exitoso -> Resetear contador de intentos a 0 inmediatamente
+                await db.rpc('check_login_attempt', { 
+                    p_email: email, 
+                    p_action: 'success' 
+                });
                 
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
@@ -159,15 +147,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                try {
-                    await db.auth.signOut({ scope: 'others' });
-                } catch (e) {
-                    // Ignorar error si no hay otras sesiones
-                }
-                
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 setTimeout(() => {
-                    // 🎯 Forzamos la redirección directamente a hub-juegos.html
                     window.location.href = 'hub-juegos.html';
                 }, 1500);
                 
