@@ -10,20 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // ============================================
-    // 🛡️ DIAGNÓSTICO DEL MENSAJE FANTASMA
-    // ============================================
-    const existingMessage = sessionStorage.getItem('auth_message');
-    if (existingMessage && existingMessage.includes('otro dispositivo')) {
-        console.warn('⚠️ ALERTA: El mensaje de "otro dispositivo" YA estaba en sessionStorage al cargar.');
-    }
-
-    function construirURL(base) {
-        const path = window.location.pathname;
-        const repoPath = path.substring(0, path.lastIndexOf('/'));
-        return window.location.origin + repoPath + base;
-    }
-
     function showMessage(text, type) {
         if (messageDiv) {
             messageDiv.textContent = text;
@@ -32,11 +18,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function clearMessage() {
-        if (messageDiv) {
-            messageDiv.textContent = '';
-            messageDiv.className = 'message';
-            messageDiv.style.display = 'none';
+    function resetButton() {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Ingresar';
         }
     }
 
@@ -55,17 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    function resetButton() {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Ingresar';
-        }
-    }
-
-        if (loginForm) {
+    if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
@@ -79,51 +56,31 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // PASO 1: Verificar si está bloqueado (SIN gastar intentos)
-                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
-                    p_email: email, 
-                    p_action: 'check' 
-                });
-
+                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_action: 'check' });
                 if (preCheck && preCheck.allowed === false) {
-                    const hasta = preCheck.blocked_until 
-                        ? new Date(preCheck.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-                        : 'varias horas';
+                    const hasta = preCheck.blocked_until ? new Date(preCheck.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'varias horas';
                     showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     resetButton();
                     return;
                 }
                 
-                // PASO 2: Intentar login REAL con Supabase Auth
                 const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
-                    // PASO 3: Registrar el intento fallido REAL (Aquí sí se resta la oportunidad)
-                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
-                        p_email: email, 
-                        p_action: 'fail' 
-                    });
-                    
+                    const { data: attemptData } = await db.rpc('check_login_attempt', { p_email: email, p_action: 'fail' });
                     if (attemptData && attemptData.allowed === false) {
-                        const hasta = attemptData.blocked_until 
-                            ? new Date(attemptData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-                            : 'varias horas';
+                        const hasta = attemptData.blocked_until ? new Date(attemptData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'varias horas';
                         showMessage(`🚫 Cuenta suspendida hasta: ${hasta}`, 'error');
                     } else {
                         const intentos = attemptData?.attempts || 1;
-                        const restantes = Math.max(0, 4 - intentos); // 4 oportunidades totales
+                        const restantes = Math.max(0, 4 - intentos);
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
-                    
                     resetButton();
                     return;
                 }
                 
-                // PASO 4: Login exitoso -> Resetear contador de intentos a 0 inmediatamente
-                await db.rpc('check_login_attempt', { 
-                    p_email: email, 
-                    p_action: 'success' 
-                });
+                await db.rpc('check_login_attempt', { p_email: email, p_action: 'success' });
                 
                 if (data.user && !data.user.email_confirmed_at) {
                     await db.auth.signOut();
@@ -136,21 +93,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     try {
                         const sessionToken = Date.now().toString(36) + Math.random().toString(36).substr(2);
                         await db.from('active_sessions').upsert({
-                            user_id: data.user.id,
-                            session_token: sessionToken,
-                            last_active: new Date().toISOString(),
-                            device_info: navigator.userAgent.substring(0, 200)
+                            user_id: data.user.id, session_token: sessionToken, last_active: new Date().toISOString(), device_info: navigator.userAgent.substring(0, 200)
                         });
                         localStorage.setItem('session_token', sessionToken);
-                    } catch (sessionErr) {
-                        console.error('Error registrando sesión:', sessionErr);
-                    }
+                    } catch (sessionErr) { console.error('Error registrando sesión:', sessionErr); }
                 }
                 
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
-                setTimeout(() => {
-                    window.location.href = 'hub-juegos.html';
-                }, 1500);
+                setTimeout(() => { window.location.href = 'hub-juegos.html'; }, 1500);
                 
             } catch (err) {
                 console.error('Error inesperado:', err);
@@ -160,154 +110,42 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ============================================
-    // 🔐 LOGIN CON GOOGLE
-    // ============================================
     window.loginWithGoogle = async function() {
         showMessage('Conectando con Google...', 'info');
         try {
-            // 🎯 REDIRECCIÓN AL HUB DE JUEGOS DESPUÉS DEL LOGIN CON GOOGLE
-            const redirectURL = construirURL('/hub-juegos.html');
-            
-            const { data, error } = await db.auth.signInWithOAuth({
+            const redirectURL = window.location.origin + window.location.pathname.replace('index.html', '') + 'hub-juegos.html';
+            const { error } = await db.auth.signInWithOAuth({
                 provider: 'google',
-                options: { 
-                    redirectTo: redirectURL, 
-                    queryParams: { access_type: 'offline', prompt: 'consent' } 
-                }
+                options: { redirectTo: redirectURL, queryParams: { access_type: 'offline', prompt: 'consent' } }
             });
-            
-            if (error) {
-                let mensajeError = error.message;
-                if (error.message.includes('already registered') || error.message.includes('already exists')) {
-                    mensajeError = 'Este correo ya está registrado con otro método.';
-                } else if (error.message.includes('For security purposes')) {
-                    const match = error.message.match(/after (\d+) seconds?/);
-                    mensajeError = `⏱️ Por seguridad, espera ${match ? match[1] : '60'} segundos antes de intentar de nuevo.`;
-                }
-                showMessage(mensajeError, 'error');
-            }
+            if (error) showMessage('Error: ' + error.message, 'error');
         } catch (err) {
             showMessage('Error inesperado: ' + err.message, 'error');
         }
     };
 
-    // ============================================
-    // 🔄 FLUJO DE RECUPERACIÓN
-    // ============================================
-    window.mostrarRecuperacion = function(event) {
-        if (event) event.preventDefault();
-        clearMessage();
-        if (loginForm) loginForm.style.display = 'none';
-        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'none'; });
-        document.getElementById('recoveryStep1').style.display = 'block';
-        document.getElementById('recoveryStep2').style.display = 'none';
-    };
-    
-    window.volverAlLogin = function(event) {
-        if (event) event.preventDefault();
-        clearMessage();
-        if (loginForm) loginForm.style.display = 'block';
-        document.querySelectorAll('.forgot-password, .divider, .btn-google, .register-link').forEach(el => { if(el) el.style.display = 'block'; });
-        document.getElementById('recoveryStep1').style.display = 'none';
-        document.getElementById('recoveryStep2').style.display = 'none';
-    };
-    
-    window.volverAlRecoveryStep1 = function(event) {
-        if (event) event.preventDefault();
-        clearMessage();
-        document.getElementById('recoveryStep1').style.display = 'block';
-        document.getElementById('recoveryStep2').style.display = 'none';
-    };
-    
-    const recoveryForm = document.getElementById('recoveryForm');
-    if (recoveryForm) {
-        recoveryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('recoveryEmail').value.trim();
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            
-            if (!emailRegex.test(email)) {
-                showMessage('Por favor, ingresa un correo electrónico válido.', 'error');
-                return;
-            }
-            
-            showMessage('Enviando enlace de recuperación...', 'info');
-            
-            try {
-                const redirectURL = construirURL('/recuperar-contrasena.html');
-                const { data, error } = await db.auth.resetPasswordForEmail(email, { redirectTo: redirectURL });
-                
-                if (error) {
-                    let mensajeError = error.message;
-                    if (error.message.includes('User not found') || error.message.includes('no user found')) {
-                        mensajeError = 'Este correo no está registrado en nuestro sistema.';
-                    } else if (error.message.includes('For security purposes') || error.message.includes('rate limit')) {
-                        const match = error.message.match(/after (\d+) seconds?/);
-                        mensajeError = `⏱️ Por seguridad, espera ${match ? match[1] : '60'} segundos antes de solicitar otro enlace.`;
-                    }
-                    showMessage(mensajeError, 'error');
-                    return;
-                }
-                
-                document.getElementById('recoveryStep1').style.display = 'none';
-                document.getElementById('recoveryStep2').style.display = 'block';
-                document.getElementById('recoveryEmailDisplay').textContent = email;
-                showMessage('✅ Enlace enviado. Revisa tu correo.', 'success');
-                
-            } catch (err) {
-                showMessage('Error inesperado: ' + err.message, 'error');
-            }
-        });
-    }
-
-    // ============================================
-    // 🛡️ VERIFICAR SESIÓN ACTIVA AL CARGAR (CORREGIDO)
-    // ============================================
     async function checkSession() {
         try {
             const { data: { session } } = await db.auth.getSession();
-            
             if (session && session.user) {
-                const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
-                    p_email: session.user.email,
-                    p_success: true
-                });
-                
-                if (checkError) console.warn('Error verificando sesión:', checkError);
-                
+                const { data: checkData } = await db.rpc('check_login_attempt', { p_email: session.user.email, p_success: true });
                 if (checkData && checkData.allowed === false) {
                     await db.auth.signOut();
-                    const hasta = checkData.blocked_until 
-                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-                        : 'varias horas';
-                    
+                    const hasta = checkData.blocked_until ? new Date(checkData.blocked_until).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'varias horas';
                     sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida hasta: ${hasta}.`);
                     sessionStorage.setItem('auth_type', 'error');
                     return;
                 }
-
-                // 🎯 SI YA TIENE SESIÓN Y NO ESTÁ BLOQUEADO, MANDAR AL HUB
-                const redirectUrl = 'hub-juegos.html';
-                
-                // Evitar recarga infinita si ya estamos en la página de destino
-                if (!window.location.href.includes(redirectUrl)) {
-                    window.location.href = redirectUrl;
+                if (!window.location.href.includes('hub-juegos.html')) {
+                    window.location.href = 'hub-juegos.html';
                 }
             }
-        } catch (err) {
-            console.warn('No se pudo verificar sesión:', err);
-        }
+        } catch (err) { console.warn('No se pudo verificar sesión:', err); }
     }
-    
     checkSession();
 
-    // ============================================
-    // 📩 MOSTRAR MENSAJE DE EXPULSIÓN SI EXISTE
-    // ============================================
     const logoutReason = sessionStorage.getItem('auth_message');
     const logoutType = sessionStorage.getItem('auth_type') || 'info';
-    
     if (logoutReason) {
         showMessage(logoutReason, logoutType);
         sessionStorage.removeItem('auth_message');
