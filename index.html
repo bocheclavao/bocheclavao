@@ -24,7 +24,7 @@
         @keyframes dotFloat { 0%, 100% { transform: translateY(0); opacity: 0.3; } 50% { transform: translateY(-30px); opacity: 0.6; } }
         .container { width: 100%; max-width: 1000px; padding: 20px; position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; justify-content: center; }
         .logo-container { text-align: center; margin-bottom: 40px; }
-        .logo-main { max-width: 280px; height: auto; margin-bottom: 15px; animation: logoAppear 1s ease-out; }
+        .logo-main { max-width: 250px; height: auto; margin-bottom: 15px; animation: logoAppear 1s ease-out; }
         @keyframes logoAppear { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
         .brand-name { font-size: 1.8rem; font-weight: 800; color: #FFD700; letter-spacing: 3px; text-transform: uppercase; }
         .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 900px; margin: 0 auto; }
@@ -67,8 +67,7 @@
         .success-icon { text-align: center; margin-bottom: 15px; }
         .success-icon i { font-size: 3rem; color: #00ff00; animation: bounceIn 0.6s ease; }
         @keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        @media (max-width: 768px) { .main-content { grid-template-columns: 1fr; gap: 30px; } .left-side { text-align: center; display: none; } .login-card { padding: 30px 25px; max-width: 100%; } .logo-main { max-width: 150px; } .brand-name { font-size: 1.5rem; letter-spacing: 2px; } }
-        @media (max-width: 480px) { body { padding: 15px; align-items: flex-start; padding-top: 8vh; } .container { padding: 15px; } .logo-container { margin-bottom: 30px; } .login-card { padding: 25px 20px; } .card-title { font-size: 1.4rem; } .card-subtitle { font-size: 0.8rem; margin-bottom: 20px; } .form-group { margin-bottom: 15px; } .form-group input { padding: 12px 14px; font-size: 1rem; } .btn-primary, .btn-google { padding: 13px; font-size: 0.95rem; } }
+        
         .main-footer { background: #050505; border-top: 1px solid #222; padding: 40px 20px; text-align: center; margin-top: auto; width: 100%; position: relative; z-index: 100; }
         .footer-content { max-width: 1200px; margin: 0 auto; }
         .footer-text { color: #666; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.6; }
@@ -81,8 +80,39 @@
         .captcha-container {
             display: flex;
             justify-content: center;
-            margin: 15px 0;
+            margin: 10px 0;
             min-height: 65px;
+        }
+
+        /* 📱 OPTIMIZACIÓN EXTREMA PARA CELULARES */
+        @media (max-width: 768px) { 
+            .main-content { grid-template-columns: 1fr; gap: 30px; } 
+            .left-side { text-align: center; display: none; } 
+            .login-card { padding: 25px 20px; max-width: 100%; } 
+            .logo-main { max-width: 180px; } 
+            .brand-name { font-size: 1.5rem; letter-spacing: 2px; } 
+        }
+        @media (max-width: 480px) { 
+            body { padding: 10px; align-items: flex-start; padding-top: 5vh; } 
+            .container { padding: 10px; } 
+            .logo-container { margin-bottom: 20px; } 
+            .login-card { padding: 20px 15px; } 
+            .card-title { font-size: 1.3rem; margin-bottom: 5px; } 
+            .card-subtitle { font-size: 0.8rem; margin-bottom: 15px; } 
+            .form-group { margin-bottom: 12px; } 
+            .form-group input { padding: 12px; font-size: 0.95rem; } 
+            .btn-primary, .btn-google { padding: 12px; font-size: 0.9rem; } 
+            .forgot-password { margin-bottom: 15px; }
+            .divider { margin: 15px 0; font-size: 0.8rem; }
+            .register-link { margin-top: 15px; font-size: 0.85rem; }
+            
+            /* Truco para que el CAPTCHA no ocupe tanto alto en móvil */
+            .captcha-container { 
+                margin: 5px 0; 
+                transform: scale(0.85); 
+                transform-origin: center; 
+                min-height: 50px;
+            }
         }
     </style>
 </head>
@@ -116,11 +146,9 @@
 
             <div class="right-side">
                 <div class="login-card">
-                    <!-- SECCIÓN DE LOGIN -->
                     <div id="loginSection">
                         <h2 class="card-title">Iniciar Sesión</h2>
                         <p class="card-subtitle">Ingresa tus credenciales para continuar</p>
-                        
                         <form id="loginForm">
                             <div class="form-group">
                                 <input type="email" id="email" name="email" autocomplete="username" required placeholder="Correo electrónico">
@@ -141,22 +169,16 @@
                             <div class="forgot-password">
                                 <a href="recuperar-contrasena.html">¿Olvidaste tu contraseña?</a>
                             </div>
-                            
                             <button type="submit" id="submitBtn" class="btn-primary">Ingresar</button>
                         </form>
-                        
                         <div class="divider">o continúa con</div>
-                        
                         <button type="button" class="btn-google" onclick="loginWithGoogle()">
                             <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google"> Google
                         </button>
-                        
                         <div class="register-link">
                             ¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a>
                         </div>
                     </div>
-                    
-                    <!-- DIV PARA MENSAJES DE ERROR/ÉXITO/CUENTA REGRESIVA -->
                     <div id="message" class="message"></div>
                 </div>
             </div>
