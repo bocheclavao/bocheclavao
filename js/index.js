@@ -165,12 +165,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Ignorar error si no hay otras sesiones
                 }
                 
-                           showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+                showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
                 setTimeout(() => {
-                    const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
-                        ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                        : 'hub-juegos.html'; // <--- CORREGIDO
-                    window.location.href = redirectUrl;
+                    // 🎯 Forzamos la redirección directamente a hub-juegos.html
+                    window.location.href = 'hub-juegos.html';
                 }, 1500);
                 
             } catch (err) {
@@ -283,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // 🛡️ VERIFICAR SESIÓN ACTIVA AL CARGAR
+    // 🛡️ VERIFICAR SESIÓN ACTIVA AL CARGAR (CORREGIDO)
     // ============================================
     async function checkSession() {
         try {
@@ -309,9 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // 🎯 SI YA TIENE SESIÓN Y NO ESTÁ BLOQUEADO, MANDAR AL HUB
-                const redirectUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REDIRECT_AFTER_LOGIN) 
-                    ? APP_CONFIG.REDIRECT_AFTER_LOGIN 
-                    : 'hub-juegos.html';
+                const redirectUrl = 'hub-juegos.html';
                 
                 // Evitar recarga infinita si ya estamos en la página de destino
                 if (!window.location.href.includes(redirectUrl)) {
