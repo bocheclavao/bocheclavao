@@ -60,14 +60,13 @@
         .register-link { text-align: center; margin-top: 20px; color: #666; font-size: 0.9rem; }
         .register-link a { color: #FFD700; text-decoration: none; font-weight: 600; cursor: pointer; }
         .register-link a:hover { text-decoration: underline; }
-        .message { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-size: 0.85rem; }
+        .message { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-size: 0.85rem; line-height: 1.5; }
         .message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
         .message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
         .message.info { background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; color: #FFD700; display: block; }
         .success-icon { text-align: center; margin-bottom: 15px; }
         .success-icon i { font-size: 3rem; color: #00ff00; animation: bounceIn 0.6s ease; }
         @keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        
         .main-footer { background: #050505; border-top: 1px solid #222; padding: 40px 20px; text-align: center; margin-top: auto; width: 100%; position: relative; z-index: 100; }
         .footer-content { max-width: 1200px; margin: 0 auto; }
         .footer-text { color: #666; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.6; }
@@ -76,15 +75,14 @@
         .social-icons a { display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; background: #111; border: 1px solid #333; border-radius: 50%; color: #999; font-size: 1.2rem; text-decoration: none; transition: all 0.3s ease; pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 101; }
         .social-icons a:hover { background: #FFD700; color: #000; border-color: #FFD700; transform: translateY(-3px); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); }
         
-        /* 🛡️ ESTILOS DEL CAPTCHA */
-        .captcha-container {
-            display: flex;
-            justify-content: center;
-            margin: 10px 0;
-            min-height: 65px;
-        }
+        /* 🛡️ ESTILOS DEL CAPTCHA Y OJO */
+        .captcha-container { display: flex; justify-content: center; margin: 10px 0; min-height: 65px; }
+        .password-container { position: relative; }
+        .password-container input { padding-right: 45px; }
+        .toggle-password { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #666; cursor: pointer; transition: color 0.3s ease; z-index: 10; }
+        .toggle-password:hover { color: #FFD700; }
 
-        /* 📱 OPTIMIZACIÓN EXTREMA PARA CELULARES */
+        /* 📱 OPTIMIZACIÓN PARA CELULARES */
         @media (max-width: 768px) { 
             .main-content { grid-template-columns: 1fr; gap: 30px; } 
             .left-side { text-align: center; display: none; } 
@@ -105,26 +103,13 @@
             .forgot-password { margin-bottom: 15px; }
             .divider { margin: 15px 0; font-size: 0.8rem; }
             .register-link { margin-top: 15px; font-size: 0.85rem; }
-            
-            /* Truco para que el CAPTCHA no ocupe tanto alto en móvil */
-            .captcha-container { 
-                margin: 5px 0; 
-                transform: scale(0.85); 
-                transform-origin: center; 
-                min-height: 50px;
-            }
+            .captcha-container { margin: 5px 0; transform: scale(0.85); transform-origin: center; min-height: 50px; }
         }
     </style>
 </head>
 <body>
-    <div class="line-decoration line-1"></div>
-    <div class="line-decoration line-2"></div>
-    <div class="line-decoration line-3"></div>
-    <div class="line-decoration line-4"></div>
-    <div class="dot dot-1"></div>
-    <div class="dot dot-2"></div>
-    <div class="dot dot-3"></div>
-    <div class="dot dot-4"></div>
+    <div class="line-decoration line-1"></div><div class="line-decoration line-2"></div><div class="line-decoration line-3"></div><div class="line-decoration line-4"></div>
+    <div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div><div class="dot dot-4"></div>
 
     <div class="container">
         <div class="logo-container">
@@ -153,18 +138,14 @@
                             <div class="form-group">
                                 <input type="email" id="email" name="email" autocomplete="username" required placeholder="Correo electrónico">
                             </div>
-                          <div class="form-group password-container">
-    <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Contraseña">
-    <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility()" title="Mostrar contraseña"></i>
-</div>
+                            <!-- ✅ CORREGIDO: Contenedor del password con el ícono del ojo -->
+                            <div class="form-group password-container">
+                                <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Contraseña">
+                                <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility()" title="Mostrar contraseña"></i>
+                            </div>
                             
-                            <!-- 🛡️ CAPTCHA PARA LOGIN -->
                             <div class="captcha-container">
-                                <div class="cf-turnstile" 
-                                     data-sitekey="0x4AAAAAAFZoGtPCHwkfTR1Q" 
-                                     data-theme="dark"
-                                     data-callback="onCaptchaResolved"
-                                     id="captchaLogin"></div>
+                                <div class="cf-turnstile" data-sitekey="0x4AAAAAAFZoGtPCHwkfTR1Q" data-theme="dark" data-callback="onCaptchaResolved" id="captchaLogin"></div>
                             </div>
                             
                             <div class="forgot-password">
@@ -190,10 +171,10 @@
         <div class="footer-content">
             <p class="footer-text">Copyright © todos los derechos reservados<br>Desarrollado professional <span>G/P</span> 2026 - 2027<br>Versión <span>0.1 beta experimental</span></p>
             <div class="social-icons">
-                <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" title="Instagram"><i class="fab fa-instagram"></i></a>
-                <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" title="TikTok"><i class="fab fa-tiktok"></i></a>
-                <a href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer"><i class="fab fa-tiktok"></i></a>
+                <a href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer"><i class="fab fa-whatsapp"></i></a>
             </div>
         </div>
     </footer>
