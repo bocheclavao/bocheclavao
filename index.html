@@ -137,9 +137,9 @@
                                      id="captchaLogin"></div>
                             </div>
                             
-                            <div class="forgot-password">
-                                <a onclick="mostrarRecuperacion(event)">¿Olvidaste tu contraseña?</a>
-                            </div>
+                           <div class="forgot-password">
+    <a href="recuperar-contrasena.html">¿Olvidaste tu contraseña?</a>
+</div>
                             <button type="submit" id="submitBtn" class="btn-primary">Ingresar</button>
                         </form>
                         <div class="divider">o continúa con</div>
@@ -150,23 +150,6 @@
                             ¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a>
                         </div>
                     </div>
-
-                    <!-- RECUPERACIÓN PASO 1 -->
-                    <div id="recoveryStep1" style="display: none;">
-                        <h2 class="card-title">Recuperar Contraseña</h2>
-                        <p class="card-subtitle">Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña</p>
-                        <form id="recoveryForm">
-                            <div class="form-group">
-                                <input type="email" id="recoveryEmail" name="email" autocomplete="email" required placeholder="Correo electrónico">
-                            </div>
-                            
-                            <!-- 🛡️ CAPTCHA PARA RECUPERACIÓN -->
-                            <div class="captcha-container">
-                                <div class="cf-turnstile" 
-                                     data-sitekey="0x4AAAAAAFZoGtPCHwkfTR1Q" 
-                                     data-theme="dark"
-                                     id="captchaRecovery"></div>
-                            </div>
                             
                             <button type="submit" class="btn-primary">
                                 <i class="fas fa-paper-plane"></i> Enviar enlace
