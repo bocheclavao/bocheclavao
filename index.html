@@ -4,25 +4,25 @@
     <meta http-equiv="Permissions-Policy" content="compute-pressure=()">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boche Clava'o - Iniciar Sesión</title>
+    <!-- CORRECCIÓN 1: Título actualizado -->
+    <title>Precision Sport IA - Iniciar Sesión</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="/img/moneda.png">
+    <link rel="icon" type="image/png" href="../img/moneda.png">
     <style>
-        /* ... (MISMO CSS QUE ANTERIORMENTE, NO HACE FALTA CAMBIARLO) ... */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-    font-family: 'Montserrat', sans-serif;
-    background: #000000;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column; /* ← AGREGA ESTO */
-    justify-content: center; /* ← CAMBIA ESTO */
-    align-items: center;
-    color: #ffffff;
-    overflow-x: hidden;
-    position: relative;
-}
+            font-family: 'Montserrat', sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            overflow-x: hidden;
+            position: relative;
+        }
         body::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 50%); z-index: 0; }
         .line-decoration { position: absolute; background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.1), transparent); width: 1px; height: 100%; animation: lineMove 8s ease-in-out infinite; }
         .line-1 { left: 10%; animation-delay: 0s; } .line-2 { left: 30%; animation-delay: 2s; } .line-3 { right: 30%; animation-delay: 4s; } .line-4 { right: 10%; animation-delay: 6s; }
@@ -31,16 +31,16 @@
         .dot-1 { top: 20%; left: 15%; animation-delay: 0s; } .dot-2 { top: 40%; right: 20%; animation-delay: 1s; } .dot-3 { bottom: 30%; left: 25%; animation-delay: 2s; } .dot-4 { bottom: 20%; right: 15%; animation-delay: 3s; }
         @keyframes dotFloat { 0%, 100% { transform: translateY(0); opacity: 0.3; } 50% { transform: translateY(-30px); opacity: 0.6; } }
         .container {
-    width: 100%;
-    max-width: 1000px;
-    padding: 20px;
-    position: relative;
-    z-index: 1;
-    flex: 1; /* ← AGREGA ESTO */
-    display: flex; /* ← AGREGA ESTO */
-    flex-direction: column; /* ← AGREGA ESTO */
-    justify-content: center; /* ← AGREGA ESTO */
-}
+            width: 100%;
+            max-width: 1000px;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
         .logo-container { text-align: center; margin-bottom: 40px; }
         .logo-main { max-width: 450px; height: auto; margin-bottom: 15px; animation: logoAppear 1s ease-out; }
         @keyframes logoAppear { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
@@ -87,102 +87,41 @@
         @keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
         @media (max-width: 768px) { .main-content { grid-template-columns: 1fr; gap: 30px; } .left-side { text-align: center; display: none; } .login-card { padding: 30px 25px; max-width: 100%; } .logo-main { max-width: 280px; } .brand-name { font-size: 1.5rem; letter-spacing: 2px; } }
         @media (max-width: 480px) { body { padding: 15px; align-items: flex-start; padding-top: 8vh; } .container { padding: 15px; } .logo-container { margin-bottom: 30px; } .login-card { padding: 25px 20px; } .card-title { font-size: 1.4rem; } .card-subtitle { font-size: 0.8rem; margin-bottom: 20px; } .form-group { margin-bottom: 15px; } .form-group input { padding: 12px 14px; font-size: 1rem; } .btn-primary, .btn-google { padding: 13px; font-size: 0.95rem; } }
-   /* ============================================
-/* ============================================
-   🦵 FOOTER PROFESIONAL (BLINDADO)
-   ============================================ */
-.main-footer {
-    background: #050505; 
-    border-top: 1px solid #222;
-    padding: 40px 20px; 
-    text-align: center; 
-    margin-top: auto;
-    width: 100%;
-    position: relative;
-    z-index: 100; /* Asegura que esté por encima de cualquier fondo */
-}
+        
+        .main-footer {
+            background: #050505; 
+            border-top: 1px solid #222;
+            padding: 40px 20px; 
+            text-align: center; 
+            margin-top: auto;
+            width: 100%;
+            position: relative;
+            z-index: 100;
+        }
+        .footer-content { max-width: 1200px; margin: 0 auto; }
+        .footer-text { color: #666; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.6; }
+        .footer-text span { color: #FFD700; font-weight: 600; }
+        .social-icons { display: flex; justify-content: center; gap: 20px; margin-top: 15px; }
+        .social-icons a {
+            display: flex; align-items: center; justify-content: center;
+            width: 45px; height: 45px; background: #111; border: 1px solid #333;
+            border-radius: 50%; color: #999; font-size: 1.2rem; text-decoration: none;
+            transition: all 0.3s ease; pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 101;
+        }
+        .social-icons a:hover {
+            background: #FFD700; color: #000; border-color: #FFD700;
+            transform: translateY(-3px); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
 
-.footer-content { 
-    max-width: 1200px; 
-    margin: 0 auto; 
-}
-
-.footer-text { 
-    color: #666; 
-    font-size: 0.85rem; 
-    margin-bottom: 20px; 
-    line-height: 1.6; 
-}
-
-.footer-text span { 
-    color: #FFD700; 
-    font-weight: 600; 
-}
-
-.social-icons { 
-    display: flex; 
-    justify-content: center; 
-    gap: 20px; 
-    margin-top: 15px; 
-}
-
-.social-icons a {
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    width: 45px; 
-    height: 45px; 
-    background: #111; 
-    border: 1px solid #333;
-    border-radius: 50%; 
-    color: #999; 
-    font-size: 1.2rem; 
-    text-decoration: none;
-    transition: all 0.3s ease;
-    
-    /* 🛡️ BLINDAJE DE CLIC */
-    pointer-events: auto !important;
-    cursor: pointer !important;
-    position: relative;
-    z-index: 101;
-}
-
-.social-icons a:hover {
-    background: #FFD700; 
-    color: #000; 
-    border-color: #FFD700;
-    transform: translateY(-3px); 
-    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-}
-    /* Contenedor relativo para el campo de contraseña */
-.password-container {
-    position: relative;
-}
-
-/* Dar espacio a la derecha del input para que el texto no tape el icono */
-.password-container input {
-    padding-right: 45px; 
-}
-
-/* Estilo del icono del ojo */
-.toggle-password {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #666;
-    cursor: pointer;
-    transition: color 0.3s ease;
-    z-index: 10;
-}
-
-/* Efecto al pasar el mouse por encima (color dorado de tu marca) */
-.toggle-password:hover {
-    color: #FFD700; 
-}
+        /* Estilos del ojo de contraseña */
+        .password-container { position: relative; }
+        .password-container input { padding-right: 45px; }
+        .toggle-password {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            color: #666; cursor: pointer; transition: color 0.3s ease; z-index: 10;
+        }
+        .toggle-password:hover { color: #FFD700; }
     </style>
-
-    
 </head>
 <body>
     <div class="line-decoration line-1"></div>
@@ -196,7 +135,7 @@
 
     <div class="container">
         <div class="logo-container">
-            <img src="../img/logo.png" alt="Boche Clava'o" class="logo-main">
+            <img src="../img/logo.png" alt="Precision Sport IA" class="logo-main">
             <h1 class="brand-name">Precision Sport IA</h1>
         </div>
 
@@ -214,60 +153,52 @@
 
             <div class="right-side">
                 <div class="login-card">
-                    
-                    <!-- ========== SECCIÓN LOGIN ORIGINAL ========== -->
                     <div id="loginSection">
                         <h2 class="card-title">Iniciar Sesión</h2>
                         <p class="card-subtitle">Ingresa tus credenciales para continuar</p>
                         
                         <form id="loginForm">
-                          <div class="form-group">
-    <input type="email" id="email" name="email" autocomplete="username" required placeholder="Correo electrónico">
-</div>
-<div class="form-group password-container">
-    <input type="password" id="password" required placeholder="Contraseña">
-    <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility()" title="Mostrar contraseña"></i>
-</div>
+                            <div class="form-group">
+                                <!-- CORRECCIÓN 2: Atributos autocomplete completos -->
+                                <input type="email" id="email" name="email" autocomplete="username" required placeholder="Correo electrónico">
+                            </div>
+                            <div class="form-group password-container">
+                                <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Contraseña">
+                                <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility()" title="Mostrar contraseña"></i>
+                            </div>
                             <div class="forgot-password">
                                 <a onclick="mostrarRecuperacion(event)">¿Olvidaste tu contraseña?</a>
                             </div>
                             <button type="submit" id="submitBtn" class="btn-primary">Ingresar</button>
                         </form>
                         
-                        <!-- SECCIÓN RESTAURADA: Divisor y Botón de Google -->
                         <div class="divider">o continúa con</div>
-                        
                         <button type="button" class="btn-google" onclick="loginWithGoogle()">
                             <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
                             Google
                         </button>
-                        
                         <div class="register-link">
                             ¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a>
                         </div>
                     </div>
 
-                    <!-- ========== RECUPERACIÓN PASO 1 ========== -->
+                    <!-- CORRECCIÓN 3: Formulario de recuperación limpio (solo email) -->
                     <div id="recoveryStep1" style="display: none;">
                         <h2 class="card-title">Recuperar Contraseña</h2>
                         <p class="card-subtitle">Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña</p>
-                        
                         <form id="recoveryForm">
                             <div class="form-group">
-                               <input type="email" id="email" name="email" autocomplete="username" required placeholder="Correo electrónico">
-<input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Contraseña">
+                                <input type="email" id="recoveryEmail" name="email" autocomplete="username" required placeholder="Correo electrónico">
                             </div>
                             <button type="submit" class="btn-primary">
                                 <i class="fas fa-paper-plane"></i> Enviar enlace
                             </button>
                         </form>
-                        
                         <div class="register-link" style="margin-top: 15px;">
                             <a onclick="volverAlLogin(event)">← Volver al login</a>
                         </div>
                     </div>
 
-                    <!-- ========== RECUPERACIÓN PASO 2 ========== -->
                     <div id="recoveryStep2" style="display: none;">
                         <div class="success-icon">
                             <i class="fas fa-envelope-circle-check"></i>
@@ -284,7 +215,6 @@
                         <p class="card-subtitle" style="font-size: 0.8rem; color: #FFA500; margin-top: 10px;">
                             ⏱️ Por seguridad, puedes solicitar un nuevo enlace en <strong>60 segundos</strong>.
                         </p>
-                        
                         <div class="register-link" style="margin-top: 15px;">
                             <a onclick="volverAlRecoveryStep1(event)"><i class="fas fa-redo"></i> Enviar a otro correo</a>
                         </div>
@@ -298,9 +228,7 @@
             </div>
         </div>
     </div>
-         <!-- ============================================
-         FOOTER PROFESIONAL
-         ============================================ -->
+
     <footer class="main-footer">
         <div class="footer-content">
             <p class="footer-text">
@@ -309,31 +237,15 @@
                 Versión <span>0.1 beta experimental</span>
             </p>
             <div class="social-icons">
-                <!-- Enlaces de prueba (Cámbialos por los tuyos reales) -->
-                <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" title="Facebook">
-                    <i class="fab fa-facebook-f"></i>
-                </a>
-                <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" title="Instagram">
-                    <i class="fab fa-instagram"></i>
-                </a>
-                <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" title="TikTok">
-                    <i class="fab fa-tiktok"></i>
-                </a>
-                <!-- Para WhatsApp usa: https://wa.me/TU_NUMERO (ej: 573001234567, sin el +) -->
-                <a href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer" title="WhatsApp">
-                    <i class="fab fa-whatsapp"></i>
-                </a>
+                <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" title="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" title="TikTok"><i class="fab fa-tiktok"></i></a>
+                <a href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
             </div>
         </div>
     </footer>
 
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/config.js"></script>
-    <script src="../js/index.js"></script>
-        <!-- ============================================ -->
-    <!-- MODAL DE BLOQUEO (Se muestra si viene de auth-guard) -->
-    <!-- ============================================ -->
+    <!-- Modal de Bloqueo -->
     <div id="modalBloqueo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 999999; justify-content: center; align-items: center; font-family: 'Montserrat', sans-serif;">
         <div style="background: #111; border: 2px solid #ff4444; border-radius: 16px; padding: 40px 30px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 0 40px rgba(255, 68, 68, 0.4); animation: modalAppear 0.4s ease;">
             <style>
@@ -343,9 +255,7 @@
                 <i class="fas fa-ban" style="font-size: 2.5rem; color: #ff4444;"></i>
             </div>
             <h2 style="color: #ff4444; font-size: 1.5rem; margin-bottom: 15px; font-weight: 800;">ACCESO DENEGADO</h2>
-            <p style="color: #cccccc; font-size: 1rem; line-height: 1.5; margin-bottom: 10px;">
-                Usted ha sido bloqueado.
-            </p>
+            <p style="color: #cccccc; font-size: 1rem; line-height: 1.5; margin-bottom: 10px;">Usted ha sido bloqueado.</p>
             <p style="color: #ffffff; font-size: 0.95rem; line-height: 1.5; margin-bottom: 25px; background: rgba(255, 0, 0, 0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 0, 0, 0.3);">
                 <strong>Motivo:</strong> Violar las políticas, normas y condiciones de la plataforma.
             </p>
@@ -355,31 +265,25 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/index.js"></script>
+    
     <script>
-        // Verificar si el usuario fue redirigido por estar bloqueado
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('blocked') === 'true') {
-                // 1. Limpiar la URL para que no se quede el ?blocked=true al recargar
                 window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // 2. Mostrar el modal
                 const modal = document.getElementById('modalBloqueo');
-                if (modal) {
-                    modal.style.display = 'flex';
-                }
+                if (modal) modal.style.display = 'flex';
             }
         });
 
-        // Función para cerrar el modal
         function cerrarModalBloqueo() {
             const modal = document.getElementById('modalBloqueo');
-            if (modal) {
-                modal.style.display = 'none';
-            }
+            if (modal) modal.style.display = 'none';
         }
     </script>
-</body>
-</html>
+<!-- CORRECCIÓN 4: Eliminadas las etiquetas </body> y </html> duplicadas que había al final -->
 </body>
 </html>
