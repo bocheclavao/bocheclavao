@@ -1,3 +1,4 @@
+// js/dashboard.js
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     let currentUser = null;
@@ -34,7 +35,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     let estadoKyc = null;
     let saldoBC = 0;
-    let sessionCheckActive = false;
 
     // ============================================
     // 🚀 1. MENÚS MÓVILES
@@ -53,147 +53,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.addEventListener('resize', sacarMenusDelNavbar);
 
     // ============================================
-    // 🚨 2. MODAL DE SESIÓN DUPLICADA
-    // ============================================
-    function crearModalSesionDuplicada() {
-        const existing = document.getElementById('duplicateSessionModal');
-        if (existing) existing.remove();
-
-        const modal = document.createElement('div');
-        modal.id = 'duplicateSessionModal';
-        modal.style.cssText = `
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.95); z-index: 999999;
-            justify-content: center; align-items: center; padding: 20px;
-        `;
-        
-        modal.innerHTML = `
-            <div style="background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); border: 2px solid #ff0000; border-radius: 16px; padding: 40px 30px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(255, 0, 0, 0.4); animation: modalAppear 0.4s ease;">
-                <style>
-                    @keyframes modalAppear { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-                    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-                </style>
-                <div style="width: 80px; height: 80px; background: rgba(255, 0, 0, 0.15); border: 2px solid #ff0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5rem; animation: pulse 2s infinite;">
-                    <i class="fas fa-shield-alt" style="color: #ff0000;"></i>
-                </div>
-                <h2 style="color: #ff0000; font-size: 1.4rem; margin-bottom: 15px; font-weight: 800; font-family: 'Montserrat', sans-serif;">⚠️ Sesión Duplicada Detectada</h2>
-                <p style="color: #cccccc; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; font-family: 'Montserrat', sans-serif;">Se ha iniciado sesión en otro dispositivo. Esta sesión se cerrará automáticamente por motivos de seguridad.</p>
-                <button id="closeSessionBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;">
-                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión Ahora
-                </button>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        document.getElementById('closeSessionBtn').addEventListener('click', async () => {
-            await db.auth.signOut({ scope: 'global' });
-            localStorage.removeItem('session_token');
-            window.location.href = 'index.html';
-        });
-        return modal;
-    }
-    const duplicateModal = crearModalSesionDuplicada();
-
-    function mostrarAlertaSesionDuplicada() {
-        if (duplicateModal.style.display === 'flex') return;
-        duplicateModal.style.display = 'flex';
-        
-        setTimeout(() => {
-            if (duplicateModal.style.display === 'flex') {
-                db.auth.signOut({ scope: 'global' }).then(() => {
-                    localStorage.removeItem('session_token');
-                    window.location.href = 'index.html';
-                });
-            }
-        }, 8000);
-    }
-
-    // ============================================
-    // 🔐 3. GESTIÓN DE SESIONES
-    // ============================================
-    async function registrarMiSesion() {
-        try {
-            const { data: { session } } = await db.auth.getSession();
-            if (!session || !session.access_token) return;
-            
-            const token = session.access_token;
-            localStorage.setItem('session_token', token);
-            
-            await db.rpc('registrar_mi_sesion', { p_token: token });
-            console.log('✅ Mi sesión registrada en BD');
-        } catch (e) {
-            console.warn('⚠️ No se pudo registrar sesión (RPC puede no existir):', e.message);
-        }
-    }
-
-    async function verificarSesionActiva() {
-        if (sessionCheckActive || !currentUser) return;
-        sessionCheckActive = true;
-        
-        try {
-            const miToken = localStorage.getItem('session_token');
-            if (!miToken) {
-                await registrarMiSesion();
-                return;
-            }
-
-            const { data, error } = await db
-                .from('active_sessions')
-                .select('session_token')
-                .eq('user_id', currentUser.id)
-                .maybeSingle();
-            
-            if (error || !data) {
-                await registrarMiSesion();
-                return;
-            }
-
-            if (data.session_token !== miToken) {
-                console.warn('⚠️ Sesión duplicada detectada');
-                mostrarAlertaSesionDuplicada();
-            } else {
-                try {
-                    await db.from('active_sessions')
-                        .update({ last_active: new Date().toISOString() })
-                        .eq('user_id', currentUser.id);
-                } catch (e) { /* silencioso */ }
-            }
-        } catch (err) {
-            console.error('Error verificando sesión:', err);
-        } finally {
-            sessionCheckActive = false;
-        }
-    }
-
-    function setupInteractionListeners() {
-        let lastCheck = 0;
-        const checkOnInteraction = async () => {
-            const now = Date.now();
-            if (now - lastCheck < 2000) return;
-            lastCheck = now;
-            await verificarSesionActiva();
-        };
-        document.addEventListener('click', checkOnInteraction);
-        document.addEventListener('touchstart', checkOnInteraction);
-        document.addEventListener('scroll', checkOnInteraction);
-        document.addEventListener('keypress', checkOnInteraction);
-    }
-
-    db.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            registrarMiSesion();
-        } else if (event === 'SIGNED_OUT' || !session) {
-            localStorage.removeItem('session_token');
-            if (!window.location.pathname.includes('index.html')) {
-                sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
-                sessionStorage.setItem('auth_type', 'info');
-                window.location.href = 'index.html';
-            }
-        }
-    });
-
-    // ============================================
-    // 👤 4. FUNCIONES DE PERFIL
+    // 👤 2. FUNCIONES DE PERFIL
     // ============================================
     function generarIdUnico() { 
         return 'BC-' + Math.floor(10000000 + Math.random() * 90000000).toString(); 
@@ -247,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 📱 5. MENÚS MÓVILES
+    // 📱 3. MENÚS MÓVILES (INTERACCIÓN)
     // ============================================
     window.cerrarPanelesMovil = function() {
         if (dropdownMenu) {
@@ -366,7 +226,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // ============================================
-    // 🔗 6. NAVEGACIÓN
+    // 🔗 4. NAVEGACIÓN
     // ============================================
     window.irAPerfil = function() { window.location.href = 'perfil.html'; };
     window.irABilletera = function() { window.location.href = 'billetera.html'; };
@@ -375,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
 
     // ============================================
-    // 📺 7. STREAM EN VIVO
+    // 📺 5. STREAM EN VIVO
     // ============================================
     async function cargarStreamEnVivo() {
         try {
@@ -439,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🛡️ 8. KYC Y AVATAR
+    // 🛡️ 6. KYC Y AVATAR
     // ============================================
     function actualizarBannerKYC(estado) {
         if (estado === 'verificado') {
@@ -547,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     // ============================================
-    // 🔒 9. PROTEGER RUTA (🛡️ 100% BLINDADA Y ANTI-BUCLES)
+    // 🔒 7. PROTEGER RUTA (Limpia y optimizada)
     // ============================================
     async function protegerRuta() {
         try {
@@ -564,10 +424,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
 
             const user = session.user;
-            currentUser = user; // <-- CRUCIAL FIX para que iniciarRealtime funcione
+            currentUser = user;
 
-            // 🛡️ 1. VERIFICAR BLOQUEO PERMANENTE
-            // Usamos maybeSingle() para evitar errores si el perfil aún no existe
+            // 🛡️ VERIFICAR BLOQUEO PERMANENTE
             const { data: perfil, error: perfilError } = await db
                 .from('perfiles')
                 .select('bloqueado, motivo_bloqueo')
@@ -591,42 +450,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return; 
             }
 
-            // 🛡️ 2. VERIFICAR SUSPENSIÓN TEMPORAL (Brute Force)
-            try {
-                const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', {
-                    p_email: user.email,
-                    p_success: true
-                });
-
-                if (checkError) {
-                    console.warn('⚠️ No se pudo verificar intentos de login (RPC puede no existir):', checkError.message);
-                }
-
-                if (checkData && checkData.allowed === false) {
-                    console.warn(`🚫 Acceso denegado: Cuenta suspendida temporalmente (${user.email})`);
-                    await db.auth.signOut({ scope: 'global' });
-                    localStorage.removeItem('session_token');
-                    
-                    const hasta = checkData.blocked_until 
-                        ? new Date(checkData.blocked_until).toLocaleString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-                        : 'varias horas';
-                    
-                    sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida por seguridad hasta: ${hasta}.`);
-                    sessionStorage.setItem('auth_type', 'error');
-                    window.location.href = 'index.html';
-                    return; 
-                }
-            } catch (rpcErr) {
-                console.warn('⚠️ Error al ejecutar RPC de verificación de login:', rpcErr.message);
-            }
-
-            // ✅ 3. CARGA NORMAL DEL DASHBOARD
-            try {
-                await registrarMiSesion();
-            } catch (regErr) {
-                console.warn('⚠️ No se pudo registrar la sesión (RPC puede no existir):', regErr.message);
-            }
-            
+            // ✅ CARGA NORMAL DEL DASHBOARD
             const perfilCompleto = await cargarOCrearPerfil(user);
             estadoKyc = perfilCompleto?.estado_kyc || null;
             
@@ -638,8 +462,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.warn('⚠️ Error cargando stream:', streamErr.message);
             }
 
-            setupInteractionListeners();
-            
             if (loadingState) loadingState.style.display = 'none';
             if (contentState) contentState.style.display = 'block';
             
@@ -648,13 +470,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             
         } catch (err) {
             console.error('❌ Error crítico en la guardia de seguridad:', err);
-            // En lugar de redirigir inmediatamente (que puede causar bucles), mostramos el error
             if (loadingState) loadingState.style.display = 'none';
             if (errorState) {
                 errorState.style.display = 'block';
                 errorState.innerHTML = `<i class="fas fa-exclamation-triangle"></i><p>Error al cargar el dashboard. <br><small>${err.message}</small></p>`;
             }
-            // Solo redirigir si es un error de autenticación real
             if (err.message && err.message.toLowerCase().includes('session')) {
                 setTimeout(() => { window.location.href = 'index.html'; }, 3000);
             }
@@ -682,7 +502,7 @@ async function cerrarSesion() {
 }
 
 // ============================================
-// ⚡ 10. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
+// ⚡ 8. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
 // ============================================
 function iniciarRealtime() {
     if (!currentUser) {
@@ -696,7 +516,6 @@ function iniciarRealtime() {
             { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${currentUser.id}` }, 
             (payload) => {
                 const nuevoSaldo = payload.new.saldo_bc;
-                // Animación suave de actualización del saldo
                 const balanceEl = document.getElementById('balanceAmount');
                 if (balanceEl) {
                     balanceEl.textContent = `${nuevoSaldo.toFixed(2)} BC`;
@@ -712,8 +531,6 @@ function iniciarRealtime() {
             { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${currentUser.id}` },
             (payload) => {
                 console.log('🔔 Nueva notificación recibida:', payload.new);
-                // Aquí llamarías a tu función para actualizar el badge y la lista
-                // ej: agregarNotificacionAlDOM(payload.new);
             }
         )
         .subscribe();
