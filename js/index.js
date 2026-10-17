@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const submitBtn = document.getElementById('submitBtn');
     const db = window.supabaseClient;
     
-    // 1. Variables para el CAPTCHA y el contador
     let countdownInterval = null;
     let captchaTokenLogin = null;
 
@@ -14,7 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // 2. Función global para que Cloudflare guarde el token
     window.onCaptchaResolved = function(token) {
         captchaTokenLogin = token;
         console.log('✅ CAPTCHA de login resuelto');
@@ -28,21 +26,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showMessage(text, type) {
         if (messageDiv) {
-            messageDiv.innerHTML = text; // innerHTML permite usar negritas y colores en el contador
+            messageDiv.innerHTML = text; // Permite HTML para saltos de línea y negritas
             messageDiv.className = 'message ' + type;
             messageDiv.style.display = 'block';
         }
     }
 
-    function clearMessage() {
-        if (messageDiv) {
-            messageDiv.textContent = '';
-            messageDiv.className = 'message';
-            messageDiv.style.display = 'none';
-        }
-    }
-
-    // 3. Función para reiniciar el CAPTCHA en caso de error
     function resetCaptcha() {
         captchaTokenLogin = null;
         if (window.turnstile) {
@@ -51,10 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 4. Contador regresivo en tiempo real
     function startCountdown(blockedUntil) {
         if (countdownInterval) clearInterval(countdownInterval);
-        
         const targetTime = new Date(blockedUntil).getTime();
         
         countdownInterval = setInterval(() => {
@@ -73,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const hours = Math.floor(distance / (1000 * 60 * 60));
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-            
             const tiempoRestante = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             
             showMessage(`🚫 Cuenta suspendida. Podrás intentar de nuevo en: <strong style="color: #FFD700; font-size: 1.1rem;">${tiempoRestante}</strong>`, 'error');
@@ -112,9 +98,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            stopCountdown(); // Detener cualquier contador anterior
+            stopCountdown();
             
-            // 5. VALIDACIÓN DEL CAPTCHA (Faltaba esto)
             if (!captchaTokenLogin) {
                 showMessage('⚠️ Por favor, completa la verificación de seguridad (CAPTCHA).', 'error');
                 return;
@@ -133,15 +118,11 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // CORRECCIÓN 1: Usar p_action: 'check' en lugar de p_success: false
-                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
-                    p_email: email, 
-                    p_action: 'check' 
-                });
+                const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { p_email: email, p_action: 'check' });
                 if (preError) console.error('Error pre-check:', preError);
                 
                 if (preCheck && preCheck.allowed === false) {
-                    startCountdown(preCheck.blocked_until); // Inicia el contador en tiempo real
+                    startCountdown(preCheck.blocked_until);
                     resetButton();
                     resetCaptcha();
                     return;
@@ -150,11 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
-                    // CORRECCIÓN 1: Usar p_action: 'fail'
-                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
-                        p_email: email, 
-                        p_action: 'fail' 
-                    });
+                    const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { p_email: email, p_action: 'fail' });
                     if (rpcError) console.error('Error registrando intento:', rpcError);
                     
                     if (attemptData && attemptData.allowed === false) {
@@ -165,11 +142,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         showMessage(`❌ Contraseña incorrecta. Te quedan ${restantes} intento(s).`, 'error');
                     }
                     resetButton();
-                    resetCaptcha(); // Reinicia el CAPTCHA para el siguiente intento
+                    resetCaptcha();
                     return;
                 }
                 
-                // CORRECCIÓN 1: Usar p_action: 'success'
+                // 🚨 VERIFICACIÓN DE BLOQUEO PERMANENTE (NUEVO)
+                const { data: perfil, error: perfilError } = await db
+                    .from('perfiles')
+                    .select('bloqueado, motivo_bloqueo')
+                    .eq('id', data.user.id)
+                    .maybeSingle();
+
+                if (perfil && perfil.bloqueado === true) {
+                    await db.auth.signOut();
+                    const motivo = perfil.motivo_bloqueo || 'Violación de las políticas, normas y condiciones de la plataforma.';
+                    showMessage(`🚫 <strong>TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE</strong><br><br>Motivo: ${motivo}<br><br>Contacta a soporte si crees que esto es un error.`, 'error');
+                    resetButton();
+                    resetCaptcha();
+                    return;
+                }
+                
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_action: 'success' });
                 } catch (rpcErr) {
@@ -200,9 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
-                setTimeout(() => {
-                    window.location.href = 'hub-juegos.html';
-                }, 1500);
+                setTimeout(() => { window.location.href = 'hub-juegos.html'; }, 1500);
                 
             } catch (err) {
                 console.error('Error inesperado:', err);
@@ -232,29 +222,52 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const { data: { session } } = await db.auth.getSession();
             if (session && session.user) {
-                // CORRECCIÓN 1: Usar p_action: 'check'
+                
+                // 🚨 1. VERIFICAR BLOQUEO PERMANENTE AL CARGAR
+                const { data: perfil, error: perfilError } = await db
+                    .from('perfiles')
+                    .select('bloqueado, motivo_bloqueo')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+
+                if (perfil && perfil.bloqueado === true) {
+                    await db.auth.signOut();
+                    const motivo = perfil.motivo_bloqueo || 'Violación de las políticas de la plataforma.';
+                    sessionStorage.setItem('auth_message', `🚫 <strong>TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE</strong><br><br>Motivo: ${motivo}<br><br>Contacta a soporte si crees que esto es un error.`);
+                    sessionStorage.setItem('auth_type', 'error');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // 🚨 2. VERIFICAR SUSPENSIÓN TEMPORAL
                 const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', { 
                     p_email: session.user.email, 
                     p_action: 'check' 
                 });
-                if (checkError) console.warn('Error verificando sesión:', checkError);
                 
                 if (checkData && checkData.allowed === false) {
                     await db.auth.signOut();
-                    startCountdown(checkData.blocked_until);
+                    sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida temporalmente por múltiples intentos fallidos.`);
+                    sessionStorage.setItem('auth_type', 'error');
+                    window.location.href = 'index.html';
                     return;
                 }
                 
+                // 🚨 3. REDIRECCIONAR SI NO ESTÁ EN EL HUB
                 if (!window.location.href.includes('hub-juegos.html')) {
                     window.location.href = 'hub-juegos.html';
                 }
             }
-        } catch (err) { console.warn('No se pudo verificar sesión:', err); }
+        } catch (err) { 
+            console.warn('No se pudo verificar sesión:', err); 
+        }
     }
     checkSession();
 
+    // 🚨 4. MOSTRAR MENSAJE DE EXPULSIÓN / DUPLICADA / BLOQUEO SI EXISTE
     const logoutReason = sessionStorage.getItem('auth_message');
     const logoutType = sessionStorage.getItem('auth_type') || 'info';
+    
     if (logoutReason) {
         showMessage(logoutReason, logoutType);
         sessionStorage.removeItem('auth_message');
