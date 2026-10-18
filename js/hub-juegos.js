@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     const btnAdmin = document.getElementById('btnAdmin');
     let sessionCheckActive = false;
+    let sessionCheckInterval = null;
 
     // ============================================
     // 🔐 1. VERIFICAR SESIÓN AL CARGAR
@@ -57,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🚨 4. VERIFICAR SESIÓN DUPLICADA (CORREGIDO)
+    // 🚨 4. VERIFICAR SESIÓN DUPLICADA (CON VERIFICACIÓN CONTINUA)
     // ============================================
     async function registrarMiSesion() {
         try {
@@ -65,7 +66,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             const token = session.access_token;
             localStorage.setItem('session_token', token);
             
-            // ✅ USAR UPSERT DIRECTO (no depende de una RPC)
             await db.from('active_sessions').upsert({
                 user_id: session.user.id,
                 session_token: token,
@@ -104,6 +104,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (data.session_token !== miToken) {
                 console.warn('⚠️ Sesión duplicada detectada en Hub de Juegos');
                 mostrarAlertaSesionDuplicada();
+                // Detener la verificación continua después de detectar duplicación
+                if (sessionCheckInterval) {
+                    clearInterval(sessionCheckInterval);
+                    sessionCheckInterval = null;
+                }
             } else {
                 try {
                     await db.from('active_sessions')
@@ -119,7 +124,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🚨 5. MODAL DE SESIÓN DUPLICADA
+    // 🚨 5. MODAL DE SESIÓN DUPLICADA (ROJO)
     // ============================================
     function crearModalSesionDuplicada() {
         const existing = document.getElementById('duplicateSessionModal');
@@ -154,9 +159,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.appendChild(modal);
         
         document.getElementById('closeSessionBtn').addEventListener('click', async () => {
-            sessionStorage.setItem('auth_message', '⚠️ Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
-            sessionStorage.setItem('auth_type', 'info');
-            
             await db.auth.signOut({ scope: 'global' });
             localStorage.removeItem('session_token');
             window.location.href = 'index.html';
@@ -170,11 +172,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (modal.style.display !== 'flex') {
             modal.style.display = 'flex';
             
+            // Cierre automático después de 8 segundos
             setTimeout(async () => {
                 if (modal.style.display === 'flex') {
-                    sessionStorage.setItem('auth_message', '⚠️ Tu sesión ha sido cerrada automáticamente porque iniciaste sesión en otro dispositivo.');
-                    sessionStorage.setItem('auth_type', 'info');
-                    
                     await db.auth.signOut({ scope: 'global' });
                     localStorage.removeItem('session_token');
                     window.location.href = 'index.html';
@@ -183,23 +183,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Ejecutar verificación de sesión duplicada
+    // ✅ REGISTRAR SESIÓN INICIAL
     await registrarMiSesion();
+    
+    // ✅ VERIFICACIÓN INMEDIATA
     await verificarSesionActiva();
 
-    // Escuchar cambios de autenticación en tiempo real
-    db.auth.onAuthStateChange((event, currentSession) => {
-        if (event === 'SIGNED_IN' && currentSession) {
-            registrarMiSesion();
-        } else if (event === 'SIGNED_OUT' || !currentSession) {
-            localStorage.removeItem('session_token');
-            if (!window.location.pathname.includes('index.html')) {
-                sessionStorage.setItem('auth_message', 'Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
-                sessionStorage.setItem('auth_type', 'info');
-                window.location.href = 'index.html';
-            }
-        }
-    });
+    // ✅ VERIFICACIÓN CONTINUA CADA 5 SEGUNDOS
+    sessionCheckInterval = setInterval(() => {
+        verificarSesionActiva();
+    }, 5000);
 
     // ============================================
     // 🛡️ 6. VERIFICAR SI ES ADMINISTRADOR
@@ -235,6 +228,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.cerrarSesion = async function() {
         if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
             try {
+                // Detener verificación continua antes de cerrar
+                if (sessionCheckInterval) {
+                    clearInterval(sessionCheckInterval);
+                    sessionCheckInterval = null;
+                }
+                
                 await db.auth.signOut({ scope: 'global' });
                 localStorage.removeItem('session_token');
                 window.location.href = 'index.html';
