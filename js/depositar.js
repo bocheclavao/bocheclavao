@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('activo', true)
                 .maybeSingle();
             
-            // Si no encuentra por 'id', intenta con 'user_id' (respaldo)
             if (!data) {
                 const res2 = await db.from('admin_roles')
                     .select('es_admin, activo')
@@ -441,7 +440,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return; 
             }
 
-            const user = session.user;
+            const user = session.user; // Definimos 'user' aquí de forma segura
 
             // 🛡️ VERIFICAR BLOQUEO PERMANENTE
             const { data: perfil, error: perfilError } = await db
@@ -482,7 +481,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (loadingState) loadingState.style.display = 'none';
             if (contentState) contentState.style.display = 'block';
             
-            // ✅ Iniciar Realtime pasando el usuario explícitamente para evitar errores de scope
+            // ✅ Iniciar Realtime pasando el objeto 'user' directamente como argumento
             iniciarRealtime(user);
             
         } catch (err) {
@@ -519,23 +518,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ============================================
     // ⚡ 8. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
     // ============================================
-    function iniciarRealtime(user) {
-        if (!user) {
-            console.warn('⚠️ No se pudo iniciar Realtime: usuario no definido');
+    // Recibimos 'usuarioActivo' como parámetro para NO depender de variables globales
+    function iniciarRealtime(usuarioActivo) {
+        if (!usuarioActivo || !usuarioActivo.id) {
+            console.warn('⚠️ No se pudo iniciar Realtime: usuario no válido');
             return;
         }
+
+        const userId = usuarioActivo.id;
 
         // 1. Escuchar cambios en el saldo del usuario
         const channelSaldo = db.channel('saldo_updates')
             .on('postgres_changes', 
-                { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${user.id}` }, 
+                { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${userId}` }, 
                 (payload) => {
                     const nuevoSaldo = payload.new.saldo_bc ?? 0;
                     const balanceEl = document.getElementById('balanceAmount');
                     if (balanceEl) {
                         balanceEl.textContent = `${parseFloat(nuevoSaldo).toFixed(2)} PP`;
                     }
-                    console.log('💰 Saldo actualizado en tiempo real:', nuevoSaldo);
                 }
             )
             .subscribe();
@@ -543,9 +544,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 2. Escuchar nuevas notificaciones
         const channelNotif = db.channel('notificaciones_updates')
             .on('postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${user.id}` },
+                { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${userId}` },
                 (payload) => {
-                    console.log('🔔 Nueva notificación recibida:', payload.new);
+                    console.log('🔔 Nueva notificación recibida');
                 }
             )
             .subscribe();
