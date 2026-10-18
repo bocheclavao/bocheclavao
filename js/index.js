@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showMessage(text, type) {
         if (messageDiv) {
-            messageDiv.innerHTML = text; // Permite HTML para saltos de línea y negritas
+            messageDiv.innerHTML = text; 
             messageDiv.className = 'message ' + type;
             messageDiv.style.display = 'block';
         }
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Iniciando sesión...', 'info');
             
             try {
-                // ✅ PASO 1: Verificar si el correo existe (NUEVO)
+                
                 const { data: existeData, error: existeError } = await db.rpc('check_email_exists', { p_email: email });
                 if (existeError) console.error('Error verificando correo:', existeError);
                 
@@ -129,7 +129,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                // ✅ PASO 2: Verificar si está suspendido
                 const { data: preCheck, error: preError } = await db.rpc('check_login_attempt', { 
                     p_email: email, 
                     p_action: 'check' 
@@ -143,11 +142,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // ✅ PASO 3: Intentar login con Supabase
                 const { data, error: authError } = await db.auth.signInWithPassword({ email: email, password: password });
                 
                 if (authError) {
-                    // ✅ PASO 4: Registrar intento fallido
+               
                     const { data: attemptData, error: rpcError } = await db.rpc('check_login_attempt', { 
                         p_email: email, 
                         p_action: 'fail' 
@@ -166,7 +164,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // ✅ PASO 5: Verificar bloqueo permanente
                 const { data: perfil, error: perfilError } = await db
                     .from('perfiles')
                     .select('bloqueado, motivo_bloqueo')
@@ -182,7 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // ✅ PASO 6: Login exitoso -> Resetear contador
                 try {
                     await db.rpc('check_login_attempt', { p_email: email, p_action: 'success' });
                 } catch (rpcErr) {
@@ -199,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                             if (data.user) {
                     try {
-                        // ✅ USAR EL ACCESS_TOKEN REAL DE SUPABASE (no un token inventado)
+                
                         const sessionToken = data.session.access_token;
                         await db.from('active_sessions').upsert({
                             user_id: data.user.id,
@@ -245,7 +241,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const { data: { session } } = await db.auth.getSession();
             if (session && session.user) {
                 
-                // 🚨 1. VERIFICAR BLOQUEO PERMANENTE AL CARGAR
                 const { data: perfil, error: perfilError } = await db
                     .from('perfiles')
                     .select('bloqueado, motivo_bloqueo')
@@ -261,7 +256,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                // 🚨 2. VERIFICAR SUSPENSIÓN TEMPORAL
                 const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', { 
                     p_email: session.user.email, 
                     p_action: 'check' 
@@ -275,7 +269,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // 🚨 3. REDIRECCIONAR SI NO ESTÁ EN EL HUB
                 if (!window.location.href.includes('hub-juegos.html')) {
                     window.location.href = 'hub-juegos.html';
                 }
@@ -286,7 +279,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     checkSession();
 
-    // 🚨 4. MOSTRAR MENSAJE DE EXPULSIÓN / DUPLICADA / BLOQUEO SI EXISTE
   const logoutReason = sessionStorage.getItem('auth_message');
 const logoutType = sessionStorage.getItem('auth_type') || 'info';
 
