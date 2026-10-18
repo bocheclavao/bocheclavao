@@ -39,27 +39,27 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🔍 3. CARGAR DATOS DEL PERFIL (CORREGIDO)
+    // 🔍 3. CARGAR DATOS DEL PERFIL Y CORREGIR EL BUG DEL NULL
     // ============================================
-    // ✅ CORRECCIÓN: Se eliminó 'saldo_pp' porque no existe en la tabla.
     const { data: perfil, error: perfilError } = await db
         .from('perfiles')
         .select('bloqueado, motivo_bloqueo, saldo_bc, estado_kyc, user_id, nombre, avatar_url')
         .eq('id', session.user.id)
         .maybeSingle();
 
-    if (perfilError) {
-        console.error('🐛 [DEBUG] Error cargando perfil:', perfilError);
-    } else {
-        console.log('🐛 [DEBUG] Datos del perfil recibidos:', perfil);
-    }
+    if (perfilError) console.warn('🐛 [DEBUG] Error cargando perfil:', perfilError);
+
+    // ✅ CORRECCIÓN CLAVE: Si es null, undefined o el texto "null", lo tratamos como vacío ('')
+    const estadoKycRaw = perfil?.estado_kyc;
+    const estadoKyc = (!estadoKycRaw || String(estadoKycRaw).toLowerCase() === 'null') 
+        ? '' 
+        : String(estadoKycRaw).toLowerCase().trim();
+    
+    console.log('🔍 [DEBUG] estado_kyc raw:', estadoKycRaw, '-> procesado:', estadoKyc);
 
     const nombre = perfil?.nombre || session.user.user_metadata?.nombre || session.user.user_metadata?.full_name || 'Usuario';
     const email = session.user.email;
     const userId = perfil?.user_id || 'ID no disponible';
-    
-    // ✅ CORRECCIÓN: Forzar a minúsculas y quitar espacios para asegurar que coincida con 'verificado'
-    const estadoKyc = (perfil?.estado_kyc || '').toString().toLowerCase().trim();
     const avatarUrl = perfil?.avatar_url || session.user.user_metadata?.avatar_url || '../img/moneda.png';
 
     // Actualizar UI de usuario
@@ -78,12 +78,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     document.getElementById('hubUserId').innerHTML = `ID: ${userId} ${kycBadgeHtml}`;
 
-    // Actualizar Saldo (usando solo saldo_bc, pero mostrando la etiqueta PP como solicitaste)
+    // Actualizar Saldo
     const saldo = perfil?.saldo_bc ?? 0;
     document.getElementById('hubBalanceAmount').textContent = `${parseFloat(saldo).toFixed(2)} PP`;
 
     // ============================================
-    // 🛡️ 4. LÓGICA DEL BANNER KYC
+    // 🛡️ 4. LÓGICA DEL BANNER KYC (AHORA FUNCIONA PARA NUEVOS USUARIOS)
     // ============================================
     const kycBanner = document.getElementById('hubKycBanner');
     const kycTitle = document.getElementById('hubKycTitle');
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (kycBanner) {
         if (estadoKyc === '' || estadoKyc === 'pendiente') {
             kycBanner.style.display = 'flex';
-            kycBanner.className = 'kyc-banner';
+            kycBanner.className = 'kyc-banner'; // Resetear clases
             kycTitle.textContent = '⚠️ Verificación KYC Pendiente';
             kycMessage.textContent = 'Para participar en cualquier juego, debes completar tu verificación de identidad (KYC). Es rápido y seguro.';
             kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
@@ -117,42 +117,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
         } else if (estadoKyc === 'verificado') {
-            // ✅ DESAPARECE EL BANNER SI ESTÁ VERIFICADO
-            kycBanner.style.display = 'none';
+            kycBanner.style.display = 'none'; // Se oculta solo si está verificado
         }
     }
 
     // ============================================
     // 👑 5. VERIFICAR SI ES ADMINISTRADOR
     // ============================================
-    // Intentamos buscar primero por la columna 'id'
     let { data: adminData, error: adminError } = await db
         .from('admin_roles')
         .select('es_admin, activo')
         .eq('id', session.user.id)
         .maybeSingle();
 
-    // Si no encuentra nada o da error, intentamos con la columna 'user_id' (muy común en Supabase)
     if (!adminData || adminError) {
-        console.log('🔍 [DEBUG] Intentando buscar admin con columna user_id...');
-        const resultado2 = await db
-            .from('admin_roles')
-            .select('es_admin, activo')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
+        const resultado2 = await db.from('admin_roles').select('es_admin, activo').eq('user_id', session.user.id).maybeSingle();
         adminData = resultado2.data;
-        adminError = resultado2.error;
     }
-
-    console.log('🔍 [DEBUG] Datos de admin recibidos:', adminData);
-    console.log('🔍 [DEBUG] Error de admin (si lo hay):', adminError);
 
     if (adminData && adminData.es_admin === true && adminData.activo === true) {
         btnAdmin.style.display = 'flex';
-        console.log('✅ [DEBUG] Usuario es ADMIN - Botón mostrado');
     } else {
         btnAdmin.style.display = 'none';
-        console.log('❌ [DEBUG] Usuario NO es admin o no tiene registro en admin_roles - Botón oculto');
     }
 
     // ============================================
@@ -163,10 +149,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const token = session.access_token;
             localStorage.setItem('session_token', token);
             await db.from('active_sessions').upsert({ 
-                user_id: session.user.id, 
-                session_token: token, 
-                last_active: new Date().toISOString(), 
-                device_info: navigator.userAgent.substring(0, 200) 
+                user_id: session.user.id, session_token: token, last_active: new Date().toISOString(), device_info: navigator.userAgent.substring(0, 200) 
             });
         } catch (e) { console.warn('⚠️ No se pudo registrar sesión:', e.message); }
     }
@@ -239,7 +222,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             messages.appendChild(msgDiv);
             input.value = '';
             messages.scrollTop = messages.scrollHeight;
-            
             setTimeout(() => {
                 const replyDiv = document.createElement('div');
                 replyDiv.className = 'msg admin';
