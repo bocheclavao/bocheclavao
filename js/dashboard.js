@@ -357,26 +357,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    function mostrarDatos(user, perfil) {
+        function mostrarDatos(user, perfil) {
         const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
         const email = user.email;
         const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
         const estado = perfil?.estado_kyc || null;
-        saldoBC = perfil?.saldo_bc || 0;
+        saldoBC = perfil?.saldo_bc ?? perfil?.saldo_pp ?? 0;
 
         userNameDisplay.textContent = nombre; 
         userEmailDisplay.textContent = email;
         
+        // ✅ ESTADO DE VERIFICACIÓN CLARO AL LADO DEL ID
         if (estado === 'verificado') {
             userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Verificado</span>`;
-        } else { 
-            userIdDisplay.textContent = `ID: ${userId}`; 
+        } else if (estado === 'pendiente' || estado === 'revision') {
+            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-clock" style="color: #FFA500; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #FFA500; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">En Revisión</span>`;
+        } else {
+            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-exclamation-circle" style="color: #ff4444; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #ff4444; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Pendiente</span>`;
         }
         
         dropdownUserName.textContent = nombre; 
         dropdownUserEmail.textContent = email;
-        balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
+        balanceAmount.textContent = `${parseFloat(saldoBC).toFixed(2)} PP`; // Actualizado a PP
 
         if (avatarUrl) { 
             avatarImage.src = avatarUrl; 
@@ -389,13 +392,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         mostrarAvatarNavbar(nombre, avatarUrl);
-        actualizarBannerKYC(estado);
+        // ✅ Se eliminó la llamada a actualizarBannerKYC(estado)
 
         verificarSiEsAdmin(user.id).then(esAdmin => { 
             if (esAdmin) agregarBotonAdmin(); 
         });
     }
-
     window.seleccionarRol = function(rol) {
         if (estadoKyc !== 'verificado') {
             alert('Debes completar y ser aprobado en la verificación KYC antes de poder participar.');
