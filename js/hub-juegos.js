@@ -9,9 +9,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const { data: { session } } = await db.auth.getSession();
     if (!session || !session.user) { window.location.href = 'index.html'; return; }
 
-    // ============================================
-    // 🚨 1. VERIFICAR BLOQUEO PERMANENTE
-    // ============================================
+    // 1. VERIFICAR BLOQUEO PERMANENTE
     const { data: perfilBloqueo } = await db
         .from('perfiles')
         .select('bloqueado, motivo_bloqueo')
@@ -26,9 +24,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // ============================================
-    // 🚨 2. VERIFICAR SUSPENSIÓN TEMPORAL
-    // ============================================
+    // 2. VERIFICAR SUSPENSIÓN TEMPORAL
     const { data: checkData } = await db.rpc('check_login_attempt', { p_email: session.user.email, p_action: 'check' });
     if (checkData && checkData.allowed === false) {
         await db.auth.signOut();
@@ -38,24 +34,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // ============================================
-    // 🔍 3. CARGAR DATOS DEL PERFIL Y CORREGIR EL BUG DEL NULL
-    // ============================================
+    // 3. CARGAR DATOS DEL PERFIL
     const { data: perfil, error: perfilError } = await db
         .from('perfiles')
         .select('bloqueado, motivo_bloqueo, saldo_bc, estado_kyc, user_id, nombre, avatar_url')
         .eq('id', session.user.id)
         .maybeSingle();
 
-    if (perfilError) console.warn('🐛 [DEBUG] Error cargando perfil:', perfilError);
+    if (perfilError) console.warn('🐛 Error cargando perfil:', perfilError);
 
-    // ✅ CORRECCIÓN CLAVE: Si es null, undefined o el texto "null", lo tratamos como vacío ('')
+    // ✅ CLAVE: Normalizar estado_kyc para manejar TODOS los casos
+    // - null/undefined → '' (vacío)
+    // - "null" (texto) → '' (vacío)
+    // - "" (vacío real) → '' (vacío)
+    // - Cualquier otro valor → se convierte a minúsculas y se limpian espacios
     const estadoKycRaw = perfil?.estado_kyc;
-    const estadoKyc = (!estadoKycRaw || String(estadoKycRaw).toLowerCase() === 'null') 
+    const estadoKyc = (!estadoKycRaw || String(estadoKycRaw).toLowerCase().trim() === 'null' || String(estadoKycRaw).trim() === '') 
         ? '' 
         : String(estadoKycRaw).toLowerCase().trim();
     
-    console.log('🔍 [DEBUG] estado_kyc raw:', estadoKycRaw, '-> procesado:', estadoKyc);
+    console.log('🔍 [DEBUG] estado_kyc RAW:', estadoKycRaw, '→ PROCESADO:', estadoKyc);
 
     const nombre = perfil?.nombre || session.user.user_metadata?.nombre || session.user.user_metadata?.full_name || 'Usuario';
     const email = session.user.email;
@@ -67,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('hubUserName').textContent = nombre;
     document.getElementById('hubUserEmail').textContent = email;
 
-    // Determinar el badge del ID según el estado del KYC
+    // ✅ Badge del ID según estado KYC
     let kycBadgeHtml = `<i class="fas fa-exclamation-circle" style="color: #ff4444; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #ff4444; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Pendiente</span>`;
     
     if (estadoKyc === 'verificado') {
@@ -82,55 +80,60 @@ document.addEventListener('DOMContentLoaded', async function() {
     const saldo = perfil?.saldo_bc ?? 0;
     document.getElementById('hubBalanceAmount').textContent = `${parseFloat(saldo).toFixed(2)} PP`;
 
-    // ============================================
-    // 🛡️ 4. LÓGICA DEL BANNER KYC (AHORA FUNCIONA PARA NUEVOS USUARIOS)
-    // ============================================
+    // 4. LÓGICA DEL BANNER KYC (Maneja TODOS los estados)
     const kycBanner = document.getElementById('hubKycBanner');
     const kycTitle = document.getElementById('hubKycTitle');
     const kycMessage = document.getElementById('hubKycMessage');
     const kycBtn = document.getElementById('hubKycBtn');
 
     if (kycBanner) {
+        // ✅ CASO 1: USUARIO NUEVO (estado vacío) o PENDIENTE → Mostrar banner para que lo complete
         if (estadoKyc === '' || estadoKyc === 'pendiente') {
             kycBanner.style.display = 'flex';
-            kycBanner.className = 'kyc-banner'; // Resetear clases
+            kycBanner.className = 'kyc-banner';
             kycTitle.textContent = '⚠️ Verificación KYC Pendiente';
             kycMessage.textContent = 'Para participar en cualquier juego, debes completar tu verificación de identidad (KYC). Es rápido y seguro.';
             kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
+            kycBtn.href = 'perfil.html';
+            
+        // ✅ CASO 2: EN REVISIÓN → Mostrar banner deshabilitado
         } else if (estadoKyc === 'revision') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner';
             kycBanner.style.borderColor = '#FFA500';
             kycTitle.textContent = '⏳ Verificación KYC en Revisión';
-            kycMessage.textContent = 'Tus documentos están siendo revisados por nuestro equipo.';
+            kycMessage.textContent = 'Tus documentos están siendo revisados por nuestro equipo. Te notificaremos cuando esté listo.';
             kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión';
             kycBtn.style.pointerEvents = 'none';
             kycBtn.style.opacity = '0.6';
+            
+        // ✅ CASO 3: RECHAZADO → Mostrar banner con opción de reintentar
         } else if (estadoKyc === 'rechazado') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner rejected';
             kycTitle.textContent = '❌ Verificación KYC Rechazada';
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, vuelve a enviarlos.';
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, vuelve a enviarlos correctamente.';
             kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
+            kycBtn.href = 'perfil.html';
+            
+        // ✅ CASO 4: VERIFICADO → Ocultar el banner completamente
         } else if (estadoKyc === 'verificado') {
-            kycBanner.style.display = 'none'; // Se oculta solo si está verificado
+            kycBanner.style.display = 'none';
         }
     }
 
-    // ============================================
-    // 👑 5. VERIFICAR SI ES ADMINISTRADOR
-    // ============================================
-    let { data: adminData, error: adminError } = await db
+    // 5. VERIFICAR SI ES ADMINISTRADOR
+    let { data: adminData } = await db
         .from('admin_roles')
         .select('es_admin, activo')
         .eq('id', session.user.id)
         .maybeSingle();
 
-    if (!adminData || adminError) {
+    if (!adminData) {
         const resultado2 = await db.from('admin_roles').select('es_admin, activo').eq('user_id', session.user.id).maybeSingle();
         adminData = resultado2.data;
     }
@@ -141,9 +144,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         btnAdmin.style.display = 'none';
     }
 
-    // ============================================
-    // 🚨 6. VERIFICACIÓN DE SESIÓN DUPLICADA
-    // ============================================
+    // 6. VERIFICACIÓN DE SESIÓN DUPLICADA
     async function registrarMiSesion() {
         try {
             const token = session.access_token;
@@ -193,9 +194,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await verificarSesionActiva();
     sessionCheckInterval = setInterval(verificarSesionActiva, 5000);
 
-    // ============================================
-    // 🚪 7. FUNCIONES GLOBALES
-    // ============================================
+    // 7. FUNCIONES GLOBALES
     window.cerrarSesion = async function() {
         if (confirm('¿Cerrar sesión?')) {
             if (sessionCheckInterval) clearInterval(sessionCheckInterval);
