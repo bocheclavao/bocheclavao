@@ -24,19 +24,43 @@
         .btn-logout { border-color: #ff4444; color: #ff4444; }
         .btn-logout:hover { background: rgba(255, 68, 68, 0.1); }
 
-        /* 🎯 MARQUESINA DE BIENVENIDA */
-        .marquee-container { background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%); color: #000; padding: 10px 0; overflow: hidden; white-space: nowrap; position: relative; z-index: 90; font-weight: 700; font-size: 0.9rem; }
-        .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 25s linear infinite; }
-        @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
+        /* 💰 BARRA DE SALDO Y PERFIL (Reestructurada) */
+        .hub-balance-bar { background: rgba(10, 10, 10, 0.95); border-bottom: 1px solid #222; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        
+        .user-hub-info { display: flex; flex-direction: column; gap: 4px; }
+        .user-hub-name { font-size: 1rem; font-weight: 700; color: #ffffff; }
+        .user-hub-email { font-size: 0.8rem; color: #999; }
+        .user-hub-id { font-size: 0.8rem; color: #ccc; display: flex; align-items: center; gap: 8px; }
+        
+        .kyc-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; }
+        .kyc-badge.verified { background: rgba(0, 255, 0, 0.15); color: #00ff00; border: 1px solid rgba(0, 255, 0, 0.3); }
+        .kyc-badge.pending { background: rgba(255, 68, 68, 0.15); color: #ff4444; border: 1px solid rgba(255, 68, 68, 0.3); }
+        .kyc-badge.review { background: rgba(255, 165, 0, 0.15); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.3); }
 
-        /* 💰 BARRA DE SALDO PP */
-        .hub-balance-bar { background: rgba(10, 10, 10, 0.95); border-bottom: 1px solid #222; padding: 12px 20px; display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .balance-right-side { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
         .balance-display { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border: 1px solid #FFD700; border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
         .balance-icon-img { width: 32px; height: 32px; object-fit: contain; border-radius: 50%; background: rgba(255, 215, 0, 0.1); padding: 4px; }
         .balance-amount { font-size: 1.1rem; font-weight: 800; color: #FFD700; }
         .balance-label { font-size: 0.7rem; color: #999; text-transform: uppercase; letter-spacing: 1px; }
         .btn-depositar { padding: 8px 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; }
         .btn-depositar:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); }
+
+        /* 🎯 MARQUESINA (Transparente y debajo del saldo) */
+        .marquee-container { 
+            background: rgba(255, 215, 0, 0.08); 
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            color: #FFD700; 
+            padding: 8px 0; 
+            overflow: hidden; 
+            white-space: nowrap; 
+            position: relative; 
+            z-index: 90; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+        }
+        .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; }
+        @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
 
         .main-content { flex: 1; padding: 40px 20px; max-width: 1200px; margin: 0 auto; width: 100%; }
         .page-header { text-align: center; margin-bottom: 40px; }
@@ -60,36 +84,40 @@
         .game-card.active .game-btn { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
         .game-card.disabled .game-btn { background: #333; color: #666; cursor: not-allowed; }
 
-        /* 🛡️ BANNER KYC (Movido aquí) */
-        .kyc-banner { background: rgba(26, 26, 26, 0.9); border: 2px solid #FFA500; border-radius: 12px; padding: 25px; margin: 0 auto 30px; max-width: 800px; display: flex; align-items: center; gap: 20px; backdrop-filter: blur(5px); }
-        .kyc-banner.verified { border-color: #00ff00; background: rgba(10, 26, 10, 0.9); }
-        .kyc-banner.rejected { border-color: #ff4444; background: rgba(26, 10, 10, 0.9); }
-        .kyc-icon { font-size: 2.5rem; color: #FFA500; }
-        .kyc-banner.verified .kyc-icon { color: #00ff00; }
-        .kyc-content h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; color: #FFD700; }
-        .kyc-content p { color: #cccccc; font-size: 0.9rem; line-height: 1.5; margin-bottom: 15px; }
-        .btn-kyc { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; }
-
         .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
         .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
         .footer-text span { color: #FFD700; font-weight: 600; }
 
-        /* 💬 WIDGET DE CHAT (Movido aquí) */
+        /* 💬 WIDGET DE CHAT (Exactamente como en Dashboard) */
         .chat-bubble { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4); z-index: 9998; transition: transform 0.3s ease; display: flex; align-items: center; justify-content: center; }
         .chat-bubble:hover { transform: scale(1.1); }
-        .chat-window { position: fixed; bottom: 100px; right: 25px; width: 350px; height: 500px; background: #0a0a0a; border: 1px solid #333; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 9999; display: none; flex-direction: column; overflow: hidden; }
+        .chat-window { position: fixed; bottom: 100px; right: 25px; width: 350px; height: 500px; background: #0a0a0a; border: 1px solid #333; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 9999; display: none; flex-direction: column; overflow: hidden; animation: slideUpChat 0.3s ease; }
+        @keyframes slideUpChat { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .chat-header { background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header-info { display: flex; align-items: center; gap: 10px; }
+        .chat-avatar { width: 35px; height: 35px; background: #FFD700; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
         .chat-title { color: #FFD700; font-weight: 700; font-size: 0.95rem; }
+        .chat-status { color: #00ff00; font-size: 0.75rem; display: flex; align-items: center; gap: 5px; }
+        .chat-status::before { content: ''; width: 6px; height: 6px; background: #00ff00; border-radius: 50%; }
         .chat-close { background: none; border: none; color: #999; font-size: 1.2rem; cursor: pointer; }
+        .chat-close:hover { color: #fff; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #050505; }
-        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; }
-        .msg.user { align-self: flex-end; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; }
-        .msg.admin { align-self: flex-start; background: #1a1a1a; color: #fff; border: 1px solid #333; }
+        .chat-messages::-webkit-scrollbar { width: 5px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; }
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; position: relative; word-wrap: break-word; }
+        .msg.user { align-self: flex-end; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border-bottom-right-radius: 4px; }
+        .msg.admin { align-self: flex-start; background: #1a1a1a; color: #fff; border: 1px solid #333; border-bottom-left-radius: 4px; }
+        .msg-time { font-size: 0.65rem; opacity: 0.7; margin-top: 4px; text-align: right; }
         .chat-input-area { padding: 12px; border-top: 1px solid #333; background: #0a0a0a; display: flex; gap: 8px; }
-        .chat-input-area input { flex: 1; background: #111; border: 1px solid #333; border-radius: 20px; padding: 10px 15px; color: #fff; outline: none; }
-        .chat-send-btn { background: #FFD700; color: #000; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+        .chat-input-area input { flex: 1; background: #111; border: 1px solid #333; border-radius: 20px; padding: 10px 15px; color: #fff; font-family: 'Montserrat', sans-serif; outline: none; }
+        .chat-input-area input:focus { border-color: #FFD700; }
+        .chat-send-btn { background: #FFD700; color: #000; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        .chat-send-btn:hover { transform: scale(1.1); }
 
         @media (max-width: 768px) {
+            .hub-balance-bar { flex-direction: column; align-items: stretch; text-align: center; }
+            .user-hub-info { align-items: center; margin-bottom: 10px; }
+            .balance-right-side { justify-content: center; }
             .games-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
             .game-card { padding: 20px 15px; }
             .game-icon { width: 60px; height: 60px; margin-bottom: 15px; }
@@ -100,7 +128,6 @@
             .page-header h1 { font-size: 1.5rem; }
             .btn-navbar { padding: 6px 10px; font-size: 0.75rem; }
             .btn-navbar .btn-text { display: none; }
-            .kyc-banner { flex-direction: column; text-align: center; padding: 20px; }
             .chat-window { width: 90%; right: 5%; bottom: 90px; }
         }
         @media (max-width: 400px) { .games-grid { grid-template-columns: 1fr; } }
@@ -123,36 +150,33 @@
         </div>
     </nav>
 
-    <!-- 🎯 MARQUESINA DE BIENVENIDA -->
+    <!-- 💰 BARRA DE SALDO Y PERFIL -->
+    <div class="hub-balance-bar">
+        <div class="user-hub-info">
+            <div class="user-hub-name" id="hubUserName">Cargando usuario...</div>
+            <div class="user-hub-email" id="hubUserEmail">...</div>
+            <div class="user-hub-id" id="hubUserId">ID: Cargando...</div>
+        </div>
+        <div class="balance-right-side">
+            <div class="balance-display">
+                <img src="../img/moneda.png" alt="Moneda PP" class="balance-icon-img">
+                <div>
+                    <div class="balance-label">Saldo disponible</div>
+                    <div class="balance-amount" id="hubBalanceAmount">0.00 PP</div>
+                </div>
+            </div>
+            <button class="btn-depositar" onclick="window.location.href='billetera.html'">
+                <i class="fas fa-plus-circle"></i> Depositar
+            </button>
+        </div>
+    </div>
+
+    <!-- 🎯 MARQUESINA DE BIENVENIDA (Ahora transparente y debajo del saldo) -->
     <div class="marquee-container">
         <div class="marquee-text">🎉 ¡Bienvenido a Precision Sport IA! Tu plataforma de confianza. 🏆 Nuevos juegos, torneos y premios se agregan cada semana. ¡Juega, compite y gana! 🎉</div>
     </div>
 
-    <!-- 💰 BARRA DE SALDO PP -->
-    <div class="hub-balance-bar">
-        <div class="balance-display">
-            <img src="../img/moneda.png" alt="Moneda PP" class="balance-icon-img">
-            <div>
-                <div class="balance-label">Saldo disponible</div>
-                <div class="balance-amount" id="hubBalanceAmount">0.00 PP</div>
-            </div>
-        </div>
-        <button class="btn-depositar" onclick="window.location.href='billetera.html'">
-            <i class="fas fa-plus-circle"></i> Depositar
-        </button>
-    </div>
-
     <div class="main-content">
-        <!-- 🛡️ BANNER KYC (Centralizado para todos los juegos) -->
-        <div id="hubKycBanner" class="kyc-banner" style="display: none;">
-            <i class="fas fa-shield-alt kyc-icon"></i>
-            <div class="kyc-content">
-                <h3 id="hubKycTitle">Verificación KYC Pendiente</h3>
-                <p id="hubKycMessage">Para participar en cualquier juego, debes completar tu verificación de identidad (KYC). Es rápido y seguro.</p>
-                <a href="perfil.html" class="btn-kyc" id="hubKycBtn"><i class="fas fa-user-check"></i> Completar KYC ahora</a>
-            </div>
-        </div>
-
         <div class="page-header">
             <h1><i class="fas fa-gamepad"></i> Sala de Juegos</h1>
             <p>Selecciona tu experiencia. ¡Nuevos juegos se agregan cada semana!</p>
@@ -188,18 +212,24 @@
         <p class="footer-text">Copyright © todos los derechos reservados<br>Desarrollado professional <span>G/P</span> 2026 - 2027<br>Versión <span>0.1 beta experimental</span></p>
     </footer>
 
-    <!-- 💬 WIDGET DE CHAT DE SOPORTE -->
+    <!-- 💬 WIDGET DE CHAT DE SOPORTE (Restaurado) -->
     <div id="chatWidget">
         <div class="chat-window" id="chatWindow">
             <div class="chat-header">
-                <div class="chat-title">💬 Soporte Precision Sport IA</div>
+                <div class="chat-header-info">
+                    <div class="chat-avatar">👑</div>
+                    <div>
+                        <div class="chat-title">Soporte Precision Sport IA</div>
+                        <div class="chat-status">En línea</div>
+                    </div>
+                </div>
                 <button class="chat-close" onclick="window.toggleChat()"><i class="fas fa-times"></i></button>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="msg admin">¡Hola! ¿En qué podemos ayudarte hoy?</div>
             </div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="Escribe tu mensaje...">
+                <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." onkeypress="if(event.key==='Enter') window.sendChatMessage()">
                 <button class="chat-send-btn" onclick="window.sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
