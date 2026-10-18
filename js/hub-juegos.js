@@ -39,20 +39,27 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🚨 3. CARGAR DATOS DEL PERFIL Y MANEJAR KYC
+    // 🔍 3. CARGAR DATOS DEL PERFIL (CORREGIDO)
     // ============================================
+    // ✅ CORRECCIÓN: Se eliminó 'saldo_pp' porque no existe en la tabla.
     const { data: perfil, error: perfilError } = await db
         .from('perfiles')
-        .select('bloqueado, motivo_bloqueo, saldo_bc, saldo_pp, estado_kyc, user_id, nombre, avatar_url')
+        .select('bloqueado, motivo_bloqueo, saldo_bc, estado_kyc, user_id, nombre, avatar_url')
         .eq('id', session.user.id)
         .maybeSingle();
 
-    if (perfilError) console.warn('Error cargando perfil:', perfilError);
+    if (perfilError) {
+        console.error('🐛 [DEBUG] Error cargando perfil:', perfilError);
+    } else {
+        console.log('🐛 [DEBUG] Datos del perfil recibidos:', perfil);
+    }
 
     const nombre = perfil?.nombre || session.user.user_metadata?.nombre || session.user.user_metadata?.full_name || 'Usuario';
     const email = session.user.email;
     const userId = perfil?.user_id || 'ID no disponible';
-    const estadoKyc = (perfil?.estado_kyc || '').toLowerCase();
+    
+    // ✅ CORRECCIÓN: Forzar a minúsculas y quitar espacios para asegurar que coincida con 'verificado'
+    const estadoKyc = (perfil?.estado_kyc || '').toString().toLowerCase().trim();
     const avatarUrl = perfil?.avatar_url || session.user.user_metadata?.avatar_url || '../img/moneda.png';
 
     // Actualizar UI de usuario
@@ -71,12 +78,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     document.getElementById('hubUserId').innerHTML = `ID: ${userId} ${kycBadgeHtml}`;
 
-    // Actualizar Saldo
-    const saldo = perfil?.saldo_pp ?? perfil?.saldo_bc ?? 0;
+    // Actualizar Saldo (usando solo saldo_bc, pero mostrando la etiqueta PP como solicitaste)
+    const saldo = perfil?.saldo_bc ?? 0;
     document.getElementById('hubBalanceAmount').textContent = `${parseFloat(saldo).toFixed(2)} PP`;
 
     // ============================================
-    // 🛡️ 4. LÓGICA DEL BANNER KYC (Como en el Dashboard)
+    // 🛡️ 4. LÓGICA DEL BANNER KYC
     // ============================================
     const kycBanner = document.getElementById('hubKycBanner');
     const kycTitle = document.getElementById('hubKycTitle');
@@ -84,8 +91,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const kycBtn = document.getElementById('hubKycBtn');
 
     if (kycBanner) {
-        if (estadoKyc === '' || estadoKyc === null || estadoKyc === 'pendiente') {
-            // ✅ MOSTRAR BANNER PARA QUE LO LLENE
+        if (estadoKyc === '' || estadoKyc === 'pendiente') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner';
             kycTitle.textContent = '⚠️ Verificación KYC Pendiente';
@@ -93,26 +99,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
-            
         } else if (estadoKyc === 'revision') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner';
             kycBanner.style.borderColor = '#FFA500';
             kycTitle.textContent = '⏳ Verificación KYC en Revisión';
-            kycMessage.textContent = 'Tus documentos están siendo revisados por nuestro equipo. Te notificaremos cuando esté listo.';
+            kycMessage.textContent = 'Tus documentos están siendo revisados por nuestro equipo.';
             kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión';
             kycBtn.style.pointerEvents = 'none';
             kycBtn.style.opacity = '0.6';
-            
         } else if (estadoKyc === 'rechazado') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner rejected';
             kycTitle.textContent = '❌ Verificación KYC Rechazada';
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, vuelve a enviarlos correctamente.';
+            kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, vuelve a enviarlos.';
             kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar';
             kycBtn.style.pointerEvents = 'auto';
             kycBtn.style.opacity = '1';
-            
         } else if (estadoKyc === 'verificado') {
             // ✅ DESAPARECE EL BANNER SI ESTÁ VERIFICADO
             kycBanner.style.display = 'none';
@@ -120,7 +123,40 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ============================================
-    // 🚨 5. VERIFICACIÓN DE SESIÓN DUPLICADA
+    // 👑 5. VERIFICAR SI ES ADMINISTRADOR
+    // ============================================
+    // Intentamos buscar primero por la columna 'id'
+    let { data: adminData, error: adminError } = await db
+        .from('admin_roles')
+        .select('es_admin, activo')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+    // Si no encuentra nada o da error, intentamos con la columna 'user_id' (muy común en Supabase)
+    if (!adminData || adminError) {
+        console.log('🔍 [DEBUG] Intentando buscar admin con columna user_id...');
+        const resultado2 = await db
+            .from('admin_roles')
+            .select('es_admin, activo')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+        adminData = resultado2.data;
+        adminError = resultado2.error;
+    }
+
+    console.log('🔍 [DEBUG] Datos de admin recibidos:', adminData);
+    console.log('🔍 [DEBUG] Error de admin (si lo hay):', adminError);
+
+    if (adminData && adminData.es_admin === true && adminData.activo === true) {
+        btnAdmin.style.display = 'flex';
+        console.log('✅ [DEBUG] Usuario es ADMIN - Botón mostrado');
+    } else {
+        btnAdmin.style.display = 'none';
+        console.log('❌ [DEBUG] Usuario NO es admin o no tiene registro en admin_roles - Botón oculto');
+    }
+
+    // ============================================
+    // 🚨 6. VERIFICACIÓN DE SESIÓN DUPLICADA
     // ============================================
     async function registrarMiSesion() {
         try {
@@ -175,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     sessionCheckInterval = setInterval(verificarSesionActiva, 5000);
 
     // ============================================
-    // 🚪 6. FUNCIONES GLOBALES
+    // 🚪 7. FUNCIONES GLOBALES
     // ============================================
     window.cerrarSesion = async function() {
         if (confirm('¿Cerrar sesión?')) {
