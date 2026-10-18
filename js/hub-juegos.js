@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     const { data: { session } } = await db.auth.getSession();
     if (!session || !session.user) { window.location.href = 'index.html'; return; }
 
-    // 1. VERIFICAR BLOQUEO PERMANENTE
     const { data: perfilBloqueo } = await db
         .from('perfiles')
         .select('bloqueado, motivo_bloqueo')
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // 2. VERIFICAR SUSPENSIÓN TEMPORAL
     const { data: checkData } = await db.rpc('check_login_attempt', { p_email: session.user.email, p_action: 'check' });
     if (checkData && checkData.allowed === false) {
         await db.auth.signOut();
@@ -34,7 +32,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // 3. CARGAR DATOS DEL PERFIL
     const { data: perfil, error: perfilError } = await db
         .from('perfiles')
         .select('bloqueado, motivo_bloqueo, saldo_bc, estado_kyc, user_id, nombre, avatar_url')
@@ -43,11 +40,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if (perfilError) console.warn('🐛 Error cargando perfil:', perfilError);
 
-    // ✅ CLAVE: Normalizar estado_kyc para manejar TODOS los casos
-    // - null/undefined → '' (vacío)
-    // - "null" (texto) → '' (vacío)
-    // - "" (vacío real) → '' (vacío)
-    // - Cualquier otro valor → se convierte a minúsculas y se limpian espacios
     const estadoKycRaw = perfil?.estado_kyc;
     const estadoKyc = (!estadoKycRaw || String(estadoKycRaw).toLowerCase().trim() === 'null' || String(estadoKycRaw).trim() === '') 
         ? '' 
@@ -60,12 +52,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     const userId = perfil?.user_id || 'ID no disponible';
     const avatarUrl = perfil?.avatar_url || session.user.user_metadata?.avatar_url || '../img/moneda.png';
 
-    // Actualizar UI de usuario
     document.getElementById('hubUserAvatar').src = avatarUrl;
     document.getElementById('hubUserName').textContent = nombre;
     document.getElementById('hubUserEmail').textContent = email;
 
-    // ✅ Badge del ID según estado KYC
     let kycBadgeHtml = `<i class="fas fa-exclamation-circle" style="color: #ff4444; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #ff4444; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Pendiente</span>`;
     
     if (estadoKyc === 'verificado') {
@@ -76,18 +66,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     document.getElementById('hubUserId').innerHTML = `ID: ${userId} ${kycBadgeHtml}`;
 
-    // Actualizar Saldo
     const saldo = perfil?.saldo_bc ?? 0;
     document.getElementById('hubBalanceAmount').textContent = `${parseFloat(saldo).toFixed(2)} PP`;
 
-    // 4. LÓGICA DEL BANNER KYC (Maneja TODOS los estados)
     const kycBanner = document.getElementById('hubKycBanner');
     const kycTitle = document.getElementById('hubKycTitle');
     const kycMessage = document.getElementById('hubKycMessage');
     const kycBtn = document.getElementById('hubKycBtn');
 
     if (kycBanner) {
-        // ✅ CASO 1: USUARIO NUEVO (estado vacío) o PENDIENTE → Mostrar banner para que lo complete
+  
         if (estadoKyc === '' || estadoKyc === 'pendiente') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner';
@@ -98,7 +86,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.opacity = '1';
             kycBtn.href = 'perfil.html';
             
-        // ✅ CASO 2: EN REVISIÓN → Mostrar banner deshabilitado
         } else if (estadoKyc === 'revision') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner';
@@ -109,7 +96,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.pointerEvents = 'none';
             kycBtn.style.opacity = '0.6';
             
-        // ✅ CASO 3: RECHAZADO → Mostrar banner con opción de reintentar
         } else if (estadoKyc === 'rechazado') {
             kycBanner.style.display = 'flex';
             kycBanner.className = 'kyc-banner rejected';
@@ -120,13 +106,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             kycBtn.style.opacity = '1';
             kycBtn.href = 'perfil.html';
             
-        // ✅ CASO 4: VERIFICADO → Ocultar el banner completamente
         } else if (estadoKyc === 'verificado') {
             kycBanner.style.display = 'none';
         }
     }
 
-    // 5. VERIFICAR SI ES ADMINISTRADOR
     let { data: adminData } = await db
         .from('admin_roles')
         .select('es_admin, activo')
@@ -144,7 +128,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         btnAdmin.style.display = 'none';
     }
 
-    // 6. VERIFICACIÓN DE SESIÓN DUPLICADA
     async function registrarMiSesion() {
         try {
             const token = session.access_token;
@@ -194,7 +177,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     await verificarSesionActiva();
     sessionCheckInterval = setInterval(verificarSesionActiva, 5000);
 
-    // 7. FUNCIONES GLOBALES
     window.cerrarSesion = async function() {
         if (confirm('¿Cerrar sesión?')) {
             if (sessionCheckInterval) clearInterval(sessionCheckInterval);
