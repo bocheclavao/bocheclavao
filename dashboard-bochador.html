@@ -2,330 +2,179 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boche Clava'o - Consola de Registro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boche Clava'o - Perfil del Bochador</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../img/moneda.png">
+    
     <style>
+        :root {
+            --azul-electrico: #0057FF;
+            --rojo: #FF1B1B;
+            --negro-fondo: #050505;
+            --negro-superficie: #0F0F10;
+            --negro-superficie-2: #161618;
+            --gris-texto: #9A9DA6;
+            --gris-borde: rgba(255, 255, 255, 0.06);
+            --dorado: #FFD700;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Montserrat', sans-serif;
-            background-color: #000000;
+            background-color: var(--negro-fondo);
             color: #ffffff;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
         .navbar {
-            background: rgba(10, 10, 10, 0.95);
-            border-bottom: 1px solid #222;
-            padding: 15px 20px;
+            background: rgba(5, 5, 5, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gris-borde);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .btn-volver {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 14px; background: rgba(255,255,255,0.03);
+            border: 1px solid var(--gris-borde); border-radius: 8px;
+            color: var(--gris-texto); text-decoration: none;
+            font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease;
+        }
+        .btn-volver:hover { color: var(--dorado); border-color: var(--dorado); }
+        .navbar-title { font-size: 1.1rem; font-weight: 800; color: var(--dorado); letter-spacing: 1px; text-transform: uppercase; }
+
+        .main-content { flex: 1; padding: 30px 24px; max-width: 1000px; margin: 0 auto; width: 100%; }
+
+        /* Ficha del Bochador */
+        .profile-header {
+            background: var(--negro-superficie);
+            border: 1px solid var(--gris-borde);
+            border-radius: 16px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .profile-photo-container {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid var(--dorado);
+            overflow: hidden;
+            margin-bottom: 20px;
+            background: var(--negro-superficie-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .profile-photo { width: 100%; height: 100%; object-fit: cover; }
+        .profile-photo-placeholder { font-size: 3rem; color: var(--gris-texto); }
+        
+        .profile-name { font-size: 1.8rem; font-weight: 800; color: #fff; text-align: center; margin-bottom: 8px; }
+        .profile-id { font-size: 0.9rem; color: var(--gris-texto); font-family: monospace; background: var(--negro-superficie-2); padding: 4px 12px; border-radius: 20px; }
+
+        .status-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .status-no-cls { background: rgba(154, 157, 166, 0.2); color: var(--gris-texto); border: 1px solid var(--gris-texto); }
+        .status-cls { background: rgba(0, 255, 0, 0.15); color: #00ff00; border: 1px solid #00ff00; }
+
+        /* Grid de Datos */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .data-card {
+            background: var(--negro-superficie);
+            border: 1px solid var(--gris-borde);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .data-card-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--dorado);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .data-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gris-borde);
         }
-        .navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
-        .navbar-logo { max-width: 50px; height: auto; }
-        .navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
-        .btn-volver {
-            background: transparent; border: 1px solid #444; color: #ccc;
-            padding: 8px 16px; border-radius: 8px; cursor: pointer;
-            font-family: 'Montserrat', sans-serif; font-weight: 600;
-            display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; text-decoration: none;
+        .data-row:last-child { border-bottom: none; }
+        .data-label { font-size: 0.9rem; color: var(--gris-texto); font-weight: 500; }
+        .data-value { 
+            font-size: 0.95rem; 
+            color: #fff; 
+            font-weight: 600; 
+            text-align: right;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
+        .locked-icon { color: var(--gris-texto); font-size: 0.8rem; opacity: 0.5; }
+        .flag-icon { font-size: 1.2rem; }
 
-        .main-content { flex: 1; padding: 30px 20px; max-width: 900px; margin: 0 auto; width: 100%; }
-        
-        .panel-header {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(0,0,0,0) 100%);
-            border-left: 4px solid #FFD700;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        .panel-header h1 { font-size: 1.5rem; color: #FFD700; margin-bottom: 8px; }
-        .panel-header p { color: #999; font-size: 0.9rem; }
-
-        .capture-form {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 25px;
+        .category-highlight {
+            background: var(--dorado);
+            color: #000;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 1.1rem;
         }
 
-        .form-section { margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid #222; }
-        .form-section:last-child { border-bottom: none; margin-bottom: 0; }
-        .form-section h3 { color: #FFD700; font-size: 1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .loading-state { text-align: center; padding: 50px; color: var(--gris-texto); }
 
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .form-group { display: flex; flex-direction: column; gap: 6px; }
-        .form-group label { font-size: 0.8rem; color: #999; font-weight: 600; }
-        .form-group input, .form-group select {
-            background: #111; border: 1px solid #333; border-radius: 6px;
-            padding: 10px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.9rem;
+        @media (max-width: 768px) {
+            .profile-header { padding: 20px; }
+            .status-badge { position: static; margin-top: 10px; }
+            .data-grid { grid-template-columns: 1fr; }
         }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; }
-
-        .checkbox-group {
-            display: flex; align-items: center; gap: 10px;
-            background: #111; padding: 12px; border-radius: 6px; border: 1px solid #333;
-        }
-        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: #FFD700; }
-        .checkbox-group label { margin: 0; color: #fff; font-size: 0.9rem; cursor: pointer; }
-
-        .btn-primary {
-            width: 100%; padding: 14px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #000; border: none; border-radius: 8px; font-size: 1rem; font-weight: 800;
-            cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
-            font-family: 'Montserrat', sans-serif; margin-top: 10px;
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-
-        .message {
-            margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center;
-            display: none; font-size: 0.85rem; font-weight: 600;
-        }
-        .message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
-        .message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
-
-        .stats-mini {
-            display: flex; gap: 15px; margin-top: 20px;
-        }
-        .stat-card {
-            flex: 1; background: #111; border: 1px solid #222; border-radius: 8px; padding: 15px; text-align: center;
-        }
-        .stat-card .value { font-size: 1.5rem; font-weight: 800; color: #FFD700; }
-        .stat-card .label { font-size: 0.75rem; color: #999; text-transform: uppercase; margin-top: 4px; }
     </style>
 </head>
 <body>
-
     <nav class="navbar">
-        <a href="dashboard.html" class="navbar-brand">
-            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
-            <span class="navbar-title">Boche Clava'o</span>
-        </a>
-        <a href="dashboard.html" class="btn-volver">
+        <a href="hub-juegos.html" class="btn-volver">
             <i class="fas fa-arrow-left"></i> Volver al Hub
         </a>
+        <span class="navbar-title">Ficha del Bochador</span>
     </nav>
 
-    <div class="main-content">
-        <div class="panel-header">
-            <h1><i class="fas fa-clipboard-list"></i> Consola de Registro Deportivo</h1>
-            <p>Principio Rector: Primero medir. Registra los atributos de cada lanzamiento para alimentar el motor estadístico.</p>
+    <div class="main-content" id="mainContent">
+        <div class="loading-state">
+            <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+            <p style="margin-top: 15px;">Cargando ficha deportiva...</p>
         </div>
-
-        <div class="stats-mini">
-            <div class="stat-card">
-                <div class="value" id="statTotal">0</div>
-                <div class="label">Lanzamientos Sesión</div>
-            </div>
-            <div class="stat-card">
-                <div class="value" id="statPerfectos">0</div>
-                <div class="label">Boches Perfectos</div>
-            </div>
-        </div>
-
-        <form id="registroLanzamientoForm" class="capture-form" style="margin-top: 25px;">
-            <!-- Sección 1: Contexto -->
-            <div class="form-section">
-                <h3><i class="fas fa-info-circle"></i> Contexto del Lanzamiento</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Distancia Reglamentaria (cm)</label>
-                        <input type="number" id="distancia" value="1500" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Condiciones de la Cancha</label>
-                        <select id="condiciones">
-                            <option value="seca">Seca / Normal</option>
-                            <option value="humeda">Húmeda</option>
-                            <option value="polvo">Con Polvo</option>
-                            <option value="irregular">Superficie Irregular</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sección 2: Motor A - Boche Clava'o (Atributos Múltiples) -->
-            <div class="form-section">
-                <h3><i class="fas fa-bullseye"></i> Motor A: Clasificación de Eventos</h3>
-                <p style="font-size: 0.8rem; color: #666; margin-bottom: 15px;">Un lanzamiento puede tener múltiples atributos. Marca todos los que apliquen.</p>
-                
-                <div class="form-grid">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="evento_impacto" checked>
-                        <label for="evento_impacto">Impactó la bola objetivo</label>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="evento_perfecto">
-                        <label for="evento_perfecto">Boche Clava'o Perfecto</label>
-                    </div>
-                </div>
-
-                <div class="form-grid" style="margin-top: 15px;">
-                    <div class="form-group">
-                        <label>Piques previos al impacto</label>
-                        <select id="evento_piques">
-                            <option value="0">0 (Directo)</option>
-                            <option value="1">1 pique</option>
-                            <option value="2">2 piques</option>
-                            <option value="3">3 o más</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo de Impacto</label>
-                        <select id="evento_tipo_impacto">
-                            <option value="directo">Directo</option>
-                            <option value="indirecto">Indirecto (tras pique)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Desplazamiento del Objetivo</label>
-                        <select id="evento_desplazamiento">
-                            <option value="frontal">Frontal</option>
-                            <option value="lateral_izq">Lateral Izquierdo</option>
-                            <option value="lateral_der">Lateral Derecho</option>
-                            <option value="retroceso">Retroceso</option>
-                            <option value="nulo">Sin desplazamiento</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Cuadrante Final del Objetivo</label>
-                        <select id="evento_cuadrante">
-                            <option value="Q1">Cuadrante 1 (Q1)</option>
-                            <option value="Q2">Cuadrante 2 (Q2)</option>
-                            <option value="Q3">Cuadrante 3 (Q3)</option>
-                            <option value="Q4">Cuadrante 4 (Q4)</option>
-                            <option value="fuera">Fuera de cuadrantes</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Distancia final a referencia (cm)</label>
-                        <input type="number" step="0.1" id="evento_distancia_final" placeholder="Ej: 12.5" required>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sección 3: Evidencia -->
-            <div class="form-section">
-                <h3><i class="fas fa-camera"></i> Evidencia (Opcional por ahora)</h3>
-                <div class="form-group">
-                    <label>URL de Video o Foto (Simulado)</label>
-                    <input type="text" id="evidencia_url" placeholder="https://...">
-                </div>
-            </div>
-
-            <button type="submit" class="btn-primary" id="btnGuardar">
-                <i class="fas fa-save"></i> Registrar y Validar Lanzamiento
-            </button>
-            <div id="mensaje" class="message"></div>
-        </form>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/config.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const db = window.supabaseClient;
-            const { data: { session } } = await db.auth.getSession();
-            
-            if (!session) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            // Inicializar o recuperar sesión activa
-            let sesionId = localStorage.getItem('sesion_activa_id');
-            if (!sesionId) {
-                // Crear una nueva sesión si no existe
-                const { data: mod } = await db.from('modalidades').select('id').eq('nombre', 'Boche Clavao').single();
-                const { data: nuevaSesion, error } = await db.from('sesiones').insert({
-                    participante_id: session.user.id,
-                    modalidad_id: mod.id,
-                    fecha: new Date().toISOString().split('T')[0],
-                    lugar: 'Cancha Principal',
-                    distancia_reglamentaria_cm: 1500
-                }).select().single();
-                
-                if (!error) {
-                    sesionId = nuevaSesion.id;
-                    localStorage.setItem('sesion_activa_id', sesionId);
-                }
-            }
-
-            // Actualizar estadísticas mini
-            actualizarEstadisticas(sesionId);
-
-            // Manejar envío del formulario
-            const form = document.getElementById('registroLanzamientoForm');
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const btn = document.getElementById('btnGuardar');
-                const msg = document.getElementById('mensaje');
-                
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
-
-                // Construir el objeto JSONB de resultados (Múltiples atributos en un solo lanzamiento)
-                const resultados = {
-                    impacto_objetivo: document.getElementById('evento_impacto').checked,
-                    boche_perfecto: document.getElementById('evento_perfecto').checked,
-                    piques_previos: parseInt(document.getElementById('evento_piques').value),
-                    tipo_impacto: document.getElementById('evento_tipo_impacto').value,
-                    desplazamiento_objetivo: document.getElementById('evento_desplazamiento').value,
-                    cuadrante_final: document.getElementById('evento_cuadrante').value,
-                    distancia_final_cm: parseFloat(document.getElementById('evento_distancia_final').value)
-                };
-
-                // Obtener consecutivo
-                const { count } = await db.from('lanzamientos').select('*', { count: 'exact', head: true }).eq('sesion_id', sesionId);
-                const consecutivo = (count || 0) + 1;
-
-                // Insertar en Supabase
-                const { error } = await db.from('lanzamientos').insert({
-                    sesion_id: sesionId,
-                    numero_consecutivo: consecutivo,
-                    distancia_reglamentaria_cm: parseFloat(document.getElementById('distancia').value),
-                    condiciones_cancha: document.getElementById('condiciones').value,
-                    video_url: document.getElementById('evidencia_url').value || null,
-                    resultados: resultados,
-                    metodo_verificacion: 'manual',
-                    estado_validacion: 'validado' // Auto-validado por ahora
-                });
-
-                if (error) {
-                    msg.textContent = 'Error al guardar: ' + error.message;
-                    msg.className = 'message error';
-                } else {
-                    msg.textContent = `✅ Lanzamiento #${consecutivo} registrado exitosamente en el motor estadístico.`;
-                    msg.className = 'message success';
-                    form.reset();
-                    // Restaurar valores por defecto
-                    document.getElementById('evento_impacto').checked = true;
-                    document.getElementById('distancia').value = 1500;
-                    actualizarEstadisticas(sesionId);
-                }
-
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Registrar y Validar Lanzamiento';
-                
-                setTimeout(() => { msg.style.display = 'none'; }, 4000);
-            });
-
-            async function actualizarEstadisticas(sid) {
-                const { count } = await db.from('lanzamientos').select('*', { count: 'exact', head: true }).eq('sesion_id', sid);
-                document.getElementById('statTotal').textContent = count || 0;
-                
-                // Contar perfectos (requiere consulta más compleja en JSONB, simplificado aquí)
-                const { data: lanzamientos } = await db.from('lanzamientos').select('resultados').eq('sesion_id', sid);
-                const perfectos = lanzamientos ? lanzamientos.filter(l => l.resultados?.boche_perfecto).length : 0;
-                document.getElementById('statPerfectos').textContent = perfectos;
-            }
-        });
-    </script>
+    <script src="dashboard-bochador.js"></script>
 </body>
 </html>
