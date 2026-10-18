@@ -211,14 +211,17 @@
     </nav>
 
     <div class="hub-balance-bar">
-        <div class="user-hub-info">
-            <img id="hubUserAvatar" src="../img/moneda.png" alt="Avatar" class="user-hub-avatar" onerror="this.src='../img/moneda.png'">
-            <div class="user-hub-details">
-                <div class="user-hub-name" id="hubUserName">Cargando usuario...</div>
-                <div class="user-hub-email" id="hubUserEmail">...</div>
-                <div class="user-hub-id" id="hubUserId">ID: Cargando...</div>
-            </div>
-        </div>
+     <div class="user-hub-info">
+
+    <a href="perfil.html" style="text-decoration: none;">
+        <img id="hubUserAvatar" src="../img/moneda.png" alt="Avatar" class="user-hub-avatar" onerror="this.src='../img/moneda.png'" style="cursor: pointer; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+    </a>
+    <div class="user-hub-details">
+        <div class="user-hub-name" id="hubUserName">Cargando usuario...</div>
+        <div class="user-hub-email" id="hubUserEmail">...</div>
+        <div class="user-hub-id" id="hubUserId">ID: Cargando...</div>
+    </div>
+</div>
         <div class="balance-right-side">
             <div class="balance-display">
                 <img src="../img/moneda.png" alt="Moneda PP" class="balance-icon-img">
