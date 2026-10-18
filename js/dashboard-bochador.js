@@ -1,264 +1,178 @@
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
-    
     if (!db) {
-        console.error('No se pudo obtener el cliente de Supabase');
+        window.location.href = 'index.html';
         return;
     }
 
-    const loadingState = document.getElementById('loadingState');
-    const contentState = document.getElementById('contentState');
-    const balanceAmount = document.getElementById('balanceAmount');
-    const dropdownUserName = document.getElementById('dropdownUserName');
-    const dropdownUserEmail = document.getElementById('dropdownUserEmail');
-    const navAvatarContainer = document.getElementById('navAvatarContainer');
-    const dropdownMenu = document.getElementById('dropdownMenu');
-    const menuToggle = document.getElementById('menuToggle');
-    const profileName = document.getElementById('profileName');
-    const profileFlag = document.getElementById('profileFlag');
-    const rankingNumber = document.getElementById('rankingNumber');
-    const statPrecision = document.getElementById('statPrecision');
-    const statLanzamientos = document.getElementById('statLanzamientos');
-    const statBoches = document.getElementById('statBoches');
-    const statEventos = document.getElementById('statEventos');
-    const statVictorias = document.getElementById('statVictorias');
-    const statDerrotas = document.getElementById('statDerrotas');
-    const profileAvatarContainer = document.getElementById('profileAvatarContainer');
+    const { data: { session } } = await db.auth.getSession();
+    if (!session || !session.user) {
+        window.location.href = 'index.html';
+        return;
+    }
 
-    let saldoBC = 0;
-    let estadisticas = null;
-
-    // Mapeo de países a banderas
-    const countryFlags = {
-        'Colombia': '🇨🇴',
-        'México': '🇲🇽',
-        'Argentina': '🇦🇷',
-        'España': '🇪🇸',
-        'Estados Unidos': '🇺',
-        'Perú': '🇪',
-        'Chile': '🇨🇱',
-        'Venezuela': '🇻🇪',
-        'Ecuador': '🇪🇨',
-        'Guatemala': '🇬',
-        'Cuba': '🇺',
-        'Bolivia': '🇧🇴',
-        'República Dominicana': '🇩🇴',
-        'Honduras': '🇭🇳',
-        'Paraguay': '🇵🇾',
-        'El Salvador': '🇸',
-        'Nicaragua': '🇮',
-        'Costa Rica': '🇨🇷',
-        'Panamá': '🇵',
-        'Uruguay': '🇺🇾',
-        'Brasil': '🇷'
+    // Diccionario de banderas (puedes expandirlo)
+    const banderas = {
+        'Venezuela': '🇻🇪', 'Colombia': '🇨🇴', 'México': '🇲🇽', 
+        'Argentina': '🇦🇷', 'España': '🇪🇸', 'Estados Unidos': '🇺🇸',
+        'Perú': '🇵🇪', 'Chile': '🇨🇱', 'Ecuador': '🇪🇨', 'Panamá': '🇵🇦'
     };
-
-    db.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-            window.location.href = 'login.html';
-        }
-    });
-
-    async function asegurarSesionUnica() {
-        const { data: { session } } = await db.auth.getSession();
-        if (session) {
-            await db.auth.signOut({ scope: 'others' });
-        }
-    }
-
-    async function cargarPerfil(user) {
-        try {
-            const { data: perfil, error } = await db
-                .from('perfiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-            
-            if (error || !perfil) {
-                console.error('Error al cargar perfil:', error);
-                return null;
-            }
-            
-            return perfil;
-        } catch (err) {
-            console.error('Error en cargarPerfil:', err);
-            return null;
-        }
-    }
-
-    async function cargarOCrearEstadisticas(user) {
-        try {
-            console.log('🔍 Buscando estadísticas para:', user.id);
-            
-            const { data: stats, error } = await db
-                .from('estadisticas_bochador')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-            
-            if (stats) {
-                console.log('✅ Estadísticas encontradas:', stats);
-                return stats;
-            }
-            
-            if (error && error.code === 'PGRST116') {
-                console.log('⚠️ Estadísticas no existen, creando nuevas con valores en 0...');
-                
-                const nuevasStats = {
-                    id: user.id,
-                    user_id: null,
-                    precision_promedio: 0,
-                    lanzamientos_oficiales: 0,
-                    boches_clavao: 0,
-                    eventos_disputados: 0,
-                    victorias: 0,
-                    derrotas: 0,
-                    empates: 0,
-                    puntos_totales: 0,
-                    ranking_nacional: 0,
-                    nivel: 'principiante'
-                };
-                
-                const { data: creada, error: insertError } = await db
-                    .from('estadisticas_bochador')
-                    .insert(nuevasStats)
-                    .select()
-                    .single();
-                
-                if (insertError) {
-                    console.error('❌ Error al crear estadísticas:', insertError);
-                    return null;
-                }
-                
-                console.log('✅ Estadísticas creadas:', creada);
-                return creada;
-            }
-            
-            console.error('❌ Error inesperado:', error);
-            return null;
-        } catch (err) {
-            console.error('❌ Error en cargarOCrearEstadisticas:', err);
-            return null;
-        }
-    }
-
-    function mostrarAvatarNavbar(nombre, avatarUrl) {
-        if (avatarUrl) {
-            navAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-small" onclick="toggleMenu()">`;
-        } else {
-            const inicial = (nombre || 'U').charAt(0).toUpperCase();
-            navAvatarContainer.innerHTML = `<div class="avatar-placeholder-small" onclick="toggleMenu()">${inicial}</div>`;
-        }
-    }
-
-    function mostrarAvatarPerfil(nombre, avatarUrl) {
-        if (avatarUrl) {
-            profileAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="profile-avatar-large">`;
-        } else {
-            const inicial = (nombre || 'U').charAt(0).toUpperCase();
-            profileAvatarContainer.innerHTML = `<div class="profile-avatar-placeholder">${inicial}</div>`;
-        }
-    }
-
-    function obtenerBandera(pais) {
-        return countryFlags[pais] || '🏳️';
-    }
-
-    window.toggleMenu = function() {
-        dropdownMenu.classList.toggle('show');
-        menuToggle.classList.toggle('active');
-    };
-
-    document.addEventListener('click', function(event) {
-        const menuContainer = document.querySelector('.user-menu-container');
-        if (!menuContainer.contains(event.target)) {
-            dropdownMenu.classList.remove('show');
-            menuToggle.classList.remove('active');
-        }
-    });
-
-    window.verRanking = function() {
-        alert('🚧 El ranking nacional estará disponible próximamente. ¡Mantente atento!');
-    };
-
-    async function protegerRuta() {
-        const { data: { session }, error } = await db.auth.getSession();
-        
-        if (!session || error) {
-            window.location.href = 'login.html';
-            return;
-        }
-
-        try {
-            await asegurarSesionUnica();
-
-            const { data: { user }, error: userError } = await db.auth.getUser();
-            
-            if (userError || !user) {
-                throw new Error('No se pudo obtener la información del usuario');
-            }
-
-            const perfil = await cargarPerfil(user);
-            
-            if (!perfil || perfil.estado_kyc !== 'verificado') {
-                alert('Debes tener tu KYC verificado para acceder al Dashboard del Bochador.');
-                window.location.href = 'perfil.html';
-                return;
-            }
-
-            const nombre = perfil.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
-            const email = user.email;
-            saldoBC = perfil.saldo_bc || 0;
-            const nacionalidad = perfil.nacionalidad || '';
-
-            profileName.textContent = nombre;
-            dropdownUserName.textContent = nombre;
-            dropdownUserEmail.textContent = email;
-            balanceAmount.textContent = `${saldoBC.toFixed(2)} BC`;
-
-            const avatarUrl = perfil.avatar_url || user.user_metadata?.avatar_url;
-            mostrarAvatarNavbar(nombre, avatarUrl);
-            mostrarAvatarPerfil(nombre, avatarUrl);
-
-            profileFlag.textContent = obtenerBandera(nacionalidad);
-
-            const stats = await cargarOCrearEstadisticas(user);
-            estadisticas = stats;
-
-            if (stats) {
-                rankingNumber.textContent = stats.ranking_nacional > 0 ? `#${stats.ranking_nacional}` : '#--';
-                statPrecision.textContent = `${stats.precision_promedio.toFixed(2)}%`;
-                statLanzamientos.textContent = stats.lanzamientos_oficiales.toLocaleString();
-                statBoches.textContent = stats.boches_clavao.toLocaleString();
-                statEventos.textContent = stats.eventos_disputados.toLocaleString();
-                statVictorias.textContent = stats.victorias.toLocaleString();
-                statDerrotas.textContent = stats.derrotas.toLocaleString();
-            }
-
-            loadingState.style.display = 'none';
-            contentState.style.display = 'block';
-
-        } catch (err) {
-            console.error('Error al obtener usuario:', err);
-            loadingState.style.display = 'none';
-            alert('Error al cargar el dashboard. Intenta de nuevo.');
-            window.location.href = 'dashboard.html';
-        }
-    }
-
-    protegerRuta();
-});
-
-async function cerrarSesion() {
-    const db = window.supabaseClient;
-    if (!db) return;
 
     try {
-        const { error } = await db.auth.signOut({ scope: 'global' });
-        if (error) throw error;
-        window.location.href = 'login.html';
+        // 1. Obtener datos del perfil
+        const { data: perfil, error } = await db
+            .from('perfiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+        if (error || !perfil) {
+            throw new Error('No se pudo cargar el perfil.');
+        }
+
+        // 2. Procesar datos
+        const nombre = perfil.nombre_completo || perfil.nombre || 'Bochador';
+        const nacionalidad = perfil.nacionalidad || 'Venezuela';
+        const bandera = banderas[nacionalidad] || '🏳️';
+        const mano = perfil.mano_habil || 'Diestro';
+        const peso = perfil.peso ? `${perfil.peso} kg` : 'Pendiente';
+        const estatura = perfil.estatura ? `${perfil.estatura} cm` : 'Pendiente';
+        const brazo = perfil.longitud_brazo ? `${perfil.longitud_brazo} cm` : 'Pendiente';
+        const sexo = perfil.sexo || 'Pendiente';
+        const telefono = perfil.telefono || 'Pendiente';
+        
+        // Calcular edad
+        let edad = 'Pendiente';
+        if (perfil.fecha_nacimiento) {
+            const hoy = new Date();
+            const nacimiento = new Date(perfil.fecha_nacimiento);
+            let edadCalc = hoy.getFullYear() - nacimiento.getFullYear();
+            const mes = hoy.getMonth() - nacimiento.getMonth();
+            if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+                edadCalc--;
+            }
+            edad = `${edadCalc} años`;
+        }
+
+        const partidos = perfil.partidos_jugados || 0;
+        const aciertos = perfil.porcentaje_aciertos ? `${perfil.porcentaje_aciertos}%` : '0%';
+        const categoria = perfil.categoria || 'F';
+        const estado = perfil.estado_clasificacion || 'No clasificado';
+        
+        // Formatear últimos 3 partidos
+        let ultimosPartidos = 'Sin registros';
+        if (perfil.ultimos_3_partidos && Array.isArray(perfil.ultimos_3_partidos) && perfil.ultimos_3_partidos.length > 0) {
+            ultimosPartidos = perfil.ultimos_3_partidos.slice(0, 3).map(f => 
+                new Date(f).toLocaleDateString('es-VE')
+            ).join(', ');
+        }
+
+        const avatarUrl = perfil.avatar_url || session.user.user_metadata?.avatar_url;
+
+        // 3. Renderizar HTML
+        const mainContent = document.getElementById('mainContent');
+        const statusClass = estado === 'No clasificado' ? 'status-no-cls' : 'status-cls';
+        const avatarHTML = avatarUrl 
+            ? `<img src="${avatarUrl}" alt="Foto" class="profile-photo">` 
+            : `<i class="fas fa-user profile-photo-placeholder"></i>`;
+
+        mainContent.innerHTML = `
+            <div class="profile-header">
+                <div class="status-badge ${statusClass}">
+                    <i class="fas fa-${estado === 'No clasificado' ? 'clock' : 'check-circle'}"></i> ${estado}
+                </div>
+                <div class="profile-photo-container">
+                    ${avatarHTML}
+                </div>
+                <div class="profile-name">${nombre}</div>
+                <div class="profile-id">ID: ${perfil.user_id || 'N/A'}</div>
+            </div>
+
+            <div class="data-grid">
+                <!-- Datos Personales -->
+                <div class="data-card">
+                    <div class="data-card-title"><i class="fas fa-id-card"></i> Datos Personales</div>
+                    <div class="data-row">
+                        <span class="data-label">Nacionalidad</span>
+                        <span class="data-value"><span class="flag-icon">${bandera}</span> ${nacionalidad}</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Sexo</span>
+                        <span class="data-value">${sexo} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Fecha de Nacimiento</span>
+                        <span class="data-value">${perfil.fecha_nacimiento ? new Date(perfil.fecha_nacimiento).toLocaleDateString('es-VE') : 'Pendiente'} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Edad</span>
+                        <span class="data-value">${edad}</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Teléfono</span>
+                        <span class="data-value">${telefono} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                </div>
+
+                <!-- Datos Físicos -->
+                <div class="data-card">
+                    <div class="data-card-title"><i class="fas fa-ruler-combined"></i> Datos Físicos</div>
+                    <div class="data-row">
+                        <span class="data-label">Mano Hábil</span>
+                        <span class="data-value">${mano} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Peso</span>
+                        <span class="data-value">${peso} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Estatura</span>
+                        <span class="data-value">${estatura} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Longitud de Brazo</span>
+                        <span class="data-value">${brazo} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                </div>
+
+                <!-- Rendimiento y Clasificación -->
+                <div class="data-card">
+                    <div class="data-card-title"><i class="fas fa-trophy"></i> Rendimiento</div>
+                    <div class="data-row">
+                        <span class="data-label">Categoría Actual</span>
+                        <span class="data-value"><span class="category-highlight">${categoria}</span> <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Partidos Jugados</span>
+                        <span class="data-value">${partidos} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Porcentaje de Aciertos</span>
+                        <span class="data-value" style="color: var(--dorado);">${aciertos} <i class="fas fa-lock locked-icon"></i></span>
+                    </div>
+                    <div class="data-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                        <span class="data-label">Últimos 3 Partidos</span>
+                        <span class="data-value" style="font-size: 0.85rem; color: var(--gris-texto); text-align: left;">${ultimosPartidos} <i class="fas fa-lock locked-icon" style="margin-left: auto;"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(255, 215, 0, 0.05); border: 1px dashed var(--dorado); border-radius: 12px;">
+                <i class="fas fa-info-circle" style="color: var(--dorado); margin-right: 8px;"></i>
+                <span style="color: var(--gris-texto); font-size: 0.9rem;">
+                    Estos datos son gestionados exclusivamente por el evaluador oficial durante la prueba de clasificación. 
+                    Una vez evaluado, tu categoría y estadísticas se actualizarán automáticamente.
+                </span>
+            </div>
+        `;
+
     } catch (err) {
-        console.error('Error al cerrar sesión:', err);
-        alert('Hubo un error al cerrar sesión.');
+        console.error('Error:', err);
+        document.getElementById('mainContent').innerHTML = `
+            <div class="loading-state" style="color: var(--rojo);">
+                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                <p style="margin-top: 15px;">Error al cargar la ficha. Por favor, intenta de nuevo.</p>
+            </div>
+        `;
     }
-}
+});
