@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     const userId = perfil?.user_id || 'ID no disponible';
     const avatarUrl = perfil?.avatar_url || session.user.user_metadata?.avatar_url || '../img/moneda.png';
 
-    // Actualizar UI de usuario
     document.getElementById('hubUserAvatar').src = avatarUrl;
     document.getElementById('hubUserName').textContent = nombre;
     document.getElementById('hubUserEmail').textContent = email;
@@ -64,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const saldo = perfil?.saldo_bc ?? 0;
     document.getElementById('hubBalanceAmount').textContent = `${parseFloat(saldo).toFixed(2)} PP`;
 
-    // 4. ACTUALIZAR BANNER KYC
+    // 4. LÓGICA DEL BANNER KYC
     const kycBanner = document.getElementById('hubKycBanner');
     const kycTitle = document.getElementById('hubKycTitle');
     const kycMessage = document.getElementById('hubKycMessage');
@@ -101,37 +100,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // 🚨 5. BLOQUEAR JUEGOS SI NO ESTÁ VERIFICADO
-    const gameCards = document.querySelectorAll('.game-card.active');
-    gameCards.forEach(card => {
-        if (estadoKyc !== 'verificado') {
-            card.classList.add('disabled');
-            card.classList.remove('active');
-            card.style.cursor = 'not-allowed';
-            card.removeAttribute('onclick'); // Eliminar la redirección directa
-            
-            // Agregar overlay de candado
-            const lockOverlay = document.createElement('div');
-            lockOverlay.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 20px; z-index: 20; backdrop-filter: blur(2px);';
-            lockOverlay.innerHTML = `
-                <i class="fas fa-lock" style="font-size: 2rem; color: #ff4444; margin-bottom: 10px;"></i>
-                <span style="color: #fff; font-weight: 700; font-size: 0.9rem; text-align: center; padding: 0 10px;">Requiere KYC Verificado</span>
-            `;
-            card.appendChild(lockOverlay);
-            
-            // Al hacer clic, mostrar alerta y hacer scroll al banner KYC
-            card.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                alert('⚠️ Debes completar y ser aprobado en la verificación KYC antes de poder jugar.');
-                if (kycBanner) {
-                    kycBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    kycBanner.style.boxShadow = '0 0 20px rgba(255, 68, 68, 0.6)';
-                    setTimeout(() => { kycBanner.style.boxShadow = 'none'; }, 2000);
-                }
-            });
-        }
-    });
+    // 5. VERIFICAR SI ES ADMINISTRADOR (LÓGICA BLINDADA)
+    let adminData = null;
+    
+    // Intentamos buscar primero por la columna 'id'
+    const res1 = await db.from('admin_roles').select('es_admin, activo').eq('id', session.user.id).maybeSingle();
+    if (res1.data) adminData = res1.data;
+    
+    // Si no encuentra, intentamos con 'user_id' (muy común en Supabase)
+    if (!adminData) {
+        const res2 = await db.from('admin_roles').select('es_admin, activo').eq('user_id', session.user.id).maybeSingle();
+        if (res2.data) adminData = res2.data;
+    }
+
+    console.log('🔍 [DEBUG] Datos de admin encontrados:', adminData);
+
+    // Verificamos si es admin (aceptando booleano true o string 'true')
+    const esAdmin = adminData && (adminData.es_admin === true || adminData.es_admin === 'true');
+    
+    if (esAdmin) {
+        btnAdmin.style.display = 'flex';
+        console.log('✅ [DEBUG] Usuario es ADMIN - Botón mostrado');
+    } else {
+        btnAdmin.style.display = 'none';
+        console.log('❌ [DEBUG] Usuario NO es admin o no tiene registro en admin_roles - Botón oculto');
+    }
 
     // 6. VERIFICACIÓN DE SESIÓN DUPLICADA
     async function registrarMiSesion() {
@@ -181,21 +174,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await verificarSesionActiva();
     sessionCheckInterval = setInterval(verificarSesionActiva, 5000);
 
-    // 7. MOSTRAR MENSAJE DE EXPULSIÓN (Si viene de dashboard.html)
-    const redirectMessage = sessionStorage.getItem('auth_message');
-    const redirectType = sessionStorage.getItem('auth_type') || 'info';
-    if (redirectMessage) {
-        const msgDiv = document.createElement('div');
-        msgDiv.style.cssText = `background: ${redirectType === 'error' ? 'rgba(255, 0, 0, 0.1)' : 'rgba(255, 215, 0, 0.1)'}; border: 1px solid ${redirectType === 'error' ? '#ff0000' : '#FFD700'}; color: ${redirectType === 'error' ? '#ff0000' : '#FFD700'}; padding: 15px; border-radius: 8px; text-align: center; margin: 20px auto; max-width: 800px; font-size: 0.9rem; line-height: 1.5;`;
-        msgDiv.innerHTML = redirectMessage;
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) mainContent.insertBefore(msgDiv, mainContent.firstChild);
-        
-        sessionStorage.removeItem('auth_message');
-        sessionStorage.removeItem('auth_type');
-    }
-
-    // 8. FUNCIONES GLOBALES
+    // 7. FUNCIONES GLOBALES (Incluyendo el nuevo Modal KYC)
     window.cerrarSesion = async function() {
         if (confirm('¿Cerrar sesión?')) {
             if (sessionCheckInterval) clearInterval(sessionCheckInterval);
@@ -206,6 +185,22 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     window.irAPanelAdmin = function() { window.location.href = 'admin.html'; };
+
+    // Funciones del Modal KYC Profesional
+    window.mostrarModalKYC = function() {
+        const modal = document.getElementById('kycModal');
+        if (modal) modal.style.display = 'flex';
+    };
+
+    window.cerrarModalKYC = function() {
+        const modal = document.getElementById('kycModal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.irAPerfilDesdeModal = function() {
+        window.cerrarModalKYC();
+        window.location.href = 'perfil.html';
+    };
 
     window.toggleChat = function() {
         const chatWindow = document.getElementById('chatWindow');
@@ -231,6 +226,32 @@ document.addEventListener('DOMContentLoaded', async function() {
             }, 1000);
         }
     };
+
+    // 8. BLOQUEAR JUEGOS SI NO ESTÁ VERIFICADO (Usando el nuevo Modal)
+    const gameCards = document.querySelectorAll('.game-card.active');
+    gameCards.forEach(card => {
+        if (estadoKyc !== 'verificado') {
+            card.classList.add('disabled');
+            card.classList.remove('active');
+            card.style.cursor = 'not-allowed';
+            card.removeAttribute('onclick');
+            
+            const lockOverlay = document.createElement('div');
+            lockOverlay.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 16px; z-index: 20; backdrop-filter: blur(2px);';
+            lockOverlay.innerHTML = `
+                <i class="fas fa-lock" style="font-size: 2rem; color: #ff4444; margin-bottom: 10px;"></i>
+                <span style="color: #fff; font-weight: 700; font-size: 0.9rem; text-align: center; padding: 0 10px;">Requiere KYC Verificado</span>
+            `;
+            card.appendChild(lockOverlay);
+            
+            // Al hacer clic, mostrar el modal profesional en lugar del alert()
+            card.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.mostrarModalKYC();
+            });
+        }
+    });
 
     console.log('✅ Hub de Juegos cargado correctamente.');
 });
