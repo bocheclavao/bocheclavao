@@ -1,554 +1,474 @@
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
-    
     if (!db) {
         console.error('No se pudo obtener el cliente de Supabase');
+        window.location.href = 'index.html';
         return;
     }
 
-    // 📌 REFERENCIAS AL DOM
-    const loadingState = document.getElementById('loadingState');
-    const contentState = document.getElementById('contentState');
-    const errorState = document.getElementById('errorState');
-    const userEmailDisplay = document.getElementById('userEmailDisplay');
+    // 1. Verificar Sesión
+    const { data: { session } } = await db.auth.getSession();
+    if (!session || !session.user) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // Referencias al DOM
     const userNameDisplay = document.getElementById('userNameDisplay');
     const userIdDisplay = document.getElementById('userIdDisplay');
-    const avatarImage = document.getElementById('avatarImage');
-    const avatarPlaceholder = document.getElementById('avatarDisplay');
-    const navAvatarContainer = document.getElementById('navAvatarContainer');
-    const kycBanner = document.getElementById('kycBanner');
-    const kycTitle = document.getElementById('kycTitle');
-    const kycMessage = document.getElementById('kycMessage');
-    const kycBtn = document.getElementById('kycBtn');
-    const cardBochador = document.getElementById('cardBochador');
-    const cardPatrocinador = document.getElementById('cardPatrocinador');
-    const balanceAmount = document.getElementById('balanceAmount');
-    const dropdownUserName = document.getElementById('dropdownUserName');
-    const dropdownUserEmail = document.getElementById('dropdownUserEmail');
-    const dropdownMenu = document.getElementById('dropdownMenu');
-    const menuToggle = document.getElementById('menuToggle');
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    const notificationBtn = document.getElementById('notificationBtn');
-    const mobileOverlay = document.getElementById('mobileOverlay');
+    const currentBalance = document.getElementById('currentBalance');
+    const tasaBCVDisplay = document.getElementById('tasaBCVDisplay');
+    const fechaBCVDisplay = document.getElementById('fechaBCVDisplay');
+    const packagesGrid = document.getElementById('packagesGrid');
+    const customAmount = document.getElementById('customAmount');
+    const totalUSDDisplay = document.getElementById('totalUSD');
+    const totalVESDisplay = document.getElementById('totalVES');
+    const paymentMethodsGrid = document.getElementById('paymentMethodsGrid');
+    const companyDataBox = document.getElementById('companyDataBox');
+    const companyDataContent = document.getElementById('companyDataContent');
+    const dynamicForm = document.getElementById('dynamicForm');
+    const userFormFields = document.getElementById('userFormFields');
+    const fileUploadContainer = document.getElementById('fileUploadContainer');
+    const comprobanteFile = document.getElementById('comprobanteFile');
+    const filePreview = document.getElementById('filePreview');
+    const previewImage = document.getElementById('previewImage');
+    const removeFile = document.getElementById('removeFile');
+    const formDeposito = document.getElementById('formDeposito');
+    const msgDeposito = document.getElementById('msgDeposito');
+    const btnDepositar = document.getElementById('btnDepositar');
+    const successView = document.getElementById('successView');
+    const successAmount = document.getElementById('successAmount');
 
-    let estadoKyc = null;
-    let saldoBC = 0;
+    let userProfile = null;
+    let tasaBCV = 36.50; // Valor por defecto
+    let selectedPackage = null;
+    let selectedMethod = null;
+    let uploadedFile = null;
 
-    // ============================================
-    // 🚀 1. MENÚS MÓVILES
-    // ============================================
-    function sacarMenusDelNavbar() {
-        if (window.innerWidth <= 768) {
-            if (dropdownMenu && dropdownMenu.parentElement !== document.body) {
-                document.body.appendChild(dropdownMenu);
-            }
-            if (notificationDropdown && notificationDropdown.parentElement !== document.body) {
-                document.body.appendChild(notificationDropdown);
-            }
+    // ==========================================
+    // DATOS DE LA EMPRESA (¡EDITA ESTO CON TUS DATOS REALES!)
+    // ==========================================
+    const companyAccounts = {
+        'pago_movil': {
+            titulo: 'Pago Móvil',
+            datos: [
+                { label: 'Banco', value: 'Banco de Venezuela (0102)' },
+                { label: 'Teléfono', value: '0412-1234567' },
+                { label: 'Cédula', value: 'V-12.345.678' }
+            ]
+        },
+        'zelle': {
+            titulo: 'Zelle',
+            datos: [
+                { label: 'Nombre', value: 'Boche Clavao LLC' },
+                { label: 'Correo', value: 'pagos@bocheclavao.com' }
+            ]
+        },
+        'binance': {
+            titulo: 'Binance Pay / USDT',
+            datos: [
+                { label: 'Red', value: 'TRC20 (Tron)' },
+                { label: 'Dirección', value: 'TXYZ123456789abcdef123456789' }
+            ]
+        },
+        'paypal': {
+            titulo: 'PayPal',
+            datos: [
+                { label: 'Correo', value: 'pagos@bocheclavao.com' },
+                { label: 'Tipo', value: 'Amigos y Familiares' }
+            ]
         }
-    }
-    sacarMenusDelNavbar();
-    window.addEventListener('resize', sacarMenusDelNavbar);
+    };
 
-    // ============================================
-    // 👤 2. FUNCIONES DE PERFIL
-    // ============================================
-    function generarIdUnico() { 
-        return 'BC-' + Math.floor(10000000 + Math.random() * 90000000).toString(); 
-    }
-
-    async function cargarOCrearPerfil(user) {
+    // 2. Cargar Datos del Usuario
+    async function loadUserData() {
         try {
-            const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
-            if (perfil) return perfil;
-            if (error && error.code === 'PGRST116') {
-                const nuevoPerfil = { 
-                    id: user.id, 
-                    user_id: generarIdUnico(), 
-                    nombre: user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario', 
-                    email: user.email, 
-                    avatar_url: user.user_metadata?.avatar_url || null, 
-                    saldo_bc: 0, 
-                    estado_kyc: null 
-                };
-                const { data: creado, error: insertError } = await db.from('perfiles').insert(nuevoPerfil).select().single();
-                if (insertError) { console.error('Error al crear perfil:', insertError); return null; }
-                return creado;
-            }
-            return null;
-        } catch (err) { console.error('Error en cargarOCrearPerfil:', err); return null; }
-    }
-
-    async function verificarSiEsAdmin(userId) {
-        try {
-            let { data, error } = await db.from('admin_roles')
-                .select('es_admin, activo')
-                .eq('id', userId)
-                .eq('es_admin', true)
-                .eq('activo', true)
-                .maybeSingle();
+            const { data, error } = await db.from('perfiles').select('*').eq('id', session.user.id).single();
+            if (error) throw error;
+            userProfile = data;
             
-            if (!data) {
-                const res2 = await db.from('admin_roles')
-                    .select('es_admin, activo')
-                    .eq('user_id', userId)
-                    .eq('es_admin', true)
-                    .eq('activo', true)
-                    .maybeSingle();
-                data = res2.data;
-            }
-            
-            if (error || !data) return false;
-            return true;
-        } catch (err) { 
-            console.error('Error verificando admin:', err);
-            return false; 
+            userNameDisplay.textContent = userProfile.nombre || session.user.email;
+            userIdDisplay.textContent = userProfile.user_id || 'N/A';
+            currentBalance.textContent = parseFloat(userProfile.saldo_bc || 0).toFixed(2);
+        } catch (err) {
+            console.error('Error cargando perfil:', err);
+            userNameDisplay.textContent = session.user.email;
         }
     }
 
-    function agregarBotonAdmin() {
-        if (!dropdownMenu || document.getElementById('adminMenuItem')) return;
-        const adminItem = document.createElement('button');
-        adminItem.id = 'adminMenuItem';
-        adminItem.className = 'dropdown-item';
-        adminItem.onclick = function() { window.location.href = 'admin.html'; };
-        adminItem.innerHTML = '<i class="fas fa-user-shield"></i><span>Panel Admin</span>';
-        const divider = dropdownMenu.querySelector('.dropdown-divider');
-        if (divider) dropdownMenu.insertBefore(adminItem, divider);
-        else dropdownMenu.appendChild(adminItem);
-    }
-
-    // ============================================
-    // 📱 3. MENÚS MÓVILES (INTERACCIÓN)
-    // ============================================
-    window.cerrarPanelesMovil = function() {
-        if (dropdownMenu) {
-            dropdownMenu.classList.remove('show');
-            dropdownMenu.style.transform = '';
-            dropdownMenu.style.opacity = '';
-            dropdownMenu.style.visibility = '';
-        }
-        if (notificationDropdown) {
-            notificationDropdown.classList.remove('show');
-            notificationDropdown.style.transform = '';
-            notificationDropdown.style.opacity = '';
-            notificationDropdown.style.visibility = '';
-        }
-        if (mobileOverlay) mobileOverlay.classList.remove('active');
-        if (menuToggle) menuToggle.classList.remove('active');
-        if (notificationBtn) notificationBtn.classList.remove('active');
-
-        document.body.classList.remove('menu-open');
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        
-        const scrollY = parseInt(document.body.dataset.scrollPos || '0');
-        window.scrollTo(0, scrollY);
-    };
-
-    function bloquearScrollFondo() {
-        const scrollY = window.scrollY;
-        document.body.classList.add('menu-open');
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollY}px`;
-        document.body.style.width = '100%';
-        document.body.style.overflow = 'hidden';
-        document.body.dataset.scrollPos = scrollY;
-    }
-
-    function forzarVisibilidadMenu(elemento) {
-        if (!elemento) return;
-        elemento.style.transform = '';
-        elemento.style.opacity = '';
-        elemento.style.visibility = '';
-        elemento.style.display = '';
-        void elemento.offsetHeight;
-        elemento.classList.add('show');
-        setTimeout(() => {
-            elemento.style.transform = 'translateY(0) translateZ(0)';
-            elemento.style.opacity = '1';
-            elemento.style.visibility = 'visible';
-            elemento.style.pointerEvents = 'auto';
-        }, 10);
-    }
-
-    window.toggleMenu = function(event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        if (notificationDropdown && notificationDropdown.classList.contains('show')) {
-            notificationDropdown.classList.remove('show');
-        }
-        const isShowing = dropdownMenu.classList.contains('show');
-        if (isShowing) { cerrarPanelesMovil(); } 
-        else {
-            bloquearScrollFondo();
-            forzarVisibilidadMenu(dropdownMenu);
-            if (menuToggle) menuToggle.classList.add('active');
-            if (mobileOverlay) mobileOverlay.classList.add('active');
-        }
-    };
-
-    window.toggleNotifications = function(event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        if (dropdownMenu && dropdownMenu.classList.contains('show')) {
-            dropdownMenu.classList.remove('show');
-        }
-        const isShowing = notificationDropdown.classList.contains('show');
-        if (isShowing) { cerrarPanelesMovil(); } 
-        else {
-            bloquearScrollFondo();
-            forzarVisibilidadMenu(notificationDropdown);
-            if (notificationBtn) notificationBtn.classList.add('active');
-            if (mobileOverlay) mobileOverlay.classList.add('active');
-        }
-    };
-
-    if (notificationBtn) {
-        notificationBtn.onclick = null;
-        notificationBtn.addEventListener('click', toggleNotifications);
-    }
-    if (menuToggle) {
-        menuToggle.onclick = null;
-        menuToggle.addEventListener('click', toggleMenu);
-    }
-    
-    document.querySelectorAll('.panel-close-btn').forEach(btn => {
-        btn.addEventListener('click', window.cerrarPanelesMovil);
-    });
-    
-    if (mobileOverlay) {
-        mobileOverlay.addEventListener('click', window.cerrarPanelesMovil);
-        mobileOverlay.addEventListener('touchstart', window.cerrarPanelesMovil);
-    }
-
-    document.addEventListener('click', function(event) {
-        if (window.innerWidth > 768) {
-            const menuContainer = document.querySelector('.user-menu-container');
-            if (menuContainer && !menuContainer.contains(event.target) && dropdownMenu) {
-                dropdownMenu.classList.remove('show');
-                if (menuToggle) menuToggle.classList.remove('active');
-            }
-            const notifContainer = notificationBtn?.parentElement;
-            if (notifContainer && !notifContainer.contains(event.target) && notificationDropdown) {
-                notificationDropdown.classList.remove('show');
-                if (notificationBtn) notificationBtn.classList.remove('active');
-            }
-        }
-    });
-
-    // ============================================
-    // 🔗 4. NAVEGACIÓN
-    // ============================================
-    window.irAPerfil = function() { window.location.href = 'perfil.html'; };
-    window.irABilletera = function() { window.location.href = 'billetera.html'; };
-    window.irAApuestas = function() { alert('Mis apuestas estará disponible próximamente'); };
-    window.irASoporte = function() { alert('Soporte estará disponible próximamente'); };
-    window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
-
-    // ============================================
-    // 📺 5. STREAM EN VIVO
-    // ============================================
-    async function cargarStreamEnVivo() {
+    // 3. Obtener Tasa BCV (API Pública)
+    async function loadBCVRate() {
         try {
-            const { data: streamConfig, error } = await db.from('config_stream_vivo').select('*').eq('activo', true).single();
-            const liveSection = document.getElementById('liveStreamSection');
-            const liveBadgeContainer = document.getElementById('liveBadgeContainer');
-            const videoPlaceholder = document.getElementById('videoPlaceholder');
-            const liveVideo = document.getElementById('liveVideo');
-            const liveIframe = document.getElementById('liveIframe');
-            const liveInfo = document.getElementById('liveInfo');
-            const liveTitle = document.getElementById('liveTitle');
-            const liveDescription = document.getElementById('liveDescription');
-
-            if (error || !streamConfig || !streamConfig.activo) {
-                liveSection.classList.remove('active'); 
-                videoPlaceholder.style.display = 'flex';
-                liveVideo.style.display = 'none'; 
-                liveIframe.style.display = 'none';
-                liveInfo.style.display = 'none'; 
-                liveBadgeContainer.innerHTML = ''; 
-                return;
-            }
-
-            liveSection.classList.add('active'); 
-            videoPlaceholder.style.display = 'none';
-            liveInfo.style.display = 'block'; 
-            liveTitle.textContent = streamConfig.titulo || 'Transmisión en Vivo';
-            liveDescription.textContent = streamConfig.descripcion || 'Evento en vivo';
-            liveBadgeContainer.innerHTML = `<div class="live-badge"><div class="live-dot"></div> EN VIVO</div>${streamConfig.espectadores ? `<div class="live-viewers"><i class="fas fa-eye"></i> ${streamConfig.espectadores} espectadores</div>` : ''}`;
-            liveVideo.style.display = 'none'; 
-            liveIframe.style.display = 'none';
-
-            if (streamConfig.url_stream.includes('youtube.com') || streamConfig.url_stream.includes('youtu.be')) {
-                liveIframe.style.display = 'block'; 
-                let embedUrl = streamConfig.url_stream;
-                if (embedUrl.includes('/live/') || embedUrl.includes('/watch?v=')) {
-                    const videoId = embedUrl.split('/live/')[1]?.split('?')[0] || embedUrl.split('v=')[1]?.split('&')[0];
-                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-                }
-                liveIframe.src = embedUrl;
-            } else if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
-                liveVideo.style.display = 'block';
-                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                    const hls = new Hls(); 
-                    hls.loadSource(streamConfig.url_stream); 
-                    hls.attachMedia(liveVideo);
-                    hls.on(Hls.Events.MANIFEST_PARSED, function() { 
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); 
-                    });
-                } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
-                    liveVideo.src = streamConfig.url_stream;
-                    liveVideo.addEventListener('loadedmetadata', function() { 
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); 
-                    });
-                }
-            } else {
-                liveIframe.style.display = 'block'; 
-                liveIframe.src = streamConfig.url_stream;
-            }
-        } catch (err) { console.error('Error cargando stream en vivo:', err); }
-    }
-
-    // ============================================
-    // 🛡️ 6. KYC Y AVATAR
-    // ============================================
-    function actualizarBannerKYC(estado) {
-        if (estado === 'verificado') {
-            kycBanner.style.display = 'none'; 
-            cardBochador.classList.remove('disabled'); 
-            cardPatrocinador.classList.remove('disabled'); 
-            return;
-        }
-        kycBanner.style.display = 'flex';
-        if (estado === null || estado === undefined || estado === '') {
-            kycBanner.classList.remove('verified', 'rejected'); 
-            kycBanner.style.borderColor = '#FFD700';
-            kycTitle.textContent = '⚠️ Verificación KYC Pendiente'; 
-            kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC).';
-            kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora'; 
-            kycBtn.style.pointerEvents = 'auto'; 
-            kycBtn.style.opacity = '1'; 
-            kycBtn.style.background = '';
-            kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            cardBochador.classList.add('disabled'); 
-            cardPatrocinador.classList.add('disabled');
-        } else if (estado === 'pendiente' || estado === 'revision') {
-            kycBanner.classList.remove('verified', 'rejected'); 
-            kycBanner.style.borderColor = '#FFA500';
-            kycTitle.textContent = '⏳ Verificación KYC en Revisión'; 
-            kycMessage.textContent = 'Tus documentos están siendo revisados.';
-            kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión'; 
-            kycBtn.style.pointerEvents = 'none'; 
-            kycBtn.style.opacity = '0.6'; 
-            kycBtn.style.background = '#666';
-            kycBtn.onclick = null; 
-            cardBochador.classList.add('disabled'); 
-            cardPatrocinador.classList.add('disabled');
-        } else if (estado === 'rechazado') {
-            kycBanner.classList.add('rejected'); 
-            kycBanner.classList.remove('verified');
-            kycTitle.textContent = '❌ Verificación KYC Rechazada'; 
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Vuelve a enviarla.';
-            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar'; 
-            kycBtn.style.pointerEvents = 'auto'; 
-            kycBtn.style.opacity = '1'; 
-            kycBtn.style.background = '';
-            kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            cardBochador.classList.add('disabled'); 
-            cardPatrocinador.classList.add('disabled');
+            const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+            if (!response.ok) throw new Error('Error en la respuesta de la API');
+            const data = await response.json();
+            tasaBCV = data.promedio || data.venta || 36.50;
+            
+            tasaBCVDisplay.textContent = tasaBCV.toFixed(2);
+            const fecha = new Date(data.fechaActualizacion || Date.now());
+            fechaBCVDisplay.textContent = `Actualizado: ${fecha.toLocaleDateString('es-VE')}`;
+        } catch (err) {
+            console.warn('No se pudo obtener la tasa BCV, usando valor por defecto:', err);
+            tasaBCVDisplay.textContent = tasaBCV.toFixed(2);
+            fechaBCVDisplay.textContent = 'Tasa estimada (API no disponible)';
         }
     }
 
-    function mostrarAvatarNavbar(nombre, avatarUrl) {
-        if (avatarUrl) {
-            navAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-small">`;
-        } else {
-            const inicial = (nombre || 'U').charAt(0).toUpperCase();
-            navAvatarContainer.innerHTML = `<div class="avatar-placeholder-small">${inicial}</div>`;
-        }
-    }
+    // 4. Renderizar Paquetes
+    function renderPackages() {
+        const packages = [
+            { bc: 100, desc: 'Básico' },
+            { bc: 500, desc: 'Popular', discount: true },
+            { bc: 1000, desc: 'Pro', discount: true },
+            { bc: 5000, desc: 'VIP', discount: true }
+        ];
 
-    function mostrarDatos(user, perfil) {
-        const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
-        const email = user.email;
-        const userId = perfil?.user_id || generarIdUnico();
-        const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
-        const estado = (perfil?.estado_kyc || '').toString().toLowerCase().trim();
-        saldoBC = perfil?.saldo_bc ?? 0;
-
-        userNameDisplay.textContent = nombre; 
-        userEmailDisplay.textContent = email;
-        
-        if (estado === 'verificado') {
-            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Verificado</span>`;
-        } else if (estado === 'pendiente' || estado === 'revision') {
-            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-clock" style="color: #FFA500; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #FFA500; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">En Revisión</span>`;
-        } else {
-            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-exclamation-circle" style="color: #ff4444; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #ff4444; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Pendiente</span>`;
-        }
-        
-        dropdownUserName.textContent = nombre; 
-        dropdownUserEmail.textContent = email;
-        balanceAmount.textContent = `${parseFloat(saldoBC).toFixed(2)} PP`;
-
-        if (avatarUrl) { 
-            avatarImage.src = avatarUrl; 
-            avatarImage.style.display = 'block'; 
-            avatarPlaceholder.style.display = 'none'; 
-        } else { 
-            avatarPlaceholder.textContent = nombre.charAt(0).toUpperCase(); 
-            avatarPlaceholder.style.display = 'flex'; 
-            avatarImage.style.display = 'none'; 
-        }
-
-        mostrarAvatarNavbar(nombre, avatarUrl);
-        actualizarBannerKYC(estado);
-
-        verificarSiEsAdmin(user.id).then(esAdmin => { 
-            if (esAdmin) agregarBotonAdmin(); 
+        packagesGrid.innerHTML = '';
+        packages.forEach(pkg => {
+            const card = document.createElement('div');
+            card.className = 'package-card';
+            card.dataset.amount = pkg.bc;
+            card.innerHTML = `
+                ${pkg.discount ? '<div class="discount">-5%</div>' : ''}
+                <span class="coins">${pkg.bc} BC</span>
+                <span class="price">${pkg.desc}</span>
+            `;
+            card.addEventListener('click', () => selectPackage(pkg.bc, card));
+            packagesGrid.appendChild(card);
         });
     }
 
-    window.seleccionarRol = function(rol) {
-        if (estadoKyc !== 'verificado') {
-            if (typeof window.mostrarModalKYC === 'function') {
-                window.mostrarModalKYC();
-            } else {
-                alert('Debes completar y ser aprobado en la verificación KYC antes de poder participar.');
-            }
+    function selectPackage(amount, cardElement) {
+        document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+        cardElement.classList.add('selected');
+        selectedPackage = amount;
+        customAmount.value = amount;
+        calculateTotals();
+    }
+
+    // 5. Calcular Totales
+    function calculateTotals() {
+        const amount = parseFloat(customAmount.value) || 0;
+        if (amount <= 0) {
+            totalUSDDisplay.textContent = '0.00';
+            totalVESDisplay.textContent = '0.00';
+            customAmount.dataset.rawUsd = 0;
+            customAmount.dataset.rawVes = 0;
             return;
         }
-        if (rol === 'bochador') window.location.href = 'dashboard-bochador.html';
-        else if (rol === 'patrocinador') window.location.href = 'dashboard-patrocinador.html';
+
+        const usdAmount = amount / tasaBCV;
+        const commission = usdAmount * 0.003; // 0.30% de comisión
+        const totalUSD = usdAmount + commission;
+        const totalVES = totalUSD * tasaBCV;
+
+        totalUSDDisplay.textContent = totalUSD.toFixed(2);
+        totalVESDisplay.textContent = totalVES.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        // Guardar valores crudos para la base de datos
+        customAmount.dataset.rawUsd = totalUSD;
+        customAmount.dataset.rawVes = totalVES;
+    }
+
+    customAmount.addEventListener('input', () => {
+        selectedPackage = null;
+        document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+        calculateTotals();
+    });
+
+    // 6. Renderizar Métodos de Pago
+    function renderPaymentMethods() {
+        const methods = [
+            { id: 'pago_movil', name: 'Pago Móvil', icon: 'fas fa-mobile-alt' },
+            { id: 'zelle', name: 'Zelle', icon: 'fas fa-building-columns' },
+            { id: 'binance', name: 'Binance', icon: 'fab fa-bitcoin' },
+            { id: 'paypal', name: 'PayPal', icon: 'fab fa-paypal' }
+        ];
+
+        paymentMethodsGrid.innerHTML = '';
+        methods.forEach(method => {
+            const card = document.createElement('div');
+            card.className = 'method-card';
+            card.dataset.method = method.id;
+            card.innerHTML = `
+                <i class="${method.icon}" style="font-size: 1.8rem; color: #FFD700; margin-bottom: 5px;"></i>
+                <span>${method.name}</span>
+            `;
+            card.addEventListener('click', () => selectMethod(method.id, card));
+            paymentMethodsGrid.appendChild(card);
+        });
+    }
+
+    function selectMethod(methodId, cardElement) {
+        document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+        cardElement.classList.add('selected');
+        selectedMethod = methodId;
+        showCompanyData(methodId);
+        renderDynamicForm(methodId);
+    }
+
+    function showCompanyData(methodId) {
+        const data = companyAccounts[methodId];
+        if (!data) return;
+
+        companyDataBox.style.display = 'block';
+        companyDataContent.innerHTML = `
+            <h4 style="margin-bottom: 15px; color: #FFD700;"><i class="fas fa-building"></i> ${data.titulo}</h4>
+            ${data.datos.map(d => `
+                <div class="data-row">
+                    <span class="label">${d.label}:</span>
+                    <span class="value" style="cursor: pointer;" onclick="navigator.clipboard.writeText('${d.value}')" title="Copiar al portapapeles">
+                        ${d.value} <i class="fas fa-copy" style="font-size: 0.8rem; margin-left: 5px; color: #888;"></i>
+                    </span>
+                </div>
+            `).join('')}
+        `;
+    }
+
+    function renderDynamicForm(methodId) {
+        dynamicForm.style.display = 'block';
+        let fields = '';
+
+        if (methodId === 'pago_movil') {
+            fields = `
+                <div class="form-group">
+                    <label>Banco Emisor</label>
+                    <select name="banco_emisor" required>
+                        <option value="">Selecciona tu banco</option>
+                        <option value="Venezuela">Banco de Venezuela</option>
+                        <option value="Banesco">Banesco</option>
+                        <option value="Mercantil">Mercantil</option>
+                        <option value="Provincial">BBVA Provincial</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono Emisor</label>
+                    <input type="text" name="telefono_emisor" placeholder="0412-1234567" required>
+                </div>
+                <div class="form-group">
+                    <label>Cédula del Titular</label>
+                    <input type="text" name="cedula_emisor" placeholder="V-12345678" required>
+                </div>
+            `;
+        } else if (methodId === 'zelle') {
+            fields = `
+                <div class="form-group">
+                    <label>Nombre del Titular de la cuenta</label>
+                    <input type="text" name="nombre_emisor" placeholder="Nombre completo" required>
+                </div>
+                <div class="form-group">
+                    <label>Correo Zelle Emisor</label>
+                    <input type="email" name="correo_emisor" placeholder="tu@email.com" required>
+                </div>
+            `;
+        } else if (methodId === 'binance') {
+            fields = `
+                <div class="form-group">
+                    <label>ID de Transacción (TxID / Hash)</label>
+                    <input type="text" name="txid" placeholder="Pega el ID de la transacción" required>
+                    <small>Lo encuentras en los detalles de tu retiro en Binance.</small>
+                </div>
+                <div class="form-group">
+                    <label>Red utilizada</label>
+                    <select name="red_binance" required>
+                        <option value="TRC20">TRC20 (Tron)</option>
+                        <option value="BEP20">BEP20 (BSC)</option>
+                    </select>
+                </div>
+            `;
+        } else if (methodId === 'paypal') {
+            fields = `
+                <div class="form-group">
+                    <label>Correo PayPal Emisor</label>
+                    <input type="email" name="correo_emisor" placeholder="tu@email.com" required>
+                </div>
+            `;
+        }
+
+        fields += `
+            <div class="form-group">
+                <label>Número de Referencia</label>
+                <input type="text" name="referencia" placeholder="Últimos 6 dígitos o código completo" required>
+            </div>
+        `;
+
+        userFormFields.innerHTML = fields;
+    }
+
+    // 7. Manejo de Archivos (Comprobante)
+    comprobanteFile.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('El archivo es demasiado grande. Máximo 5MB.', 'error');
+                this.value = '';
+                return;
+            }
+            uploadedFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                filePreview.style.display = 'flex';
+                fileUploadContainer.classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeFile.addEventListener('click', function() {
+        comprobanteFile.value = '';
+        uploadedFile = null;
+        filePreview.style.display = 'none';
+        fileUploadContainer.classList.remove('has-image');
+    });
+
+    // 8. Envío del Formulario
+    formDeposito.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const amount = parseFloat(customAmount.value);
+        if (!amount || amount <= 0) {
+            showMessage('Por favor, ingresa una cantidad válida de BC.', 'error');
+            return;
+        }
+        if (!selectedMethod) {
+            showMessage('Por favor, selecciona un método de pago.', 'error');
+            return;
+        }
+        if (!uploadedFile) {
+            showMessage('Debes adjuntar el comprobante de pago.', 'error');
+            return;
+        }
+
+        btnDepositar.disabled = true;
+        btnDepositar.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
+        showMessage('', '');
+
+        try {
+            // 1. Subir imagen a Supabase Storage
+            const fileExt = uploadedFile.name.split('.').pop();
+            const fileName = `${session.user.id}_${Date.now()}.${fileExt}`;
+            const filePath = `comprobantes/${fileName}`;
+
+            const { error: uploadError } = await db.storage
+                .from('depositos') // Asegúrate de crear este bucket en Supabase
+                .upload(filePath, uploadedFile);
+
+            if (uploadError) throw uploadError;
+
+            // Obtener URL pública
+            const { data: { publicUrl } } = db.storage.from('depositos').getPublicUrl(filePath);
+
+            // 2. Recopilar datos del formulario dinámico
+            const formData = new FormData(formDeposito);
+            const datosPago = {};
+            for (let [key, value] of formData.entries()) {
+                datosPago[key] = value;
+            }
+
+            const usdAmount = parseFloat(customAmount.dataset.rawUsd || 0);
+            const vesAmount = parseFloat(customAmount.dataset.rawVes || 0);
+
+            // 3. Insertar registro en la base de datos
+            const { error: dbError } = await db.from('depositos').insert({
+                user_id: session.user.id,
+                monto_bc: amount,
+                monto_usd: usdAmount,
+                monto_ves: vesAmount,
+                metodo_pago: selectedMethod,
+                datos_pago: datosPago,
+                comprobante_url: publicUrl,
+                estado: 'pendiente',
+                fecha_solicitud: new Date().toISOString()
+            });
+
+            if (dbError) throw dbError;
+
+            // 4. Éxito
+            showSuccessView(amount);
+
+        } catch (err) {
+            console.error('Error al procesar el depósito:', err);
+            showMessage('Error al procesar el depósito: ' + err.message, 'error');
+            btnDepositar.disabled = false;
+            btnDepositar.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+        }
+    });
+
+    function showMessage(text, type) {
+        msgDeposito.textContent = text;
+        msgDeposito.className = 'message ' + (type || '');
+        msgDeposito.style.display = text ? 'block' : 'none';
+    }
+
+    function showSuccessView(amount) {
+        formDeposito.style.display = 'none';
+        document.querySelector('.user-balance-bar').style.display = 'none';
+        document.querySelector('.bcv-banner').style.display = 'none';
+        document.querySelectorAll('.section-title').forEach(el => el.style.display = 'none');
+        document.querySelector('.warning-notice').style.display = 'none';
+        
+        successAmount.textContent = amount;
+        successView.style.display = 'block';
+        
+        // Generar PDF
+        generatePDF(amount);
+    }
+
+    window.nuevoDeposito = function() {
+        formDeposito.reset();
+        formDeposito.style.display = 'block';
+        document.querySelector('.user-balance-bar').style.display = 'flex';
+        document.querySelector('.bcv-banner').style.display = 'flex';
+        document.querySelectorAll('.section-title').forEach(el => el.style.display = 'flex');
+        document.querySelector('.warning-notice').style.display = 'flex';
+        
+        successView.style.display = 'none';
+        selectedPackage = null;
+        selectedMethod = null;
+        uploadedFile = null;
+        
+        document.querySelectorAll('.package-card, .method-card').forEach(c => c.classList.remove('selected'));
+        companyDataBox.style.display = 'none';
+        dynamicForm.style.display = 'none';
+        filePreview.style.display = 'none';
+        fileUploadContainer.classList.remove('has-image');
+        btnDepositar.disabled = false;
+        btnDepositar.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
+        showMessage('', '');
+        calculateTotals();
     };
 
-    // ============================================
-    // 🔒 7. PROTEGER RUTA (Limpia y optimizada)
-    // ============================================
-    async function protegerRuta() {
-        try {
-            const { data: { session }, error: sessionError } = await db.auth.getSession();
+    function generatePDF(amount) {
+        if (typeof window.jspdf !== 'undefined') {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             
-            if (sessionError) {
-                console.error('Error de sesión:', sessionError);
-            }
-
-            if (!session || !session.user) { 
-                console.warn('⚠️ No hay sesión activa, redirigiendo al login...');
-                window.location.href = 'index.html'; 
-                return; 
-            }
-
-            const user = session.user; // Definimos 'user' aquí de forma segura
-
-            // 🛡️ VERIFICAR BLOQUEO PERMANENTE
-            const { data: perfil, error: perfilError } = await db
-                .from('perfiles')
-                .select('bloqueado, motivo_bloqueo')
-                .eq('id', user.id)
-                .maybeSingle();
-
-            if (perfilError) {
-                console.warn('⚠️ No se pudo verificar el estado de bloqueo:', perfilError.message);
-            }
-
-            if (perfil && perfil.bloqueado === true) {
-                console.warn(`🚫 Acceso denegado: Cuenta bloqueada (${user.email})`);
-                await db.auth.signOut({ scope: 'global' });
-                localStorage.removeItem('session_token');
-                
-                const motivo = perfil.motivo_bloqueo || 'Violación de las políticas de la plataforma.';
-                sessionStorage.setItem('auth_message', `🚫 <strong>TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE</strong><br><br>Motivo: ${motivo}<br><br>Contacta a soporte si crees que esto es un error.`);
-                sessionStorage.setItem('auth_type', 'error');
-                
-                window.location.href = 'index.html';
-                return; 
-            }
-
-            // ✅ CARGA NORMAL DEL DASHBOARD
-            const perfilCompleto = await cargarOCrearPerfil(user);
-            estadoKyc = (perfilCompleto?.estado_kyc || '').toString().toLowerCase().trim();
+            doc.setFontSize(20);
+            doc.text('Boche Clavao - Comprobante de Solicitud', 20, 30);
             
-            mostrarDatos(user, perfilCompleto);
+            doc.setFontSize(12);
+            doc.text(`Fecha: ${new Date().toLocaleString('es-VE')}`, 20, 50);
+            doc.text(`Usuario: ${userProfile?.nombre || session.user.email}`, 20, 60);
+            doc.text(`ID de Usuario: ${userProfile?.user_id || 'N/A'}`, 20, 70);
             
-            try {
-                await cargarStreamEnVivo();
-            } catch (streamErr) {
-                console.warn('⚠️ Error cargando stream:', streamErr.message);
-            }
-
-            if (loadingState) loadingState.style.display = 'none';
-            if (contentState) contentState.style.display = 'block';
+            doc.setFontSize(16);
+            doc.setTextColor(0, 128, 0);
+            doc.text(`Monto Solicitado: ${amount} BC`, 20, 90);
             
-            // ✅ Iniciar Realtime pasando el objeto 'user' directamente como argumento
-            iniciarRealtime(user);
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text('Este documento es una constancia de solicitud. Las monedas se acreditarán tras la validación manual.', 20, 110);
+            doc.text('Tiempo estimado de revisión: 15 a 30 minutos.', 20, 120);
             
-        } catch (err) {
-            console.error('❌ Error crítico en la guardia de seguridad:', err);
-            if (loadingState) loadingState.style.display = 'none';
-            if (errorState) {
-                errorState.style.display = 'block';
-                errorState.innerHTML = `<i class="fas fa-exclamation-triangle"></i><p>Error al cargar el dashboard. <br><small>${err.message}</small></p>`;
-            }
-            if (err.message && err.message.toLowerCase().includes('session')) {
-                setTimeout(() => { window.location.href = 'index.html'; }, 3000);
-            }
+            doc.save(`solicitud_deposito_${Date.now()}.pdf`);
         }
     }
 
-    protegerRuta();
-
-    // ============================================
-    // 🚪 CERRAR SESIÓN
-    // ============================================
-    window.cerrarSesion = async function() {
-        if (!db) return;
-        try {
-            const { error } = await db.auth.signOut({ scope: 'global' });
-            if (error) throw error;
-            localStorage.removeItem('session_token');
-            window.location.href = 'index.html';
-        } catch (err) {
-            console.error('Error al cerrar sesión:', err);
-            alert('Hubo un error al cerrar sesión.');
-        }
-    }
-
-    // ============================================
-    // ⚡ 8. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
-    // ============================================
-    // Recibimos 'usuarioActivo' como parámetro para NO depender de variables globales
-    function iniciarRealtime(usuarioActivo) {
-        if (!usuarioActivo || !usuarioActivo.id) {
-            console.warn('⚠️ No se pudo iniciar Realtime: usuario no válido');
-            return;
-        }
-
-        const userId = usuarioActivo.id;
-
-        // 1. Escuchar cambios en el saldo del usuario
-        const channelSaldo = db.channel('saldo_updates')
-            .on('postgres_changes', 
-                { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${userId}` }, 
-                (payload) => {
-                    const nuevoSaldo = payload.new.saldo_bc ?? 0;
-                    const balanceEl = document.getElementById('balanceAmount');
-                    if (balanceEl) {
-                        balanceEl.textContent = `${parseFloat(nuevoSaldo).toFixed(2)} PP`;
-                    }
-                }
-            )
-            .subscribe();
-
-        // 2. Escuchar nuevas notificaciones
-        const channelNotif = db.channel('notificaciones_updates')
-            .on('postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${userId}` },
-                (payload) => {
-                    console.log('🔔 Nueva notificación recibida');
-                }
-            )
-            .subscribe();
-    }
+    // Inicialización
+    loadUserData();
+    loadBCVRate();
+    renderPackages();
+    renderPaymentMethods();
 });
