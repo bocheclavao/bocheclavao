@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // 2. VERIFICAR SUSPENSIÓN TEMPORAL
     const { data: checkData } = await db.rpc('check_login_attempt', { p_email: session.user.email, p_action: 'check' });
     if (checkData && checkData.allowed === false) {
         await db.auth.signOut();
@@ -29,7 +28,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // 3. CARGAR DATOS DEL PERFIL
     const { data: perfil, error: perfilError } = await db
         .from('perfiles')
         .select('bloqueado, motivo_bloqueo, saldo_bc, estado_kyc, user_id, nombre, avatar_url')
@@ -63,7 +61,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     const saldo = perfil?.saldo_bc ?? 0;
     document.getElementById('hubBalanceAmount').textContent = `${parseFloat(saldo).toFixed(2)} PP`;
 
-    // 4. LÓGICA DEL BANNER KYC
     const kycBanner = document.getElementById('hubKycBanner');
     const kycTitle = document.getElementById('hubKycTitle');
     const kycMessage = document.getElementById('hubKycMessage');
@@ -100,14 +97,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // 5. VERIFICAR SI ES ADMINISTRADOR (LÓGICA BLINDADA)
     let adminData = null;
     
-    // Intentamos buscar primero por la columna 'id'
     const res1 = await db.from('admin_roles').select('es_admin, activo').eq('id', session.user.id).maybeSingle();
     if (res1.data) adminData = res1.data;
     
-    // Si no encuentra, intentamos con 'user_id' (muy común en Supabase)
     if (!adminData) {
         const res2 = await db.from('admin_roles').select('es_admin, activo').eq('user_id', session.user.id).maybeSingle();
         if (res2.data) adminData = res2.data;
@@ -115,7 +109,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     console.log('🔍 [DEBUG] Datos de admin encontrados:', adminData);
 
-    // Verificamos si es admin (aceptando booleano true o string 'true')
     const esAdmin = adminData && (adminData.es_admin === true || adminData.es_admin === 'true');
     
     if (esAdmin) {
@@ -126,7 +119,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('❌ [DEBUG] Usuario NO es admin o no tiene registro en admin_roles - Botón oculto');
     }
 
-    // 6. VERIFICACIÓN DE SESIÓN DUPLICADA
     async function registrarMiSesion() {
         try {
             const token = session.access_token;
@@ -174,7 +166,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     await verificarSesionActiva();
     sessionCheckInterval = setInterval(verificarSesionActiva, 5000);
 
-    // 7. FUNCIONES GLOBALES (Incluyendo el nuevo Modal KYC)
     window.cerrarSesion = async function() {
         if (confirm('¿Cerrar sesión?')) {
             if (sessionCheckInterval) clearInterval(sessionCheckInterval);
@@ -186,7 +177,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     window.irAPanelAdmin = function() { window.location.href = 'admin.html'; };
 
-    // Funciones del Modal KYC Profesional
     window.mostrarModalKYC = function() {
         const modal = document.getElementById('kycModal');
         if (modal) modal.style.display = 'flex';
@@ -227,7 +217,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    // 8. BLOQUEAR JUEGOS SI NO ESTÁ VERIFICADO (Usando el nuevo Modal)
     const gameCards = document.querySelectorAll('.game-card.active');
     gameCards.forEach(card => {
         if (estadoKyc !== 'verificado') {
@@ -244,7 +233,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
             card.appendChild(lockOverlay);
             
-            // Al hacer clic, mostrar el modal profesional en lugar del alert()
             card.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
