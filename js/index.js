@@ -197,9 +197,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                if (data.user) {
+                            if (data.user) {
                     try {
-                        const sessionToken = Date.now().toString(36) + Math.random().toString(36).substr(2);
+                        // ✅ USAR EL ACCESS_TOKEN REAL DE SUPABASE (no un token inventado)
+                        const sessionToken = data.session.access_token;
                         await db.from('active_sessions').upsert({
                             user_id: data.user.id,
                             session_token: sessionToken,
