@@ -1,4 +1,3 @@
-// js/dashboard.js
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     let currentUser = null;
@@ -83,15 +82,31 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function verificarSiEsAdmin(userId) {
         try {
-            const { data, error } = await db.from('admin_roles')
+            // Intentar primero con la columna 'id'
+            let { data, error } = await db.from('admin_roles')
                 .select('es_admin, activo')
                 .eq('id', userId)
                 .eq('es_admin', true)
                 .eq('activo', true)
                 .maybeSingle();
+            
+            // Si no encuentra, intentar con 'user_id' (respaldo)
+            if (!data) {
+                const res2 = await db.from('admin_roles')
+                    .select('es_admin, activo')
+                    .eq('user_id', userId)
+                    .eq('es_admin', true)
+                    .eq('activo', true)
+                    .maybeSingle();
+                data = res2.data;
+            }
+            
             if (error || !data) return false;
             return true;
-        } catch (err) { return false; }
+        } catch (err) { 
+            console.error('Error verificando admin:', err);
+            return false; 
+        }
     }
 
     function agregarBotonAdmin() {
@@ -357,13 +372,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-        function mostrarDatos(user, perfil) {
+    function mostrarDatos(user, perfil) {
         const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
         const email = user.email;
         const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
-        const estado = perfil?.estado_kyc || null;
-        saldoBC = perfil?.saldo_bc ?? perfil?.saldo_pp ?? 0;
+        const estado = (perfil?.estado_kyc || '').toString().toLowerCase().trim(); // Normalizado
+        saldoBC = perfil?.saldo_bc ?? 0;
 
         userNameDisplay.textContent = nombre; 
         userEmailDisplay.textContent = email;
@@ -379,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         dropdownUserName.textContent = nombre; 
         dropdownUserEmail.textContent = email;
-        balanceAmount.textContent = `${parseFloat(saldoBC).toFixed(2)} PP`; // Actualizado a PP
+        balanceAmount.textContent = `${parseFloat(saldoBC).toFixed(2)} PP`; // Unificado a PP como solicitaste
 
         if (avatarUrl) { 
             avatarImage.src = avatarUrl; 
@@ -392,16 +407,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         mostrarAvatarNavbar(nombre, avatarUrl);
-        // ✅ Se eliminó la llamada a actualizarBannerKYC(estado)
+        
+        // ✅ CORRECCIÓN CRÍTICA: Ahora SÍ se llama a la función para mostrar/ocultar el banner
+        actualizarBannerKYC(estado);
 
         verificarSiEsAdmin(user.id).then(esAdmin => { 
             if (esAdmin) agregarBotonAdmin(); 
         });
     }
+
     window.seleccionarRol = function(rol) {
         if (estadoKyc !== 'verificado') {
-            alert('Debes completar y ser aprobado en la verificación KYC antes de poder participar.');
-            window.location.href = 'perfil.html'; 
+            // Usamos el modal profesional en lugar de alert() si está disponible, o alert como fallback
+            if (typeof window.mostrarModalKYC === 'function') {
+                window.mostrarModalKYC();
+            } else {
+                alert('Debes completar y ser aprobado en la verificación KYC antes de poder participar.');
+            }
             return;
         }
         if (rol === 'bochador') window.location.href = 'dashboard-bochador.html';
@@ -415,9 +437,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             const { data: { session }, error: sessionError } = await db.auth.getSession();
             
-            if (sessionError) {
-                console.error('Error de sesión:', sessionError);
-            }
+            if (sessionError) console.error('Error de sesión:', sessionError);
 
             if (!session || !session.user) { 
                 console.warn('⚠️ No hay sesión activa, redirigiendo al login...');
@@ -435,9 +455,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('id', user.id)
                 .maybeSingle();
 
-            if (perfilError) {
-                console.warn('⚠️ No se pudo verificar el estado de bloqueo:', perfilError.message);
-            }
+            if (perfilError) console.warn('⚠️ No se pudo verificar el estado de bloqueo:', perfilError.message);
 
             if (perfil && perfil.bloqueado === true) {
                 console.warn(`🚫 Acceso denegado: Cuenta bloqueada (${user.email})`);
@@ -445,7 +463,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 localStorage.removeItem('session_token');
                 
                 const motivo = perfil.motivo_bloqueo || 'Violación de las políticas de la plataforma.';
-                sessionStorage.setItem('auth_message', `🚫 TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE\n\nMotivo: ${motivo}\n\nContacta a soporte si crees que esto es un error.`);
+                sessionStorage.setItem('auth_message', `🚫 <strong>TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE</strong><br><br>Motivo: ${motivo}<br><br>Contacta a soporte si crees que esto es un error.`);
                 sessionStorage.setItem('auth_type', 'error');
                 
                 window.location.href = 'index.html';
@@ -454,7 +472,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // ✅ CARGA NORMAL DEL DASHBOARD
             const perfilCompleto = await cargarOCrearPerfil(user);
-            estadoKyc = perfilCompleto?.estado_kyc || null;
+            estadoKyc = (perfilCompleto?.estado_kyc || '').toString().toLowerCase().trim();
             
             mostrarDatos(user, perfilCompleto);
             
@@ -517,10 +535,10 @@ function iniciarRealtime() {
         .on('postgres_changes', 
             { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${currentUser.id}` }, 
             (payload) => {
-                const nuevoSaldo = payload.new.saldo_bc;
+                const nuevoSaldo = payload.new.saldo_bc ?? 0;
                 const balanceEl = document.getElementById('balanceAmount');
                 if (balanceEl) {
-                    balanceEl.textContent = `${nuevoSaldo.toFixed(2)} BC`;
+                    balanceEl.textContent = `${parseFloat(nuevoSaldo).toFixed(2)} PP`;
                 }
                 console.log('💰 Saldo actualizado en tiempo real:', nuevoSaldo);
             }
@@ -533,6 +551,7 @@ function iniciarRealtime() {
             { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${currentUser.id}` },
             (payload) => {
                 console.log('🔔 Nueva notificación recibida:', payload.new);
+                // Aquí puedes agregar lógica para actualizar el badge de notificaciones
             }
         )
         .subscribe();
