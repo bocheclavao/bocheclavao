@@ -286,12 +286,12 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSession();
 
     // 🚨 4. MOSTRAR MENSAJE DE EXPULSIÓN / DUPLICADA / BLOQUEO SI EXISTE
-    const logoutReason = sessionStorage.getItem('auth_message');
-    const logoutType = sessionStorage.getItem('auth_type') || 'info';
-    
-    if (logoutReason) {
-        showMessage(logoutReason, logoutType);
-        sessionStorage.removeItem('auth_message');
-        sessionStorage.removeItem('auth_type');
-    }
+  const logoutReason = sessionStorage.getItem('auth_message');
+const logoutType = sessionStorage.getItem('auth_type') || 'info';
+
+if (logoutReason) {
+    showMessage(logoutReason, logoutType);
+    sessionStorage.removeItem('auth_message');
+    sessionStorage.removeItem('auth_type');
+}
 });
