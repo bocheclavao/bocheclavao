@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
-    let currentUser = null;
     
     if (!db) {
         console.error('No se pudo obtener el cliente de Supabase');
@@ -82,7 +81,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function verificarSiEsAdmin(userId) {
         try {
-            // Intentar primero con la columna 'id'
             let { data, error } = await db.from('admin_roles')
                 .select('es_admin, activo')
                 .eq('id', userId)
@@ -90,7 +88,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('activo', true)
                 .maybeSingle();
             
-            // Si no encuentra, intentar con 'user_id' (respaldo)
             if (!data) {
                 const res2 = await db.from('admin_roles')
                     .select('es_admin, activo')
@@ -377,13 +374,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         const email = user.email;
         const userId = perfil?.user_id || generarIdUnico();
         const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
-        const estado = (perfil?.estado_kyc || '').toString().toLowerCase().trim(); // Normalizado
+        const estado = (perfil?.estado_kyc || '').toString().toLowerCase().trim();
         saldoBC = perfil?.saldo_bc ?? 0;
 
         userNameDisplay.textContent = nombre; 
         userEmailDisplay.textContent = email;
         
-        // ✅ ESTADO DE VERIFICACIÓN CLARO AL LADO DEL ID
         if (estado === 'verificado') {
             userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Verificado</span>`;
         } else if (estado === 'pendiente' || estado === 'revision') {
@@ -394,7 +390,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         dropdownUserName.textContent = nombre; 
         dropdownUserEmail.textContent = email;
-        balanceAmount.textContent = `${parseFloat(saldoBC).toFixed(2)} PP`; // Unificado a PP como solicitaste
+        balanceAmount.textContent = `${parseFloat(saldoBC).toFixed(2)} PP`;
 
         if (avatarUrl) { 
             avatarImage.src = avatarUrl; 
@@ -407,8 +403,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         mostrarAvatarNavbar(nombre, avatarUrl);
-        
-        // ✅ CORRECCIÓN CRÍTICA: Ahora SÍ se llama a la función para mostrar/ocultar el banner
         actualizarBannerKYC(estado);
 
         verificarSiEsAdmin(user.id).then(esAdmin => { 
@@ -418,7 +412,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     window.seleccionarRol = function(rol) {
         if (estadoKyc !== 'verificado') {
-            // Usamos el modal profesional en lugar de alert() si está disponible, o alert como fallback
             if (typeof window.mostrarModalKYC === 'function') {
                 window.mostrarModalKYC();
             } else {
@@ -437,7 +430,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             const { data: { session }, error: sessionError } = await db.auth.getSession();
             
-            if (sessionError) console.error('Error de sesión:', sessionError);
+            if (sessionError) {
+                console.error('Error de sesión:', sessionError);
+            }
 
             if (!session || !session.user) { 
                 console.warn('⚠️ No hay sesión activa, redirigiendo al login...');
@@ -445,8 +440,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return; 
             }
 
-            const user = session.user;
-            currentUser = user;
+            const user = session.user; // Definimos 'user' aquí de forma segura
 
             // 🛡️ VERIFICAR BLOQUEO PERMANENTE
             const { data: perfil, error: perfilError } = await db
@@ -455,7 +449,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('id', user.id)
                 .maybeSingle();
 
-            if (perfilError) console.warn('⚠️ No se pudo verificar el estado de bloqueo:', perfilError.message);
+            if (perfilError) {
+                console.warn('⚠️ No se pudo verificar el estado de bloqueo:', perfilError.message);
+            }
 
             if (perfil && perfil.bloqueado === true) {
                 console.warn(`🚫 Acceso denegado: Cuenta bloqueada (${user.email})`);
@@ -485,8 +481,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (loadingState) loadingState.style.display = 'none';
             if (contentState) contentState.style.display = 'block';
             
-            // Iniciar Realtime después de cargar
-            iniciarRealtime();
+            // ✅ Iniciar Realtime pasando el objeto 'user' directamente como argumento
+            iniciarRealtime(user);
             
         } catch (err) {
             console.error('❌ Error crítico en la guardia de seguridad:', err);
@@ -502,57 +498,57 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     protegerRuta();
-});
 
-// ============================================
-// 🚪 CERRAR SESIÓN
-// ============================================
-async function cerrarSesion() {
-    const db = window.supabaseClient;
-    if (!db) return;
-    try {
-        const { error } = await db.auth.signOut({ scope: 'global' });
-        if (error) throw error;
-        localStorage.removeItem('session_token');
-        window.location.href = 'index.html';
-    } catch (err) {
-        console.error('Error al cerrar sesión:', err);
-        alert('Hubo un error al cerrar sesión.');
-    }
-}
-
-// ============================================
-// ⚡ 8. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
-// ============================================
-function iniciarRealtime() {
-    if (!currentUser) {
-        console.warn('⚠️ No se pudo iniciar Realtime: currentUser es null');
-        return;
+    // ============================================
+    // 🚪 CERRAR SESIÓN
+    // ============================================
+    window.cerrarSesion = async function() {
+        if (!db) return;
+        try {
+            const { error } = await db.auth.signOut({ scope: 'global' });
+            if (error) throw error;
+            localStorage.removeItem('session_token');
+            window.location.href = 'index.html';
+        } catch (err) {
+            console.error('Error al cerrar sesión:', err);
+            alert('Hubo un error al cerrar sesión.');
+        }
     }
 
-    // 1. Escuchar cambios en el saldo del usuario
-    const channelSaldo = db.channel('saldo_updates')
-        .on('postgres_changes', 
-            { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${currentUser.id}` }, 
-            (payload) => {
-                const nuevoSaldo = payload.new.saldo_bc ?? 0;
-                const balanceEl = document.getElementById('balanceAmount');
-                if (balanceEl) {
-                    balanceEl.textContent = `${parseFloat(nuevoSaldo).toFixed(2)} PP`;
+    // ============================================
+    // ⚡ 8. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
+    // ============================================
+    // Recibimos 'usuarioActivo' como parámetro para NO depender de variables globales
+    function iniciarRealtime(usuarioActivo) {
+        if (!usuarioActivo || !usuarioActivo.id) {
+            console.warn('⚠️ No se pudo iniciar Realtime: usuario no válido');
+            return;
+        }
+
+        const userId = usuarioActivo.id;
+
+        // 1. Escuchar cambios en el saldo del usuario
+        const channelSaldo = db.channel('saldo_updates')
+            .on('postgres_changes', 
+                { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${userId}` }, 
+                (payload) => {
+                    const nuevoSaldo = payload.new.saldo_bc ?? 0;
+                    const balanceEl = document.getElementById('balanceAmount');
+                    if (balanceEl) {
+                        balanceEl.textContent = `${parseFloat(nuevoSaldo).toFixed(2)} PP`;
+                    }
                 }
-                console.log('💰 Saldo actualizado en tiempo real:', nuevoSaldo);
-            }
-        )
-        .subscribe();
+            )
+            .subscribe();
 
-    // 2. Escuchar nuevas notificaciones
-    const channelNotif = db.channel('notificaciones_updates')
-        .on('postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${currentUser.id}` },
-            (payload) => {
-                console.log('🔔 Nueva notificación recibida:', payload.new);
-                // Aquí puedes agregar lógica para actualizar el badge de notificaciones
-            }
-        )
-        .subscribe();
-}
+        // 2. Escuchar nuevas notificaciones
+        const channelNotif = db.channel('notificaciones_updates')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${userId}` },
+                (payload) => {
+                    console.log('🔔 Nueva notificación recibida');
+                }
+            )
+            .subscribe();
+    }
+});
