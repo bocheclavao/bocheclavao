@@ -9,8 +9,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     const { data: { session } } = await db.auth.getSession();
     if (!session || !session.user) { window.location.href = 'index.html'; return; }
 
-    // 1. VERIFICAR BLOQUEO PERMANENTE
-    const { data: perfil } = await db.from('perfiles').select('bloqueado, motivo_bloqueo, saldo_bc, saldo_pp, estado_kyc').eq('id', session.user.id).maybeSingle();
+    // 1. OBTENER DATOS DEL PERFIL COMPLETOS
+    const { data: perfil, error: perfilError } = await db
+        .from('perfiles')
+        .select('bloqueado, motivo_bloqueo, saldo_bc, saldo_pp, estado_kyc, user_id, nombre')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+    if (perfilError) console.warn('Error cargando perfil:', perfilError);
+
+    // 2. VERIFICAR BLOQUEO PERMANENTE
     if (perfil && perfil.bloqueado === true) {
         await db.auth.signOut();
         sessionStorage.setItem('auth_message', `🚫 <strong>TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE</strong><br><br>Motivo: ${perfil.motivo_bloqueo || 'Violación de políticas.'}`);
@@ -19,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // 2. VERIFICAR SUSPENSIÓN TEMPORAL
+    // 3. VERIFICAR SUSPENSIÓN TEMPORAL
     const { data: checkData } = await db.rpc('check_login_attempt', { p_email: session.user.email, p_action: 'check' });
     if (checkData && checkData.allowed === false) {
         await db.auth.signOut();
@@ -29,53 +37,54 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // 3. ACTUALIZAR SALDO EN PP (Hub)
-    const saldo = perfil?.saldo_pp ?? perfil?.saldo_bc ?? 0;
-    const balanceEl = document.getElementById('hubBalanceAmount');
-    if (balanceEl) balanceEl.textContent = `${parseFloat(saldo).toFixed(2)} PP`;
-
-    // 4. ACTUALIZAR BANNER KYC (Hub)
-    const kycBanner = document.getElementById('hubKycBanner');
-    const kycTitle = document.getElementById('hubKycTitle');
-    const kycMessage = document.getElementById('hubKycMessage');
-    const kycBtn = document.getElementById('hubKycBtn');
+    // 4. ACTUALIZAR UI CON DATOS DEL USUARIO (Correcciones 2 y 3)
+    const nombre = perfil?.nombre || session.user.user_metadata?.nombre || session.user.user_metadata?.full_name || 'Usuario';
+    const email = session.user.email;
+    const userId = perfil?.user_id || 'ID no disponible';
     const estadoKyc = perfil?.estado_kyc;
 
-    if (kycBanner) {
-        if (estadoKyc === 'verificado') {
-            kycBanner.style.display = 'none';
-        } else {
-            kycBanner.style.display = 'flex';
-            if (!estadoKyc || estadoKyc === '') {
-                kycBanner.className = 'kyc-banner';
-                kycTitle.textContent = '⚠️ Verificación KYC Pendiente';
-                kycMessage.textContent = 'Para participar en cualquier juego, debes completar tu verificación de identidad (KYC).';
-                kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora';
-                kycBtn.style.pointerEvents = 'auto';
-            } else if (estadoKyc === 'pendiente' || estadoKyc === 'revision') {
-                kycBanner.className = 'kyc-banner';
-                kycBanner.style.borderColor = '#FFA500';
-                kycTitle.textContent = '⏳ Verificación KYC en Revisión';
-                kycMessage.textContent = 'Tus documentos están siendo revisados por nuestro equipo.';
-                kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión';
-                kycBtn.style.pointerEvents = 'none';
-                kycBtn.style.opacity = '0.6';
-            } else if (estadoKyc === 'rechazado') {
-                kycBanner.className = 'kyc-banner rejected';
-                kycTitle.textContent = '❌ Verificación KYC Rechazada';
-                kycMessage.textContent = 'Tus documentos no fueron aprobados. Por favor, vuelve a enviarlos.';
-                kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar';
-                kycBtn.style.pointerEvents = 'auto';
-            }
-        }
+    document.getElementById('hubUserName').textContent = nombre;
+    document.getElementById('hubUserEmail').textContent = email;
+
+    // Lógica robusta para el badge de KYC
+    let kycBadgeHtml = '<span class="kyc-badge pending"><i class="fas fa-exclamation-circle"></i> Pendiente</span>';
+    if (estadoKyc && estadoKyc.toLowerCase() === 'verificado') {
+        kycBadgeHtml = '<span class="kyc-badge verified"><i class="fas fa-check-circle"></i> Verificado</span>';
+    } else if (estadoKyc === 'pendiente' || estadoKyc === 'revision') {
+        kycBadgeHtml = '<span class="kyc-badge review"><i class="fas fa-clock"></i> En Revisión</span>';
+    }
+    
+    document.getElementById('hubUserId').innerHTML = `ID: ${userId} ${kycBadgeHtml}`;
+
+    // Actualizar saldo (PP o BC como fallback)
+    const saldo = perfil?.saldo_pp ?? perfil?.saldo_bc ?? 0;
+    document.getElementById('hubBalanceAmount').textContent = `${parseFloat(saldo).toFixed(2)} PP`;
+
+    // 5. VERIFICAR SI ES ADMINISTRADOR (Corrección 4)
+    // NOTA: Si tu tabla admin_roles usa 'user_id' en lugar de 'id', cambia '.eq('id', ...)' por '.eq('user_id', ...)'
+    const { data: adminData, error: adminError } = await db
+        .from('admin_roles')
+        .select('es_admin, activo')
+        .eq('id', session.user.id) 
+        .maybeSingle();
+
+    if (adminData && adminData.es_admin === true && adminData.activo === true) {
+        btnAdmin.style.display = 'flex';
+    } else {
+        btnAdmin.style.display = 'none';
     }
 
-    // 5. VERIFICACIÓN DE SESIÓN DUPLICADA (Mantenida)
+    // 6. VERIFICACIÓN DE SESIÓN DUPLICADA
     async function registrarMiSesion() {
         try {
             const token = session.access_token;
             localStorage.setItem('session_token', token);
-            await db.from('active_sessions').upsert({ user_id: session.user.id, session_token: token, last_active: new Date().toISOString(), device_info: navigator.userAgent.substring(0, 200) });
+            await db.from('active_sessions').upsert({ 
+                user_id: session.user.id, 
+                session_token: token, 
+                last_active: new Date().toISOString(), 
+                device_info: navigator.userAgent.substring(0, 200) 
+            });
         } catch (e) { console.warn('⚠️ No se pudo registrar sesión:', e.message); }
     }
 
@@ -118,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await verificarSesionActiva();
     sessionCheckInterval = setInterval(verificarSesionActiva, 5000);
 
-    // 6. FUNCIONES GLOBALES
+    // 7. FUNCIONES GLOBALES
     window.cerrarSesion = async function() {
         if (confirm('¿Cerrar sesión?')) {
             if (sessionCheckInterval) clearInterval(sessionCheckInterval);
@@ -130,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     window.irAPanelAdmin = function() { window.location.href = 'admin.html'; };
 
-    // 7. FUNCIONES DEL CHAT
+    // 8. FUNCIONES DEL CHAT (Corrección 5)
     window.toggleChat = function() {
         const chatWindow = document.getElementById('chatWindow');
         chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
@@ -143,11 +152,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg user';
             msgDiv.textContent = input.value;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'msg-time';
+            const now = new Date();
+            timeDiv.textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+            msgDiv.appendChild(timeDiv);
+            
             messages.appendChild(msgDiv);
             input.value = '';
             messages.scrollTop = messages.scrollHeight;
             
-            // Simulación de respuesta
             setTimeout(() => {
                 const replyDiv = document.createElement('div');
                 replyDiv.className = 'msg admin';
@@ -157,10 +172,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }, 1000);
         }
     };
-
-    document.getElementById('chatInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') window.sendChatMessage();
-    });
 
     console.log('✅ Hub de Juegos cargado correctamente.');
 });
