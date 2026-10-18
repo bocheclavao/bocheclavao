@@ -10,9 +10,47 @@
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Montserrat', sans-serif; background-color: #000000; background-image: radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 25%), radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.06) 0%, transparent 25%); min-height: 100vh; color: #ffffff; display: flex; flex-direction: column; }
-        
-        .navbar { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #222; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #000000;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.06) 0%, transparent 25%),
+                radial-gradient(circle at 50% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 30%);
+            background-size: 200% 200%;
+            animation: moveBackground 20s ease-in-out infinite alternate;
+            min-height: 100vh;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(255, 215, 0, 0.15) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+        @keyframes moveBackground {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+
+        .navbar {
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #222;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
         .navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
         .navbar-logo { max-width: 50px; height: auto; }
         .navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
@@ -24,19 +62,23 @@
         .btn-logout { border-color: #ff4444; color: #ff4444; }
         .btn-logout:hover { background: rgba(255, 68, 68, 0.1); }
 
-        /* 💰 BARRA DE SALDO Y PERFIL (Reestructurada) */
-        .hub-balance-bar { background: rgba(10, 10, 10, 0.95); border-bottom: 1px solid #222; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        
-        .user-hub-info { display: flex; flex-direction: column; gap: 4px; }
+        .hub-balance-bar { 
+            background: rgba(10, 10, 10, 0.95); 
+            border-bottom: 1px solid #222; 
+            padding: 15px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            gap: 15px; 
+        }
+        .user-hub-info { display: flex; align-items: center; }
+        .user-hub-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #FFD700; background: #111; margin-right: 12px; }
+        .user-hub-details { display: flex; flex-direction: column; gap: 2px; }
         .user-hub-name { font-size: 1rem; font-weight: 700; color: #ffffff; }
         .user-hub-email { font-size: 0.8rem; color: #999; }
         .user-hub-id { font-size: 0.8rem; color: #ccc; display: flex; align-items: center; gap: 8px; }
         
-        .kyc-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; }
-        .kyc-badge.verified { background: rgba(0, 255, 0, 0.15); color: #00ff00; border: 1px solid rgba(0, 255, 0, 0.3); }
-        .kyc-badge.pending { background: rgba(255, 68, 68, 0.15); color: #ff4444; border: 1px solid rgba(255, 68, 68, 0.3); }
-        .kyc-badge.review { background: rgba(255, 165, 0, 0.15); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.3); }
-
         .balance-right-side { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
         .balance-display { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border: 1px solid #FFD700; border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
         .balance-icon-img { width: 32px; height: 32px; object-fit: contain; border-radius: 50%; background: rgba(255, 215, 0, 0.1); padding: 4px; }
@@ -45,7 +87,6 @@
         .btn-depositar { padding: 8px 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; }
         .btn-depositar:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); }
 
-        /* 🎯 MARQUESINA (Transparente y debajo del saldo) */
         .marquee-container { 
             background: rgba(255, 215, 0, 0.08); 
             backdrop-filter: blur(5px);
@@ -61,6 +102,25 @@
         }
         .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; }
         @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
+
+        /* 🛡️ ESTILOS DEL BANNER KYC (Restaurados del Dashboard) */
+        .kyc-banner {
+            background: rgba(26, 26, 26, 0.9); border: 2px solid #FFA500; border-radius: 12px;
+            padding: 25px; margin: 0 auto 30px; max-width: 800px; display: flex; align-items: center; gap: 20px;
+            animation: slideDown 0.5s ease; backdrop-filter: blur(5px);
+        }
+        .kyc-banner.verified { border-color: #00ff00; background: rgba(10, 26, 10, 0.9); }
+        .kyc-banner.rejected { border-color: #ff4444; background: rgba(26, 10, 10, 0.9); }
+        .kyc-icon { font-size: 2.5rem; color: #FFA500; }
+        .kyc-banner.verified .kyc-icon { color: #00ff00; }
+        .kyc-banner.rejected .kyc-icon { color: #ff4444; }
+        .kyc-content h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; color: #FFD700; }
+        .kyc-banner.verified .kyc-content h3 { color: #00ff00; }
+        .kyc-banner.rejected .kyc-content h3 { color: #ff4444; }
+        .kyc-content p { color: #cccccc; font-size: 0.9rem; line-height: 1.5; margin-bottom: 15px; }
+        .btn-kyc { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; }
+        .btn-kyc:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
         .main-content { flex: 1; padding: 40px 20px; max-width: 1200px; margin: 0 auto; width: 100%; }
         .page-header { text-align: center; margin-bottom: 40px; }
@@ -88,7 +148,6 @@
         .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
         .footer-text span { color: #FFD700; font-weight: 600; }
 
-        /* 💬 WIDGET DE CHAT (Exactamente como en Dashboard) */
         .chat-bubble { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4); z-index: 9998; transition: transform 0.3s ease; display: flex; align-items: center; justify-content: center; }
         .chat-bubble:hover { transform: scale(1.1); }
         .chat-window { position: fixed; bottom: 100px; right: 25px; width: 350px; height: 500px; background: #0a0a0a; border: 1px solid #333; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 9999; display: none; flex-direction: column; overflow: hidden; animation: slideUpChat 0.3s ease; }
@@ -116,7 +175,7 @@
 
         @media (max-width: 768px) {
             .hub-balance-bar { flex-direction: column; align-items: stretch; text-align: center; }
-            .user-hub-info { align-items: center; margin-bottom: 10px; }
+            .user-hub-info { justify-content: center; margin-bottom: 10px; }
             .balance-right-side { justify-content: center; }
             .games-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
             .game-card { padding: 20px 15px; }
@@ -129,6 +188,7 @@
             .btn-navbar { padding: 6px 10px; font-size: 0.75rem; }
             .btn-navbar .btn-text { display: none; }
             .chat-window { width: 90%; right: 5%; bottom: 90px; }
+            .kyc-banner { flex-direction: column; text-align: center; padding: 20px; }
         }
         @media (max-width: 400px) { .games-grid { grid-template-columns: 1fr; } }
     </style>
@@ -150,12 +210,14 @@
         </div>
     </nav>
 
-    <!-- 💰 BARRA DE SALDO Y PERFIL -->
     <div class="hub-balance-bar">
         <div class="user-hub-info">
-            <div class="user-hub-name" id="hubUserName">Cargando usuario...</div>
-            <div class="user-hub-email" id="hubUserEmail">...</div>
-            <div class="user-hub-id" id="hubUserId">ID: Cargando...</div>
+            <img id="hubUserAvatar" src="../img/moneda.png" alt="Avatar" class="user-hub-avatar" onerror="this.src='../img/moneda.png'">
+            <div class="user-hub-details">
+                <div class="user-hub-name" id="hubUserName">Cargando usuario...</div>
+                <div class="user-hub-email" id="hubUserEmail">...</div>
+                <div class="user-hub-id" id="hubUserId">ID: Cargando...</div>
+            </div>
         </div>
         <div class="balance-right-side">
             <div class="balance-display">
@@ -171,12 +233,21 @@
         </div>
     </div>
 
-    <!-- 🎯 MARQUESINA DE BIENVENIDA (Ahora transparente y debajo del saldo) -->
     <div class="marquee-container">
         <div class="marquee-text">🎉 ¡Bienvenido a Precision Sport IA! Tu plataforma de confianza. 🏆 Nuevos juegos, torneos y premios se agregan cada semana. ¡Juega, compite y gana! 🎉</div>
     </div>
 
     <div class="main-content">
+        <!-- 🛡️ BANNER KYC (Se muestra/oculta dinámicamente según el estado) -->
+        <div id="hubKycBanner" class="kyc-banner" style="display: none;">
+            <i class="fas fa-shield-alt kyc-icon"></i>
+            <div class="kyc-content">
+                <h3 id="hubKycTitle">Verificación KYC Pendiente</h3>
+                <p id="hubKycMessage">Para participar en cualquier juego, debes completar tu verificación de identidad (KYC). Es rápido y seguro.</p>
+                <a href="perfil.html" class="btn-kyc" id="hubKycBtn"><i class="fas fa-user-check"></i> Completar KYC ahora</a>
+            </div>
+        </div>
+
         <div class="page-header">
             <h1><i class="fas fa-gamepad"></i> Sala de Juegos</h1>
             <p>Selecciona tu experiencia. ¡Nuevos juegos se agregan cada semana!</p>
@@ -212,7 +283,6 @@
         <p class="footer-text">Copyright © todos los derechos reservados<br>Desarrollado professional <span>G/P</span> 2026 - 2027<br>Versión <span>0.1 beta experimental</span></p>
     </footer>
 
-    <!-- 💬 WIDGET DE CHAT DE SOPORTE (Restaurado) -->
     <div id="chatWidget">
         <div class="chat-window" id="chatWindow">
             <div class="chat-header">
