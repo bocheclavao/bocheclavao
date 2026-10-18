@@ -2,27 +2,82 @@ document.addEventListener('DOMContentLoaded', async function() {
     const db = window.supabaseClient;
     if (!db) {
         console.error('No se pudo obtener el cliente de Supabase');
-        window.location.href = 'index.html';
         return;
     }
 
-    // Verificar sesión
-    const { data: { session } } = await db.auth.getSession();
-    if (!session || !session.user) {
-        window.location.href = 'index.html';
-        return;
-    }
+    // ==========================================
+    // 1. CONFIGURACIÓN DE PRECIOS Y MÉTODOS
+    // ==========================================
+    const PRECIO_POR_BC_USD = 1.0; // 1 BC = 1 USD (AJUSTA ESTE VALOR SI TU PRECIO ES DIFERENTE)
+    const COMISION_PORCENTAJE = 0.003; // 0.30%
+    const DESCUENTO_PAQUETE = 0.05; // 5%
 
-    // Referencias al DOM (IDs correctos del HTML)
+    const metodosPago = {
+        pagomovil: {
+            nombre: "Pago Móvil",
+            imagen: "../img/pagomovil.png",
+            icono: "fas fa-mobile-alt",
+            datos: { "Banco": "Banco de Venezuela (0102)", "Teléfono": "0412-1234567", "Cédula": "V-12.345.678" },
+            campos: [
+                { nombre: "banco_emisor", etiqueta: "Tu Banco", tipo: "select", opciones: ["Banco de Venezuela", "Banesco", "Mercantil", "Provincial", "Otro"] },
+                { nombre: "telefono_emisor", etiqueta: "Tu Teléfono", tipo: "text", placeholder: "0412-1234567" },
+                { nombre: "cedula_emisor", etiqueta: "Tu Cédula", tipo: "text", placeholder: "V-12345678" },
+                { nombre: "referencia", etiqueta: "Número de Referencia", tipo: "text", placeholder: "Últimos 6 dígitos o código completo" }
+            ]
+        },
+        zelle: {
+            nombre: "Zelle",
+            imagen: "../img/zelle.png",
+            icono: "fas fa-building-columns",
+            datos: { "Nombre": "Boche Clavao LLC", "Correo": "pagos@bocheclavao.com" },
+            campos: [
+                { nombre: "nombre_emisor", etiqueta: "Nombre del Titular", tipo: "text", placeholder: "Nombre completo" },
+                { nombre: "correo_emisor", etiqueta: "Correo Zelle Emisor", tipo: "email", placeholder: "tu@email.com" },
+                { nombre: "referencia", etiqueta: "ID de Transacción", tipo: "text", placeholder: "ID de la transacción" }
+            ]
+        },
+        binance: {
+            nombre: "Binance Pay",
+            imagen: "../img/binance.png",
+            icono: "fab fa-bitcoin",
+            datos: { "Red": "TRC20 (Tron) / Binance Pay", "Pay ID": "TU_PAY_ID_AQUI" },
+            campos: [
+                { nombre: "txid", etiqueta: "ID de Transacción (TxID / Pay ID)", tipo: "text", placeholder: "Pega el ID de la transacción" },
+                { nombre: "red_binance", etiqueta: "Red utilizada", tipo: "select", opciones: ["TRC20", "BEP20", "Binance Pay"] },
+                { nombre: "referencia", etiqueta: "Número de Referencia", tipo: "text", placeholder: "Opcional" }
+            ]
+        },
+        paypal: {
+            nombre: "PayPal",
+            imagen: "../img/paypal.png",
+            icono: "fab fa-paypal",
+            datos: { "Correo": "pagos@bocheclavao.com", "Tipo": "Amigos y Familiares" },
+            campos: [
+                { nombre: "correo_emisor", etiqueta: "Tu Correo PayPal", tipo: "email", placeholder: "tu@email.com" },
+                { nombre: "referencia", etiqueta: "ID de Transacción", tipo: "text", placeholder: "ID de la transacción" }
+            ]
+        }
+    };
+
+    let userData = {};
+    let tasaBCV = 36.50; // Valor por defecto
+    let cantidadSeleccionada = 0;
+    let esPaquete = false;
+    let metodoSeleccionado = null;
+    let archivoComprobante = null;
+
+    // ==========================================
+    // 2. ELEMENTOS DEL DOM
+    // ==========================================
     const userNameDisplay = document.getElementById('userNameDisplay');
     const userIdDisplay = document.getElementById('userIdDisplay');
     const currentBalance = document.getElementById('currentBalance');
     const tasaBCVDisplay = document.getElementById('tasaBCVDisplay');
     const fechaBCVDisplay = document.getElementById('fechaBCVDisplay');
-    const customAmount = document.getElementById('customAmount');
+    const packagesGrid = document.getElementById('packagesGrid');
+    const customAmountInput = document.getElementById('customAmount');
     const totalUSDDisplay = document.getElementById('totalUSD');
     const totalVESDisplay = document.getElementById('totalVES');
-    const packagesGrid = document.getElementById('packagesGrid');
     const paymentMethodsGrid = document.getElementById('paymentMethodsGrid');
     const companyDataBox = document.getElementById('companyDataBox');
     const companyDataContent = document.getElementById('companyDataContent');
@@ -32,280 +87,191 @@ document.addEventListener('DOMContentLoaded', async function() {
     const comprobanteFile = document.getElementById('comprobanteFile');
     const filePreview = document.getElementById('filePreview');
     const previewImage = document.getElementById('previewImage');
-    const removeFile = document.getElementById('removeFile');
+    const removeFileBtn = document.getElementById('removeFile');
     const formDeposito = document.getElementById('formDeposito');
     const msgDeposito = document.getElementById('msgDeposito');
-    const btnDepositar = document.getElementById('btnDepositar');
     const successView = document.getElementById('successView');
     const successAmount = document.getElementById('successAmount');
 
-    let tasaBCV = 36.50;
-    let userData = {};
-    let selectedPackage = null;
-    let selectedMethod = null;
-    let uploadedFile = null;
-
     // ==========================================
-    // DATOS DE LA EMPRESA (¡EDITA CON TUS DATOS REALES!)
+    // 3. FUNCIONES DE INICIALIZACIÓN
     // ==========================================
-    const companyAccounts = {
-        'pago_movil': {
-            titulo: 'Pago Móvil',
-            datos: [
-                { label: 'Banco', value: 'Banco de Venezuela (0102)' },
-                { label: 'Teléfono', value: '0412-1234567' },
-                { label: 'Cédula', value: 'V-12.345.678' }
-            ]
-        },
-        'zelle': {
-            titulo: 'Zelle',
-            datos: [
-                { label: 'Nombre', value: 'Boche Clavao LLC' },
-                { label: 'Correo', value: 'pagos@bocheclavao.com' }
-            ]
-        },
-        'binance': {
-            titulo: 'Binance Pay / USDT',
-            datos: [
-                { label: 'Red', value: 'TRC20 (Tron)' },
-                { label: 'Dirección', value: 'TXYZ123456789abcdef123456789' }
-            ]
-        },
-        'paypal': {
-            titulo: 'PayPal',
-            datos: [
-                { label: 'Correo', value: 'pagos@bocheclavao.com' },
-                { label: 'Tipo', value: 'Amigos y Familiares' }
-            ]
+    async function init() {
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) {
+            window.location.href = 'index.html';
+            return;
         }
-    };
 
-    // 1. Cargar Datos del Usuario
-    async function loadUserData() {
+        await loadUserData(session.user);
+        await fetchBCVRate();
+        renderPackages();
+        renderPaymentMethods();
+        setupEventListeners();
+    }
+
+    async function loadUserData(user) {
         try {
-            const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', session.user.id).single();
+            const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
             if (error) throw error;
-            userData = perfil || { nombre: session.user.email, saldo_bc: 0 };
-
-            if (userNameDisplay) userNameDisplay.textContent = userData.nombre || session.user.email;
-            if (userIdDisplay) userIdDisplay.textContent = userData.user_id || 'N/A';
-            if (currentBalance) currentBalance.textContent = parseFloat(userData.saldo_bc || 0).toFixed(2);
+            userData = perfil || { nombre: user.email, user_id: 'N/A', saldo_bc: 0 };
+            
+            userNameDisplay.textContent = userData.nombre || user.email;
+            userIdDisplay.textContent = userData.user_id || 'N/A';
+            currentBalance.textContent = parseFloat(userData.saldo_bc || 0).toFixed(2);
         } catch (err) {
-            console.error('Error cargando perfil:', err);
-            if (userNameDisplay) userNameDisplay.textContent = session.user.email;
+            console.error('Error cargando usuario:', err);
+            userNameDisplay.textContent = user.email;
         }
     }
 
-    // 2. Obtener Tasa BCV
-    async function loadBCVRate() {
+    async function fetchBCVRate() {
         try {
-            const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-            if (!response.ok) throw new Error('Error en la respuesta de la API');
-            const data = await response.json();
-            tasaBCV = data.promedio || data.venta || 36.50;
-            
-            if (tasaBCVDisplay) tasaBCVDisplay.textContent = tasaBCV.toFixed(2);
-            if (fechaBCVDisplay) {
-                const fecha = new Date(data.fechaActualizacion || Date.now());
-                fechaBCVDisplay.textContent = `Actualizado: ${fecha.toLocaleDateString('es-VE')}`;
+            const response = await fetch('https://pydolarvenezuela-api.vercel.app/api/v1/dollar/page?page=bcv');
+            if (response.ok) {
+                const data = await response.json();
+                tasaBCV = data.monitors?.usd?.price || tasaBCV;
+                fechaBCVDisplay.textContent = `Actualizado: ${new Date().toLocaleDateString('es-VE')}`;
             }
         } catch (err) {
             console.warn('No se pudo obtener la tasa BCV, usando valor por defecto:', err);
-            if (tasaBCVDisplay) tasaBCVDisplay.textContent = tasaBCV.toFixed(2);
-            if (fechaBCVDisplay) fechaBCVDisplay.textContent = 'Tasa estimada (API no disponible)';
         }
+        tasaBCVDisplay.textContent = tasaBCV.toFixed(2);
+        actualizarVistaPrevia();
     }
 
-    // 3. Renderizar Paquetes
+    // ==========================================
+    // 4. RENDERIZADO
+    // ==========================================
     function renderPackages() {
-        const packages = [
-            { bc: 100, desc: 'Básico' },
-            { bc: 500, desc: 'Popular', discount: true },
-            { bc: 1000, desc: 'Pro', discount: true },
-            { bc: 5000, desc: 'VIP', discount: true }
+        const paquetes = [
+            { cantidad: 100, descuento: true },
+            { cantidad: 500, descuento: true },
+            { cantidad: 1000, descuento: true },
+            { cantidad: 5000, descuento: true }
         ];
 
-        if (!packagesGrid) return;
         packagesGrid.innerHTML = '';
-        packages.forEach(pkg => {
+        paquetes.forEach(pkg => {
             const card = document.createElement('div');
             card.className = 'package-card';
-            card.dataset.amount = pkg.bc;
+            card.dataset.cantidad = pkg.cantidad;
+            
+            const precioOriginal = pkg.cantidad * PRECIO_POR_BC_USD;
+            const precioConDescuento = precioOriginal * (1 - DESCUENTO_PAQUETE);
+            
             card.innerHTML = `
-                ${pkg.discount ? '<div class="discount">-5%</div>' : ''}
-                <span class="coins">${pkg.bc} BC</span>
-                <span class="price">${pkg.desc}</span>
+                ${pkg.descuento ? '<div class="discount">-5%</div>' : ''}
+                <span class="coins">${pkg.cantidad} BC</span>
+                <span class="price">$${precioConDescuento.toFixed(2)}</span>
             `;
-            card.addEventListener('click', () => selectPackage(pkg.bc, card));
+            
+            card.addEventListener('click', () => seleccionarPaquete(pkg.cantidad, card));
             packagesGrid.appendChild(card);
         });
     }
 
-    function selectPackage(amount, cardElement) {
-        document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
-        cardElement.classList.add('selected');
-        selectedPackage = amount;
-        if (customAmount) customAmount.value = amount;
-        calculateTotals();
-    }
-
-    // 4. Calcular Totales
-    function calculateTotals() {
-        if (!customAmount || !totalUSDDisplay || !totalVESDisplay) return;
-        
-        const amount = parseFloat(customAmount.value) || 0;
-        if (amount <= 0) {
-            totalUSDDisplay.textContent = '0.00';
-            totalVESDisplay.textContent = '0.00';
-            customAmount.dataset.rawUsd = 0;
-            customAmount.dataset.rawVes = 0;
-            return;
-        }
-
-        const usdAmount = amount * 0.01; // 1 BC = $0.01
-        const commission = usdAmount * 0.003; // 0.30%
-        const totalUSD = usdAmount + commission;
-        const totalVES = totalUSD * tasaBCV;
-
-        totalUSDDisplay.textContent = totalUSD.toFixed(2);
-        totalVESDisplay.textContent = totalVES.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        
-        customAmount.dataset.rawUsd = totalUSD;
-        customAmount.dataset.rawVes = totalVES;
-    }
-
-    if (customAmount) {
-        customAmount.addEventListener('input', () => {
-            selectedPackage = null;
-            document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
-            calculateTotals();
-        });
-    }
-
-    // 5. Renderizar Métodos de Pago
     function renderPaymentMethods() {
-        const methods = [
-            { id: 'pago_movil', name: 'Pago Móvil', icon: 'fas fa-mobile-alt' },
-            { id: 'zelle', name: 'Zelle', icon: 'fas fa-building-columns' },
-            { id: 'binance', name: 'Binance', icon: 'fab fa-bitcoin' },
-            { id: 'paypal', name: 'PayPal', icon: 'fab fa-paypal' }
-        ];
-
-        if (!paymentMethodsGrid) return;
         paymentMethodsGrid.innerHTML = '';
-        methods.forEach(method => {
+        for (const [key, metodo] of Object.entries(metodosPago)) {
             const card = document.createElement('div');
             card.className = 'method-card';
-            card.dataset.method = method.id;
+            card.dataset.metodo = key;
+            
+            // Si la imagen falla, se oculta y muestra el ícono de FontAwesome
             card.innerHTML = `
-                <i class="${method.icon}" style="font-size: 1.8rem; color: #FFD700; margin-bottom: 5px;"></i>
-                <span>${method.name}</span>
+                <img src="${metodo.imagen}" alt="${metodo.nombre}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                <i class="${metodo.icono}" style="font-size: 2rem; color: #FFD700; display: none;"></i>
+                <span>${metodo.nombre}</span>
             `;
-            card.addEventListener('click', () => selectMethod(method.id, card));
+            
+            card.addEventListener('click', () => seleccionarMetodo(key, card));
             paymentMethodsGrid.appendChild(card);
-        });
+        }
     }
 
-    function selectMethod(methodId, cardElement) {
+    // ==========================================
+    // 5. LÓGICA DE SELECCIÓN Y CÁLCULOS
+    // ==========================================
+    function seleccionarPaquete(cantidad, cardElement) {
+        document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+        cardElement.classList.add('selected');
+        
+        cantidadSeleccionada = cantidad;
+        esPaquete = true;
+        customAmountInput.value = cantidad;
+        
+        actualizarVistaPrevia();
+    }
+
+    function seleccionarMetodo(key, cardElement) {
         document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
         cardElement.classList.add('selected');
-        selectedMethod = methodId;
-        showCompanyData(methodId);
-        renderDynamicForm(methodId);
-    }
-
-    function showCompanyData(methodId) {
-        const data = companyAccounts[methodId];
-        if (!data || !companyDataBox || !companyDataContent) return;
-
-        companyDataBox.style.display = 'block';
-        companyDataContent.innerHTML = `
-            <h4 style="margin-bottom: 15px; color: #FFD700;"><i class="fas fa-building"></i> ${data.titulo}</h4>
-            ${data.datos.map(d => `
+        
+        metodoSeleccionado = key;
+        const metodo = metodosPago[key];
+        
+        // Mostrar datos de la empresa
+        companyDataContent.innerHTML = '';
+        for (const [label, value] of Object.entries(metodo.datos)) {
+            companyDataContent.innerHTML += `
                 <div class="data-row">
-                    <span class="label">${d.label}:</span>
-                    <span class="value" style="cursor: pointer;" onclick="navigator.clipboard.writeText('${d.value}')" title="Copiar al portapapeles">
-                        ${d.value} <i class="fas fa-copy" style="font-size: 0.8rem; margin-left: 5px; color: #888;"></i>
-                    </span>
-                </div>
-            `).join('')}
-        `;
-    }
-
-    function renderDynamicForm(methodId) {
-        if (!dynamicForm || !userFormFields) return;
-        dynamicForm.style.display = 'block';
-        let fields = '';
-
-        if (methodId === 'pago_movil') {
-            fields = `
-                <div class="form-group">
-                    <label>Banco Emisor</label>
-                    <select name="banco_emisor" required>
-                        <option value="">Selecciona tu banco</option>
-                        <option value="Venezuela">Banco de Venezuela</option>
-                        <option value="Banesco">Banesco</option>
-                        <option value="Mercantil">Mercantil</option>
-                        <option value="Provincial">BBVA Provincial</option>
-                        <option value="Otro">Otro</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Teléfono Emisor</label>
-                    <input type="text" name="telefono_emisor" placeholder="0412-1234567" required>
-                </div>
-                <div class="form-group">
-                    <label>Cédula del Titular</label>
-                    <input type="text" name="cedula_emisor" placeholder="V-12345678" required>
-                </div>
-            `;
-        } else if (methodId === 'zelle') {
-            fields = `
-                <div class="form-group">
-                    <label>Nombre del Titular de la cuenta</label>
-                    <input type="text" name="nombre_emisor" placeholder="Nombre completo" required>
-                </div>
-                <div class="form-group">
-                    <label>Correo Zelle Emisor</label>
-                    <input type="email" name="correo_emisor" placeholder="tu@email.com" required>
-                </div>
-            `;
-        } else if (methodId === 'binance') {
-            fields = `
-                <div class="form-group">
-                    <label>ID de Transacción (TxID / Hash)</label>
-                    <input type="text" name="txid" placeholder="Pega el ID de la transacción" required>
-                    <small>Lo encuentras en los detalles de tu retiro en Binance.</small>
-                </div>
-                <div class="form-group">
-                    <label>Red utilizada</label>
-                    <select name="red_binance" required>
-                        <option value="TRC20">TRC20 (Tron)</option>
-                        <option value="BEP20">BEP20 (BSC)</option>
-                    </select>
-                </div>
-            `;
-        } else if (methodId === 'paypal') {
-            fields = `
-                <div class="form-group">
-                    <label>Correo PayPal Emisor</label>
-                    <input type="email" name="correo_emisor" placeholder="tu@email.com" required>
+                    <span class="label">${label}:</span>
+                    <span class="value" style="cursor: pointer;" onclick="navigator.clipboard.writeText('${value}')" title="Copiar">${value} <i class="fas fa-copy" style="font-size: 0.8rem; margin-left: 5px; color: #888;"></i></span>
                 </div>
             `;
         }
-
-        fields += `
-            <div class="form-group">
-                <label>Número de Referencia</label>
-                <input type="text" name="referencia" placeholder="Últimos 6 dígitos o código completo" required>
-            </div>
-        `;
-
-        userFormFields.innerHTML = fields;
+        companyDataBox.style.display = 'block';
+        
+        // Generar campos dinámicos del formulario
+        userFormFields.innerHTML = '';
+        metodo.campos.forEach(campo => {
+            let inputHTML = '';
+            if (campo.tipo === 'select') {
+                const opciones = campo.opciones.map(op => `<option value="${op}">${op}</option>`).join('');
+                inputHTML = `<select name="${campo.nombre}" required>${opciones}</select>`;
+            } else {
+                inputHTML = `<input type="${campo.tipo}" name="${campo.nombre}" placeholder="${campo.placeholder || ''}" required>`;
+            }
+            
+            userFormFields.innerHTML += `
+                <div class="form-group">
+                    <label>${campo.etiqueta}</label>
+                    ${inputHTML}
+                </div>
+            `;
+        });
+        
+        dynamicForm.style.display = 'block';
     }
 
-    // 6. Manejo de Archivos
-    if (comprobanteFile && filePreview && fileUploadContainer) {
+    function actualizarVistaPrevia() {
+        const cantidad = parseFloat(customAmountInput.value) || 0;
+        cantidadSeleccionada = cantidad;
+        
+        let precioBase = cantidad * PRECIO_POR_BC_USD;
+        if (esPaquete && cantidad > 0) {
+            precioBase = precioBase * (1 - DESCUENTO_PAQUETE);
+        }
+        
+        const comision = precioBase * COMISION_PORCENTAJE;
+        const totalUSD = precioBase + comision;
+        const totalVES = totalUSD * tasaBCV;
+        
+        totalUSDDisplay.textContent = totalUSD.toFixed(2);
+        totalVESDisplay.textContent = totalVES.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // ==========================================
+    // 6. EVENT LISTENERS
+    // ==========================================
+    function setupEventListeners() {
+        customAmountInput.addEventListener('input', () => {
+            esPaquete = false;
+            document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+            actualizarVistaPrevia();
+        });
+
         comprobanteFile.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -314,10 +280,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     this.value = '';
                     return;
                 }
-                uploadedFile = file;
+                archivoComprobante = file;
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    if (previewImage) previewImage.src = e.target.result;
+                    previewImage.src = e.target.result;
                     filePreview.style.display = 'flex';
                     fileUploadContainer.classList.add('has-image');
                 };
@@ -325,135 +291,243 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
 
-        if (removeFile) {
-            removeFile.addEventListener('click', function() {
-                comprobanteFile.value = '';
-                uploadedFile = null;
-                filePreview.style.display = 'none';
-                fileUploadContainer.classList.remove('has-image');
-            });
-        }
-    }
-
-    // 7. Envío del Formulario
-    if (formDeposito) {
-        formDeposito.addEventListener('submit', async function(e) {
+        removeFileBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            
-            const amount = customAmount ? parseFloat(customAmount.value) : 0;
-            if (!amount || amount <= 0) {
-                showMessage('Por favor, ingresa una cantidad válida de BC.', 'error');
-                return;
-            }
-            if (!selectedMethod) {
-                showMessage('Por favor, selecciona un método de pago.', 'error');
-                return;
-            }
-            if (!uploadedFile) {
-                showMessage('Debes adjuntar el comprobante de pago.', 'error');
-                return;
-            }
-
-            if (btnDepositar) {
-                btnDepositar.disabled = true;
-                btnDepositar.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
-            }
-            showMessage('', '');
-
-            try {
-                // Subir imagen a Supabase Storage
-                const fileExt = uploadedFile.name.split('.').pop();
-                const fileName = `${session.user.id}_${Date.now()}.${fileExt}`;
-                const filePath = `comprobantes/${fileName}`;
-
-                const { error: uploadError } = await db.storage
-                    .from('depositos')
-                    .upload(filePath, uploadedFile);
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = db.storage.from('depositos').getPublicUrl(filePath);
-
-                // Recopilar datos del formulario
-                const formData = new FormData(formDeposito);
-                const datosPago = {};
-                for (let [key, value] of formData.entries()) {
-                    datosPago[key] = value;
-                }
-
-                const usdAmount = parseFloat(customAmount.dataset.rawUsd || 0);
-                const vesAmount = parseFloat(customAmount.dataset.rawVes || 0);
-
-                // Insertar registro en la base de datos
-                const { error: dbError } = await db.from('depositos').insert({
-                    user_id: session.user.id,
-                    monto_bc: amount,
-                    monto_usd: usdAmount,
-                    monto_ves: vesAmount,
-                    metodo_pago: selectedMethod,
-                    datos_pago: datosPago,
-                    comprobante_url: publicUrl,
-                    estado: 'pendiente',
-                    fecha_solicitud: new Date().toISOString()
-                });
-
-                if (dbError) throw dbError;
-
-                // Éxito
-                showSuccessView(amount);
-
-            } catch (err) {
-                console.error('Error al procesar el depósito:', err);
-                showMessage('Error al procesar el depósito: ' + err.message, 'error');
-                if (btnDepositar) {
-                    btnDepositar.disabled = false;
-                    btnDepositar.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
-                }
-            }
+            e.stopPropagation();
+            comprobanteFile.value = '';
+            archivoComprobante = null;
+            filePreview.style.display = 'none';
+            fileUploadContainer.classList.remove('has-image');
         });
+
+        formDeposito.addEventListener('submit', handleSubmit);
     }
 
     function showMessage(text, type) {
-        if (msgDeposito) {
-            msgDeposito.textContent = text;
-            msgDeposito.className = 'message ' + (type || '');
-            msgDeposito.style.display = text ? 'block' : 'none';
-        }
+        msgDeposito.textContent = text;
+        msgDeposito.className = 'message ' + type;
+        msgDeposito.style.display = 'block';
+        setTimeout(() => {
+            msgDeposito.style.display = 'none';
+        }, 5000);
     }
 
-    function showSuccessView(amount) {
-        if (formDeposito) formDeposito.style.display = 'none';
-        if (successView && successAmount) {
-            successAmount.textContent = amount;
-            successView.style.display = 'block';
+    // ==========================================
+    // 7. ENVÍO DEL FORMULARIO
+    // ==========================================
+    async function handleSubmit(e) {
+        e.preventDefault();
+        
+        if (cantidadSeleccionada <= 0) {
+            showMessage('Por favor, ingresa una cantidad válida de monedas.', 'error');
+            return;
         }
-    }
+        if (!metodoSeleccionado) {
+            showMessage('Por favor, selecciona un método de pago.', 'error');
+            return;
+        }
+        if (!archivoComprobante) {
+            showMessage('Debes adjuntar el comprobante de pago.', 'error');
+            return;
+        }
 
-    window.nuevoDeposito = function() {
-        if (formDeposito) {
-            formDeposito.reset();
-            formDeposito.style.display = 'block';
-        }
-        if (successView) successView.style.display = 'none';
-        if (filePreview) filePreview.style.display = 'none';
-        if (fileUploadContainer) fileUploadContainer.classList.remove('has-image');
-        if (btnDepositar) {
+        const btnDepositar = document.getElementById('btnDepositar');
+        btnDepositar.disabled = true;
+        btnDepositar.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
+
+        try {
+            const { data: { session } } = await db.auth.getSession();
+            const userId = session.user.id;
+            
+            // 1. Subir comprobante a Storage
+            const fileExt = archivoComprobante.name.split('.').pop();
+            const fileName = `${userId}_${Date.now()}.${fileExt}`;
+            const filePath = `comprobantes/${fileName}`;
+            
+            const { error: uploadError } = await db.storage
+                .from('depositos') // Asegúrate de que este bucket exista en Supabase
+                .upload(filePath, archivoComprobante);
+                
+            if (uploadError) throw uploadError;
+            
+            // Obtener URL pública
+            const { data: { publicUrl } } = db.storage.from('depositos').getPublicUrl(filePath);
+            
+            // 2. Recopilar datos del formulario dinámico
+            const formData = new FormData(formDeposito);
+            const datosPago = {};
+            for (let [key, value] of formData.entries()) {
+                datosPago[key] = value;
+            }
+            
+            // 3. Calcular montos finales (misma lógica que la vista previa)
+            let precioBase = cantidadSeleccionada * PRECIO_POR_BC_USD;
+            if (esPaquete) precioBase = precioBase * (1 - DESCUENTO_PAQUETE);
+            const comision = precioBase * COMISION_PORCENTAJE;
+            const totalUSD = precioBase + comision;
+            const totalVES = totalUSD * tasaBCV;
+            
+            // 4. Guardar en la base de datos
+            const { error: dbError } = await db.from('depositos').insert({
+                user_id: userId,
+                cantidad_bc: cantidadSeleccionada,
+                metodo_pago: metodoSeleccionado,
+                datos_pago: datosPago,
+                monto_usd: totalUSD,
+                monto_ves: totalVES,
+                tasa_bcv: tasaBCV,
+                comprobante_url: publicUrl,
+                estado: 'pendiente',
+                fecha_solicitud: new Date().toISOString()
+            });
+            
+            if (dbError) throw dbError;
+            
+            // 5. Éxito
+            mostrarExito(cantidadSeleccionada, totalUSD, totalVES, datosPago.referencia || 'N/A');
+            
+        } catch (err) {
+            console.error('Error al procesar el depósito:', err);
+            showMessage('Error al procesar el depósito: ' + err.message, 'error');
             btnDepositar.disabled = false;
             btnDepositar.innerHTML = '<i class="fas fa-paper-plane"></i> Reportar Depósito';
         }
-        showMessage('', '');
-        selectedPackage = null;
-        selectedMethod = null;
-        uploadedFile = null;
-        document.querySelectorAll('.package-card, .method-card').forEach(c => c.classList.remove('selected'));
-        if (companyDataBox) companyDataBox.style.display = 'none';
-        if (dynamicForm) dynamicForm.style.display = 'none';
-        calculateTotals();
+    }
+
+    function mostrarExito(cantidad, totalUSD, totalVES, referencia) {
+        formDeposito.style.display = 'none';
+        document.querySelector('.bcv-banner').style.display = 'none';
+        document.querySelectorAll('.section-title').forEach(el => el.style.display = 'none');
+        document.querySelector('.packages-grid').style.display = 'none';
+        document.querySelector('.manual-input-group').style.display = 'none';
+        document.querySelector('.payment-methods-grid').style.display = 'none';
+        document.querySelector('.warning-notice').style.display = 'none';
+        companyDataBox.style.display = 'none';
+        
+        successAmount.textContent = cantidad;
+        successView.style.display = 'block';
+        
+        // Generar PDF
+        generarPDF(cantidad, totalUSD, totalVES, referencia);
+    }
+
+    window.nuevoDeposito = function() {
+        window.location.reload();
     };
 
-    // Inicialización
-    loadUserData();
-    loadBCVRate();
-    renderPackages();
-    renderPaymentMethods();
+    // ==========================================
+    // 8. GENERACIÓN DE PDF
+    // ==========================================
+    function generarPDF(cantidad, totalUSD, totalVES, referencia) {
+        if (typeof window.jspdf === 'undefined') {
+            console.warn('jsPDF no está cargado');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFillColor(255, 215, 0);
+        doc.rect(0, 0, 210, 35, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.text("BOCHE CLAVA'O", 105, 18, null, null, "center");
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.text("COMPROBANTE OFICIAL DE DEPÓSITO", 105, 26, null, null, "center");
+        
+        // Info básica
+        doc.setTextColor(50, 50, 50);
+        doc.setFontSize(9);
+        let yPos = 45;
+        const lineHeight = 6;
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("ID Transacción:", 14, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text("DEP-" + Date.now().toString().slice(-6), 90, yPos);
+        yPos += lineHeight;
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("Fecha:", 14, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text(new Date().toLocaleDateString('es-VE'), 90, yPos);
+        yPos += lineHeight;
+        
+        const userName = userData.nombre || 'Usuario';
+        doc.setFont("helvetica", "bold");
+        doc.text("Usuario:", 14, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text(userName.length > 35 ? userName.substring(0, 35) + '...' : userName, 90, yPos);
+        yPos += lineHeight + 3;
+        
+        // Detalles
+        doc.setFillColor(255, 215, 0);
+        doc.rect(14, yPos, 182, 7, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.text("DETALLES DEL DEPÓSITO", 105, yPos + 4.5, null, null, "center");
+        yPos += 11;
+        
+        doc.setFontSize(9);
+        doc.setTextColor(50, 50, 50);
+        
+        const detalles = [
+            { label: "Método de Pago:", value: metodosPago[metodoSeleccionado]?.nombre.toUpperCase() || metodoSeleccionado },
+            { label: "Cantidad:", value: `${cantidad} BC` },
+            { label: "Tasa BCV:", value: `${tasaBCV.toFixed(2)} Bs/USD` },
+            { label: "Subtotal:", value: `$${(cantidad * PRECIO_POR_BC_USD * (esPaquete ? 0.95 : 1)).toFixed(2)}` },
+            { label: "Comisión (0.30%):", value: `$${(cantidad * PRECIO_POR_BC_USD * (esPaquete ? 0.95 : 1) * 0.003).toFixed(2)}` },
+            { label: "", value: "" },
+            { label: "TOTAL USD:", value: `$${totalUSD.toFixed(2)}`, highlight: true },
+            { label: "TOTAL Bs:", value: `Bs. ${totalVES.toFixed(2)}`, highlight: true },
+            { label: "", value: "" },
+            { label: "Referencia:", value: referencia },
+            { label: "Estado:", value: "PENDIENTE", bold: true, color: [133, 100, 4] }
+        ];
+        
+        detalles.forEach(item => {
+            if (item.label === "" && item.value === "") {
+                yPos += 2;
+                return;
+            }
+            if (item.highlight) {
+                doc.setFillColor(255, 248, 220);
+                doc.rect(14, yPos - 2.5, 182, 7, 'F');
+            }
+            doc.setFont("helvetica", item.bold ? "bold" : "normal");
+            if (item.color) {
+                doc.setTextColor(item.color[0], item.color[1], item.color[2]);
+            } else {
+                doc.setTextColor(50, 50, 50);
+            }
+            doc.text(item.label, 16, yPos);
+            const valorWidth = doc.getStringUnitWidth(item.value) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+            doc.text(item.value, 194 - valorWidth, yPos);
+            yPos += 6;
+        });
+        
+        // Footer
+        yPos += 8;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 8;
+        
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.setFont("helvetica", "italic");
+        doc.text("Este documento es un comprobante oficial generado automáticamente.", 105, yPos, null, null, "center");
+        yPos += 4;
+        doc.text("Soporte: soporte@bocheclavao.com", 105, yPos, null, null, "center");
+        yPos += 4;
+        doc.text("Boche Clava'o © " + new Date().getFullYear(), 105, yPos, null, null, "center");
+        
+        // Guardar PDF
+        doc.save(`Comprobante_Deposito_${cantidad}BC.pdf`);
+    }
+
+    // Iniciar aplicación
+    init();
 });
