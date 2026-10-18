@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ============================================
     // 🚨 2. VERIFICAR BLOQUEO PERMANENTE
     // ============================================
-    const { data: perfil, error: perfilError } = await db
+    const { data: perfil } = await db
         .from('perfiles')
         .select('bloqueado, motivo_bloqueo')
         .eq('id', session.user.id)
@@ -43,23 +43,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ============================================
     // 🚨 3. VERIFICAR SUSPENSIÓN TEMPORAL
     // ============================================
-    const { data: checkData, error: checkError } = await db.rpc('check_login_attempt', { 
+    const { data: checkData } = await db.rpc('check_login_attempt', { 
         p_email: session.user.email, 
         p_action: 'check' 
     });
 
     if (checkData && checkData.allowed === false) {
         await db.auth.signOut();
-        
         sessionStorage.setItem('auth_message', `🚫 Tu cuenta está suspendida temporalmente por múltiples intentos fallidos.`);
         sessionStorage.setItem('auth_type', 'error');
-        
         window.location.href = 'index.html';
         return;
     }
 
     // ============================================
-    // 🚨 4. VERIFICAR SESIÓN DUPLICADA
+    // 🚨 4. VERIFICAR SESIÓN DUPLICADA (CORREGIDO)
     // ============================================
     async function registrarMiSesion() {
         try {
@@ -67,7 +65,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const token = session.access_token;
             localStorage.setItem('session_token', token);
             
-            await db.rpc('registrar_mi_sesion', { p_token: token });
+            // ✅ USAR UPSERT DIRECTO (no depende de una RPC)
+            await db.from('active_sessions').upsert({
+                user_id: session.user.id,
+                session_token: token,
+                last_active: new Date().toISOString(),
+                device_info: navigator.userAgent.substring(0, 200)
+            });
             console.log('✅ Mi sesión registrada en BD');
         } catch (e) {
             console.warn('⚠️ No se pudo registrar sesión:', e.message);
@@ -150,7 +154,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.body.appendChild(modal);
         
         document.getElementById('closeSessionBtn').addEventListener('click', async () => {
-            // ✅ GUARDAR MENSAJE ANTES DE CERRAR SESIÓN
             sessionStorage.setItem('auth_message', '⚠️ Tu sesión ha sido cerrada porque iniciaste sesión en otro dispositivo.');
             sessionStorage.setItem('auth_type', 'info');
             
@@ -167,10 +170,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (modal.style.display !== 'flex') {
             modal.style.display = 'flex';
             
-            // Cierre automático después de 8 segundos
             setTimeout(async () => {
                 if (modal.style.display === 'flex') {
-                    // ✅ GUARDAR MENSAJE ANTES DEL CIERRE AUTOMÁTICO
                     sessionStorage.setItem('auth_message', '⚠️ Tu sesión ha sido cerrada automáticamente porque iniciaste sesión en otro dispositivo.');
                     sessionStorage.setItem('auth_type', 'info');
                     
