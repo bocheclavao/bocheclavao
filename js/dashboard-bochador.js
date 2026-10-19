@@ -15,8 +15,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     const banderas = {
         'Venezuela': '🇻🇪', 'Colombia': '🇨🇴', 'México': '🇲🇽',
         'Argentina': '🇦🇷', 'España': '🇪🇸', 'Estados Unidos': '🇺🇸',
-        'Perú': '🇵🇪', 'Chile': '🇨🇱', 'Ecuador': '🇪', 'Panamá': '🇵',
-        'Brasil': '🇧', 'República Dominicana': '🇩🇴'
+        'Perú': '🇵🇪', 'Chile': '🇨🇱', 'Ecuador': '🇪🇨', 'Panamá': '🇵🇦',
+        'Brasil': '🇧🇷', 'República Dominicana': '🇩🇴'
+    };
+
+    // Funciones auxiliares seguras para evitar errores si falta un ID en el HTML
+    const safeSetText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+        else console.warn(`⚠️ Elemento no encontrado: #${id}`);
+    };
+    const safeSetHTML = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+        else console.warn(`⚠️ Elemento no encontrado: #${id}`);
     };
 
     try {
@@ -78,63 +90,74 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
-        // 3. Renderizar perfil
+        // 3. Renderizar perfil (AHORA SEGURO)
         const avatarUrl = perfil.avatar_url || session.user.user_metadata?.avatar_url;
         const avatarImg = document.getElementById('profileAvatar');
         const avatarPlaceholder = document.getElementById('profileAvatarPlaceholder');
         
-        if (avatarUrl) {
-            avatarImg.src = avatarUrl;
-            avatarImg.style.display = 'block';
-            avatarPlaceholder.style.display = 'none';
+        if (avatarImg && avatarPlaceholder) {
+            if (avatarUrl) {
+                avatarImg.src = avatarUrl;
+                avatarImg.style.display = 'block';
+                avatarPlaceholder.style.display = 'none';
+            } else {
+                avatarImg.style.display = 'none';
+                avatarPlaceholder.style.display = 'flex';
+                avatarPlaceholder.textContent = nombre.charAt(0).toUpperCase();
+            }
         } else {
-            avatarImg.style.display = 'none';
-            avatarPlaceholder.style.display = 'flex';
-            avatarPlaceholder.textContent = nombre.charAt(0).toUpperCase();
+            console.warn('⚠️ No se encontraron los elementos del avatar en el HTML. Verifica los IDs.');
         }
 
-        document.getElementById('profileName').textContent = nombre;
-        document.getElementById('profileId').textContent = `ID: ${userId}`;
-        document.getElementById('profileEmail').textContent = email;
-        document.getElementById('flagIcon').textContent = flag;
-        document.getElementById('statNacionalidad').textContent = nacionalidad;
-        document.getElementById('statSexo').innerHTML = `${sexo} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statFechaNac').innerHTML = `${fechaNacFormateada} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statEdad').textContent = edad;
-        document.getElementById('statTelefono').innerHTML = `${telefono} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statMano').innerHTML = `${manoHabil} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statPeso').innerHTML = `${peso} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statEstatura').innerHTML = `${estatura} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statBrazo').innerHTML = `${brazo} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statPartidos').innerHTML = `${partidos} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statAciertos').innerHTML = `${aciertos} <i class="fas fa-lock locked-icon"></i>`;
-        document.getElementById('statUltimosPartidos').innerHTML = `${ultimosPartidos} <i class="fas fa-lock locked-icon" style="margin-left: auto;"></i>`;
-        document.getElementById('statCategoria').textContent = categoria.toUpperCase();
-        document.getElementById('statEstadoClasif').textContent = estadoClasif;
+        safeSetText('profileName', nombre);
+        safeSetText('profileId', `ID: ${userId}`);
+        safeSetText('profileEmail', email);
+        safeSetText('flagIcon', flag);
+        safeSetText('statNacionalidad', nacionalidad);
+        safeSetHTML('statSexo', `${sexo} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statFechaNac', `${fechaNacFormateada} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetText('statEdad', edad);
+        safeSetHTML('statTelefono', `${telefono} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statMano', `${manoHabil} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statPeso', `${peso} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statEstatura', `${estatura} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statBrazo', `${brazo} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statPartidos', `${partidos} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statAciertos', `${aciertos} <i class="fas fa-lock locked-icon"></i>`);
+        safeSetHTML('statUltimosPartidos', `${ultimosPartidos} <i class="fas fa-lock locked-icon" style="margin-left: auto;"></i>`);
+        safeSetText('statCategoria', categoria.toUpperCase());
+        safeSetText('statEstadoClasif', estadoClasif);
 
         // Badge de estado
         const statusBadge = document.getElementById('statusBadge');
-        if (estadoClasif.toLowerCase() === 'clasificado') {
-            statusBadge.className = 'status-badge status-cls';
-            statusBadge.innerHTML = `<i class="fas fa-check-circle"></i> Clasificado - Categoría ${categoria.toUpperCase()}`;
-        } else {
-            statusBadge.className = 'status-badge status-no-cls';
-            statusBadge.innerHTML = `<i class="fas fa-hourglass-half"></i> No Clasificado`;
+        if (statusBadge) {
+            if (estadoClasif.toLowerCase() === 'clasificado') {
+                statusBadge.className = 'status-badge status-cls';
+                statusBadge.innerHTML = `<i class="fas fa-check-circle"></i> Clasificado - Categoría ${categoria.toUpperCase()}`;
+            } else {
+                statusBadge.className = 'status-badge status-no-cls';
+                statusBadge.innerHTML = `<i class="fas fa-hourglass-half"></i> No Clasificado`;
+            }
         }
 
         // 4. Cargar carrusel de bochadores
         await cargarCarruselBochadores();
 
         // 5. Mostrar contenido
-        document.getElementById('loadingState').style.display = 'none';
-        document.getElementById('profileContent').style.display = 'block';
+        const loadingState = document.getElementById('loadingState');
+        const profileContent = document.getElementById('profileContent');
+        if (loadingState) loadingState.style.display = 'none';
+        if (profileContent) profileContent.style.display = 'block';
 
     } catch (err) {
         console.error('Error al cargar el perfil:', err);
-        document.getElementById('loadingState').innerHTML = `
-            <i class="fas fa-exclamation-triangle" style="color: var(--rojo); font-size: 2rem;"></i>
-            <p style="color: var(--rojo); margin-top: 15px;">Error al cargar el perfil. Por favor, intenta de nuevo.</p>
-        `;
+        const loadingState = document.getElementById('loadingState');
+        if (loadingState) {
+            loadingState.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="color: var(--rojo); font-size: 2rem;"></i>
+                <p style="color: var(--rojo); margin-top: 15px;">Error al cargar el perfil. Por favor, intenta de nuevo.</p>
+            `;
+        }
     }
 
     // ==========================================
@@ -152,8 +175,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (error) throw error;
 
             const track = document.getElementById('carouselTrack');
-            let htmlContent = '';
+            if (!track) return;
 
+            let htmlContent = '';
             bochadores.forEach((jugador, index) => {
                 const nombre = jugador.nombre || 'Jugador Anónimo';
                 const avatar = jugador.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=FFD700&color=000&size=128`;
@@ -207,30 +231,19 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     function activarModoEvento() {
         document.body.classList.add('event-mode');
-        
         const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) {
-            elem.msRequestFullscreen();
-        }
+        if (elem.requestFullscreen) elem.requestFullscreen();
+        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+        else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
     }
 
     function salirModoEvento() {
         document.body.classList.remove('event-mode');
-        
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        else if (document.msExitFullscreen) document.msExitFullscreen();
     }
 
-    // Detectar salida de pantalla completa con ESC
     document.addEventListener('fullscreenchange', () => {
         if (!document.fullscreenElement) {
             document.body.classList.remove('event-mode');
