@@ -169,6 +169,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     safeSetText('statCategoria', categoria.toUpperCase());
     safeSetText('statEstadoClasif', estadoClasif);
 
+    // ==========================================
+    // BADGE DE CLASIFICACIÓN (debajo del nombre)
+    // ==========================================
+    const statusBadge = document.getElementById('playerStatusBadge');
+    if (statusBadge) {
+      if (estadoClasif.toLowerCase() === 'clasificado') {
+        statusBadge.className = 'player-status-badge clasificado';
+        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> Clasificado';
+      } else {
+        statusBadge.className = 'player-status-badge no-clasificado';
+        statusBadge.innerHTML = '<i class="fas fa-hourglass-half"></i> No Clasificado';
+      }
+    }
+
     // Ficha principal
     safeSetText('fichaPartidos', partidos);
     safeSetText('fichaAciertos', aciertos);
@@ -247,7 +261,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const estado = jugador.estado_clasificacion || 'No clasificado';
         const esTop3 = index < 3;
         const borderColor = esTop3 ? 'var(--dorado)' : 'var(--azul-electrico)';
-        const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+        const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '' : `#${index + 1}`;
 
         htmlContent += `
           <div class="player-card" style="border-color: ${borderColor};">
@@ -262,7 +276,7 @@ document.addEventListener('DOMContentLoaded', async function() {
           </div>
         `;
       });
-      // Duplicamos para el efecto infinito en desktop, en móvil el scroll-snap lo maneja perfecto
+      // Duplicamos para el efecto infinito en desktop
       track.innerHTML = htmlContent + htmlContent;
     } catch (err) {
       console.error('Error al cargar bochadores:', err);
