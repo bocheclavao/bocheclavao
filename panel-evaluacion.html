@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Panel de Evaluación - Boche Clava'o</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../img/moneda.png">
+    
+    <style>
+        :root {
+            --azul-electrico: #0057FF;
+            --rojo: #FF1B1B;
+            --verde: #00FF00;
+            --dorado: #FFD700;
+            --negro-fondo: #050505;
+            --negro-superficie: #0F0F10;
+            --negro-superficie-2: #161618;
+            --gris-texto: #9A9DA6;
+            --gris-borde: rgba(255, 255, 255, 0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--negro-fondo);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gris-borde);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+        .navbar-logo { max-width: 50px; height: auto; }
+        .navbar-title { font-size: 1.1rem; font-weight: 800; color: var(--dorado); letter-spacing: 2px; text-transform: uppercase; }
+
+        .btn-volver {
+            background: transparent; border: 1px solid #444; color: #ccc;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-family: 'Montserrat', sans-serif; font-weight: 600;
+            display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-volver:hover { border-color: var(--dorado); color: var(--dorado); }
+
+        .main-content { flex: 1; padding: 30px 20px; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .video-container {
+            background: var(--negro-superficie);
+            border: 1px solid var(--gris-borde);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .video-container h3 {
+            color: var(--dorado);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #videoPreview {
+            width: 100%;
+            height: 400px;
+            background: #000;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        #canvasOverlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: calc(100% - 40px);
+            height: 400px;
+            pointer-events: none;
+        }
+
+        .video-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-control {
+            padding: 10px 20px;
+            background: var(--azul-electrico);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-control:hover { background: #0044CC; transform: translateY(-2px); }
+        .btn-control:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-control.record { background: var(--rojo); }
+        .btn-control.record:hover { background: #CC0000; }
+        .btn-control.stop { background: #666; }
+
+        .evaluation-form {
+            background: var(--negro-superficie);
+            border: 1px solid var(--gris-borde);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .evaluation-form h3 {
+            color: var(--dorado);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--gris-borde);
+        }
+
+        .form-section:last-child { border-bottom: none; }
+
+        .form-section h4 {
+            color: var(--azul-electrico);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: var(--negro-superficie-2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-item:hover { background: rgba(0, 87, 255, 0.1); }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--azul-electrico);
+        }
+
+        .checkbox-item label {
+            font-size: 0.85rem;
+            color: #fff;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: var(--negro-superficie-2);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .radio-item:hover { background: rgba(0, 87, 255, 0.1); }
+
+        .radio-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--azul-electrico);
+        }
+
+        .radio-item label {
+            font-size: 0.85rem;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            font-size: 0.8rem;
+            color: var(--gris-texto);
+            font-weight: 600;
+        }
+
+        .input-group input, .input-group select {
+            padding: 10px;
+            background: var(--negro-superficie-2);
+            border: 1px solid var(--gris-borde);
+            border-radius: 6px;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--azul-electrico);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--dorado) 0%, #FFA500 100%);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
+
+        .stats-panel {
+            background: var(--negro-superficie);
+            border: 1px solid var(--gris-borde);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .stats-panel h3 {
+            color: var(--dorado);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: var(--negro-superficie-2);
+            border: 1px solid var(--gris-borde);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--dorado);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--gris-texto);
+            text-transform: uppercase;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .message.success {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid var(--verde);
+            color: var(--verde);
+            display: block;
+        }
+
+        .message.error {
+            background: rgba(255, 27, 27, 0.1);
+            border: 1px solid var(--rojo);
+            color: var(--rojo);
+            display: block;
+        }
+
+        @media (max-width: 968px) {
+            .panel-grid { grid-template-columns: 1fr; }
+            #videoPreview { height: 300px; }
+            #canvasOverlay { height: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="admin.html" class="btn-volver">
+            <i class="fas fa-arrow-left"></i> Volver al Panel
+        </a>
+        <a href="#" class="navbar-brand">
+            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
+            <span class="navbar-title">Panel de Evaluación</span>
+        </a>
+    </nav>
+
+    <div class="main-content">
+        <div id="messageBox" class="message"></div>
+
+        <div class="panel-grid">
+            <!-- Panel de Video -->
+            <div class="video-container">
+                <h3><i class="fas fa-video"></i> Captura de Lanzamiento</h3>
+                <video id="videoPreview" autoplay muted></video>
+                <canvas id="canvasOverlay"></canvas>
+                
+                <div class="video-controls">
+                    <button class="btn-control" id="btnStartCamera">
+                        <i class="fas fa-camera"></i> Iniciar Cámara
+                    </button>
+                    <button class="btn-control record" id="btnRecord" disabled>
+                        <i class="fas fa-circle"></i> Grabar
+                    </button>
+                    <button class="btn-control stop" id="btnStop" disabled>
+                        <i class="fas fa-stop"></i> Detener
+                    </button>
+                    <button class="btn-control" id="btnCapture" disabled>
+                        <i class="fas fa-camera-retro"></i> Capturar Frame
+                    </button>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <label style="font-size: 0.85rem; color: var(--gris-texto);">
+                        <input type="checkbox" id="autoDetect"> Activar Detección Asistida (Beta)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Formulario de Evaluación -->
+            <div class="evaluation-form">
+                <h3><i class="fas fa-clipboard-check"></i> Clasificación del Lanzamiento</h3>
+
+                <form id="evaluationForm">
+                    <!-- A. Contacto y Perfección -->
+                    <div class="form-section">
+                        <h4>A. Contacto y Perfección</h4>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" name="contacto" id="bc01" value="BC-01" required>
+                                <label for="bc01">BC-01: Sin boche (no hay contacto)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="contacto" id="bc02" value="BC-02">
+                                <label for="bc02">BC-02: Boche efectivo (hay contacto)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="contacto" id="bc03" value="BC-03">
+                                <label for="bc03">BC-03: Boche Clava'o (perfecto)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="contacto" id="bc04" value="BC-04">
+                                <label for="bc04">BC-04: Boche no clava'o</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- B. Aproximación -->
+                    <div class="form-section">
+                        <h4>B. Zona de Aproximación Final</h4>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" name="aproximacion" id="bc05" value="BC-05">
+                                <label for="bc05">BC-05: Zona 10 (0-10 cm)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="aproximacion" id="bc06" value="BC-06">
+                                <label for="bc06">BC-06: Zona 20 (10-20 cm)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="aproximacion" id="bc07" value="BC-07">
+                                <label for="bc07">BC-07: Zona 30 (20-30 cm)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="aproximacion" id="bc08" value="BC-08">
+                                <label for="bc08">BC-08: Zona exterior (>30 cm)</label>
+                            </div>
+                        </div>
+                        <div class="input-group" style="margin-top: 12px;">
+                            <label>Distancia exacta (cm):</label>
+                            <input type="number" id="distanciaExacta" step="0.1" min="0" placeholder="Ej: 15.5">
+                        </div>
+                    </div>
+
+                    <!-- C. Cuadrantes -->
+                    <div class="form-section">
+                        <h4>C. Cuadrante Final</h4>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" name="cuadrante" id="bc09" value="BC-09">
+                                <label for="bc09">BC-09: Cuadrante Q1</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="cuadrante" id="bc10" value="BC-10">
+                                <label for="bc10">BC-10: Cuadrante Q2</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="cuadrante" id="bc11" value="BC-11">
+                                <label for="bc11">BC-11: Cuadrante Q3</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="cuadrante" id="bc12" value="BC-12">
+                                <label for="bc12">BC-12: Cuadrante Q4</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- D. Trayectoria y Rebotes -->
+                    <div class="form-section">
+                        <h4>D. Trayectoria y Rebotes</h4>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" name="trayectoria" id="bc13" value="BC-13">
+                                <label for="bc13">BC-13: Boche directo (sin pique)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="trayectoria" id="bc14" value="BC-14">
+                                <label for="bc14">BC-14: Boche de un pique</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="trayectoria" id="bc15" value="BC-15">
+                                <label for="bc15">BC-15: Boche de múltiples piques</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- E. Dirección del Desplazamiento -->
+                    <div class="form-section">
+                        <h4>E. Dirección del Desplazamiento</h4>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" name="direccion" id="bc19" value="BC-19">
+                                <label for="bc19">BC-19: Desplazamiento a la izquierda</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="direccion" id="bc20" value="BC-20">
+                                <label for="bc20">BC-20: Desplazamiento a la derecha</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="direccion" id="bc21" value="BC-21">
+                                <label for="bc21">BC-21: Desplazamiento central</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="direccion" id="bc22" value="BC-22">
+                                <label for="bc22">BC-22: Sin desplazamiento apreciable</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Variables Adicionales -->
+                    <div class="form-section">
+                        <h4>Variables Adicionales</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bc27" name="variables" value="BC-27">
+                                <label for="bc27">BC-27: Bola objetivo salió de la cancha</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bc28" name="variables" value="BC-28">
+                                <label for="bc28">BC-28: Bola lanzada salió de la cancha</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bc29" name="variables" value="BC-29">
+                                <label for="bc29">BC-29: Contacto con barrera antes del boche</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bc30" name="variables" value="BC-30">
+                                <label for="bc30">BC-30: Contacto con barrera después del boche</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bc31_valido" name="variables" value="BC-31" checked>
+                                <label for="bc31_valido">BC-31: Lanzamiento válido</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Distancia de Desplazamiento -->
+                    <div class="form-section">
+                        <h4>Mediciones</h4>
+                        <div class="input-group">
+                            <label>Distancia de desplazamiento de la bola objetivo (cm):</label>
+                            <input type="number" id="distanciaDesplazamiento" step="0.1" min="0" placeholder="Ej: 25.0">
+                        </div>
+                        <div class="input-group">
+                            <label>Distancia final entre ambas bolas (cm):</label>
+                            <input type="number" id="distanciaFinal" step="0.1" min="0" placeholder="Ej: 12.5">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-save"></i> Registrar Lanzamiento
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Panel de Estadísticas -->
+        <div class="stats-panel">
+            <h3><i class="fas fa-chart-bar"></i> Estadísticas de la Sesión</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">Total Lanzamientos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statBoches">0</div>
+                    <div class="stat-label">Boches Efectivos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statClavaos">0</div>
+                    <div class="stat-label">Boches Clava'os</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statValidos">0</div>
+                    <div class="stat-label">Lanzamientos Válidos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statPrecision">0%</div>
+                    <div class="stat-label">Precisión Promedio</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/panel-evaluacion.js"></script>
+</body>
+</html>
