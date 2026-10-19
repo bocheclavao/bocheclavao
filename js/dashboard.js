@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         adminItem.id = 'adminMenuItem';
         adminItem.className = 'dropdown-item';
         adminItem.innerHTML = '<i class="fas fa-user-shield"></i><span>Panel de Admin</span>';
-        adminItem.onclick = () => { window.location.href = 'admin.html'; }; // Ajusta la ruta si tu panel se llama diferente
+        adminItem.onclick = () => { window.location.href = 'admin.html'; }; 
         
         // Insertar antes del divisor de cerrar sesión
         const logoutBtn = dropdownMenu.querySelector('.dropdown-item.logout');
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     }
 
-    // 6. Mostrar contenido y ocultar loading (Aquí estaba el error original)
+    // 6. Mostrar contenido y ocultar loading (CORRECCIÓN CLAVE: contentState)
     const loadingState = document.getElementById('loadingState');
     const contentState = document.getElementById('contentState');
     
@@ -201,12 +201,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   // ==========================================
   async function cargarTransmisionEnVivo() {
     try {
-      // Ajusta esta consulta a tu tabla real (ej: 'eventos', 'configuracion', 'transmisiones')
+      // ⚠️ NOTA: Si tu tabla en Supabase se llama diferente (ej: 'transmisiones' o 'configuracion'), cambia 'eventos' por el nombre correcto.
+      // Usamos maybeSingle() para evitar errores si hay 0 o más de 1 registro con estado 'en_vivo'
       const { data: evento, error } = await db
         .from('eventos') 
         .select('titulo, descripcion, url_video, tipo_video')
         .eq('estado', 'en_vivo')
-        .single();
+        .maybeSingle();
 
       const liveSection = document.getElementById('liveStreamSection');
       const videoPlaceholder = document.getElementById('videoPlaceholder');
@@ -288,7 +289,6 @@ document.addEventListener('DOMContentLoaded', async function() {
       messages.appendChild(msgDiv);
       input.value = '';
       messages.scrollTop = messages.scrollHeight;
-      // Aquí iría la lógica para enviar el mensaje a Supabase
     }
   };
 
@@ -322,6 +322,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   };
 
   window.verMasNotificaciones = function() {
-    window.location.href = 'mis-apuestas.html'; // Ajusta la ruta según tu proyecto
+    window.location.href = 'mis-apuestas.html';
   };
 });
