@@ -34,10 +34,10 @@ body::before {
 /* NAVBAR */
 .navbar {
   background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--gris-borde);
-  padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; 
+  padding: 12px 16px; display: flex; justify-content: center; align-items: center; 
   position: sticky; top: 0; z-index: 100;
 }
-.navbar-left { display: flex; align-items: center; gap: 12px; }
+.navbar-left { display: flex; align-items: center; gap: 12px; position: absolute; left: 16px; }
 .navbar-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--blanco); }
 .navbar-logo { width: 36px; height: auto; }
 .navbar-title { font-size: 1rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
@@ -48,14 +48,22 @@ body::before {
   color: var(--gris-texto); text-decoration: none; font-size: 1rem; transition: all 0.3s ease;
 }
 .btn-volver:hover { background: rgba(0, 87, 255, 0.1); border-color: var(--azul-electrico); color: var(--azul-electrico); }
-.btn-volver .btn-text { display: none; } /* Oculto en móvil por defecto */
+.btn-volver .btn-text { display: none; }
 
-.main-content { flex: 1; padding: 20px 16px; max-width: 800px; margin: 0 auto; width: 100%; }
+/* MAIN CONTENT - CENTRADO CORREGIDO */
+.main-content { 
+  flex: 1; 
+  padding: 20px 16px; 
+  width: 100%; 
+  max-width: 900px; 
+  margin: 0 auto; 
+}
+
 .loading-container { text-align: center; padding: 60px 20px; color: var(--gris-texto); font-size: 1rem; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .loading-container i { color: var(--azul-electrico); font-size: 1.5rem; animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* FICHA DE JUGADOR (Mobile-First) */
+/* FICHA DE JUGADOR */
 .player-ficha {
   background: linear-gradient(135deg, var(--negro-superficie) 0%, var(--negro-superficie-2) 100%);
   border: 1px solid var(--gris-borde); border-radius: 20px; overflow: hidden; margin-bottom: 24px;
@@ -78,9 +86,8 @@ body::before {
 .ficha-body { 
   display: flex; flex-direction: column; gap: 20px; padding: 24px 20px; align-items: center; 
 }
-/* Stats en cuadrícula 2x2 para móvil */
 .ficha-stats-left { 
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; 
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 280px;
 }
 .stat-box {
   background: rgba(0, 87, 255, 0.08); border: 1px solid rgba(0, 87, 255, 0.2); border-radius: 12px;
@@ -117,7 +124,6 @@ body::before {
 .badge-circle .badge-value { font-size: 1.2rem; font-weight: 900; color: var(--negro-fondo); line-height: 1; }
 .country-box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 
-/* BANDERAS */
 .country-flag-img {
   width: 50px; height: auto; border-radius: 6px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; background: var(--negro-superficie-2);
@@ -153,7 +159,7 @@ body::before {
 .data-value.highlight { color: var(--dorado); }
 .locked-icon { color: var(--gris-texto); font-size: 0.7rem; opacity: 0.5; }
 
-/* CARRUSEL (Scroll Snap para móvil) */
+/* CARRUSEL */
 .carousel-section { margin: 30px 0; text-align: center; }
 .carousel-section h2 { font-size: 1.2rem; font-weight: 800; color: var(--blanco); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 .carousel-section h2 span { color: var(--azul-electrico); }
@@ -161,7 +167,6 @@ body::before {
 .carousel-wrapper {
   position: relative; width: 100%; overflow-x: auto; padding: 10px 0 20px 0;
   scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
-  /* Ocultar barra de scroll pero mantener funcionalidad */
   scrollbar-width: none; 
 }
 .carousel-wrapper::-webkit-scrollbar { display: none; }
@@ -169,7 +174,7 @@ body::before {
 .player-card {
   background: var(--negro-superficie); border: 1px solid var(--gris-borde); border-radius: 16px;
   padding: 20px 16px; width: 260px; text-align: center; flex-shrink: 0;
-  scroll-snap-align: center; /* Efecto imán en móvil */
+  scroll-snap-align: center;
 }
 .player-card .player-avatar { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--azul-electrico); margin: 0 auto 12px; background: var(--negro-superficie-2); }
 .player-card .player-name { font-size: 1rem; font-weight: 800; color: var(--blanco); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -188,35 +193,87 @@ body::before {
 }
 .btn-ranking-completo:active { transform: scale(0.98); }
 
-/* TABLET Y ESCRITORIO (Mejoras progresivas) */
+/* ==========================================
+   VERSIÓN ESCRITORIO (Desktop - Web)
+   ========================================== */
 @media (min-width: 768px) {
+  .navbar { padding: 16px 24px; }
+  .navbar-left { position: static; }
   .btn-volver { width: auto; padding: 8px 14px; }
   .btn-volver .btn-text { display: inline; }
-  .main-content { padding: 40px 24px; max-width: 900px; }
-  .ficha-body { flex-direction: row; align-items: center; padding: 30px 28px; }
-  .ficha-stats-left { display: flex; flex-direction: column; width: auto; }
+  
+  .main-content { 
+    padding: 40px 24px; 
+    max-width: 1000px; 
+  }
+  
+  /* Ficha centrada en desktop */
+  .player-ficha { margin: 0 auto 30px auto; max-width: 800px; }
+  
+  .ficha-body { 
+    flex-direction: row; 
+    align-items: center; 
+    padding: 30px 28px;
+    justify-content: space-between;
+  }
+  
+  .ficha-stats-left { 
+    display: flex; 
+    flex-direction: column; 
+    width: auto; 
+    max-width: none;
+  }
+  
   .stat-box:hover { background: rgba(0, 87, 255, 0.2); transform: translateX(4px); }
+  
   .ficha-center { width: auto; }
   .avatar-circle { width: 180px; height: 180px; }
   .player-name-box { font-size: 1.3rem; padding: 12px 36px; }
-  .ficha-stats-right { flex-direction: column; align-items: flex-end; width: auto; }
+  
+  .ficha-stats-right { 
+    flex-direction: column; 
+    align-items: flex-end; 
+    width: auto; 
+  }
+  
   .badge-circle { width: 80px; height: 80px; }
   .country-flag-img { width: 60px; }
-  .ficha-footer { flex-direction: row; text-align: left; padding: 28px; }
-  .ficha-bars { margin: 0; max-width: none; }
+  
+  .ficha-footer { 
+    flex-direction: row; 
+    text-align: left; 
+    padding: 28px;
+    justify-content: space-between;
+  }
+  
+  .ficha-bars { margin: 0; max-width: none; flex: 1; }
   .ficha-big-number { text-align: right; }
   .ficha-big-number .number { font-size: 4.5rem; }
-  .data-grid { grid-template-columns: repeat(2, 1fr); }
+  
+  /* Grid de 2 columnas en desktop */
+  .data-grid { 
+    grid-template-columns: repeat(2, 1fr); 
+    max-width: 800px;
+    margin: 0 auto 30px auto;
+  }
+  
+  .carousel-section { max-width: 800px; margin: 40px auto; }
   .carousel-track { padding: 0; animation: scrollCarousel 40s linear infinite; }
   .carousel-track:hover { animation-play-state: paused; }
   .player-card:hover { transform: translateY(-8px); border-color: var(--azul-electrico); box-shadow: 0 10px 30px rgba(0, 87, 255, 0.15); }
+  
   .btn-ranking-completo { width: auto; }
   .btn-ranking-completo:hover { background: var(--blanco); color: var(--azul-electrico); transform: translateY(-3px); }
 }
+
 @media (min-width: 1024px) {
   .data-grid { grid-template-columns: repeat(4, 1fr); }
   .ficha-big-number .number { font-size: 5rem; }
+  .main-content { max-width: 1100px; }
+  .player-ficha { max-width: 900px; }
+  .data-grid { max-width: 900px; }
 }
+
 @keyframes scrollCarousel { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 </style>
 </head>
