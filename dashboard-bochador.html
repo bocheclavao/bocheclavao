@@ -65,20 +65,13 @@ body::before {
   background: linear-gradient(135deg, var(--azul-electrico) 0%, var(--azul-oscuro) 100%);
   padding: 18px 28px; display: flex; justify-content: space-between; align-items: center;
 }
-.ficha-sport-name { font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--blanco); }
-.ficha-sport-name i { margin-right: 8px; color: var(--dorado); }
-  .ficha-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  margin-right: 10px;
-  vertical-align: middle;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  transition: transform 0.3s ease;
+.ficha-sport-name { font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--blanco); display: flex; align-items: center; }
+.ficha-logo {
+  width: 32px; height: 32px; object-fit: contain; margin-right: 12px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); transition: transform 0.3s ease;
 }
-.ficha-logo:hover {
-  transform: scale(1.1) rotate(5deg);
-}
+.ficha-logo:hover { transform: scale(1.1) rotate(5deg); }
+
 .ficha-body { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 24px; padding: 30px 28px; align-items: center; position: relative; }
 .ficha-stats-left { display: flex; flex-direction: column; gap: 12px; }
 .stat-box {
@@ -88,6 +81,7 @@ body::before {
 .stat-box:hover { background: rgba(0, 87, 255, 0.2); transform: translateX(4px); }
 .stat-box-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px; color: var(--gris-texto); text-transform: uppercase; margin-bottom: 4px; }
 .stat-box-value { font-size: 1.6rem; font-weight: 900; color: var(--dorado); line-height: 1; }
+
 .ficha-center { display: flex; flex-direction: column; align-items: center; position: relative; }
 .avatar-circle {
   width: 220px; height: 220px; border-radius: 50%; background: var(--blanco);
@@ -105,6 +99,7 @@ body::before {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); text-align: center; min-width: 280px;
 }
 .player-name-box .player-id-small { display: block; font-size: 0.7rem; font-weight: 600; color: var(--azul-electrico); letter-spacing: 1px; margin-top: 2px; }
+
 .ficha-stats-right { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
 .badge-circle {
   width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, var(--dorado) 0%, #FFA500 100%);
@@ -222,11 +217,16 @@ body::before {
 
   <div id="profileContent" style="display: none;">
     <div class="player-ficha">
+      
+      <!-- ✅ AQUÍ ESTABA EL ERROR: FALTABA CERRAR ESTE DIV -->
       <div class="ficha-header">
-       <div class="ficha-sport-name">
-  <img src="../img/boche.png" alt="Boche Clava'o" class="ficha-logo">
-  Boche Clava'o
-</div>
+        <div class="ficha-sport-name">
+          <img src="../img/boche.png" alt="Boche Clava'o" class="ficha-logo">
+          Boche Clava'o
+        </div>
+      </div>
+      <!-- ✅ FIN DEL HEADER CORREGIDO -->
+
       <div class="ficha-body">
         <div class="ficha-stats-left">
           <div class="stat-box"><div class="stat-box-label">Partidos</div><div class="stat-box-value" id="fichaPartidos">0</div></div>
@@ -250,13 +250,13 @@ body::before {
             <div class="badge-value" id="fichaBadgeCat">F</div>
           </div>
           <div class="country-box">
-            <!-- BANDERA REAL CON FALLBACK -->
             <img id="flagIcon" class="country-flag-img" src="" alt="Bandera" style="display: none;" onerror="this.style.display='none'; document.getElementById('flagFallback').style.display='block';">
             <div id="flagFallback" class="country-flag-fallback" style="display: none;">🏳️</div>
             <div class="country-name" id="statNacionalidad">---</div>
           </div>
         </div>
       </div>
+
       <div class="ficha-footer">
         <div class="ficha-footer-text">
           <div class="ficha-stars" id="fichaStars">★★★★★</div>
