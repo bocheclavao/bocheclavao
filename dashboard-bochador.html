@@ -50,8 +50,6 @@ body::before {
 }
 .btn-volver:hover { background: rgba(0, 87, 255, 0.1); border-color: var(--azul-electrico); color: var(--azul-electrico); }
 .btn-volver .btn-text { display: none; }
-
-/* Botón especial para admin */
 .btn-evento-admin { border-color: var(--dorado); color: var(--dorado); }
 .btn-evento-admin:hover { background: rgba(255, 215, 0, 0.1); border-color: var(--dorado); color: var(--dorado); }
 
@@ -108,6 +106,7 @@ body::before {
 }
 .player-name-box .player-id-small { display: block; font-size: 0.65rem; font-weight: 600; color: var(--azul-electrico); letter-spacing: 0.5px; }
 
+/* BADGE FUERA DEL CONTENEDOR BLANCO */
 .player-status-badge {
   display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;
   font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 12px;
@@ -129,6 +128,7 @@ body::before {
   width: 50px; height: auto; border-radius: 6px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; background: var(--negro-superficie-2);
 }
+.country-flag-img-small { width: 24px; height: auto; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); object-fit: cover; }
 .country-flag-fallback { font-size: 2.5rem; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
 .country-name { font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; color: var(--gris-texto); text-transform: uppercase; }
 
@@ -277,11 +277,10 @@ body::before {
             <span id="profileName">Jugador</span>
             <span class="player-id-small" id="profileId">ID: ---</span>
           </div>
-        </div>
-        
-        <!-- Badge FUERA del contenedor blanco -->
-        <div id="playerStatusBadge" class="player-status-badge no-clasificado">
-          <i class="fas fa-hourglass-half"></i> No Clasificado
+          <!-- Badge FUERA del contenedor blanco, justo debajo -->
+          <div id="playerStatusBadge" class="player-status-badge no-clasificado">
+            <i class="fas fa-hourglass-half"></i> No Clasificado
+          </div>
         </div>
 
         <div class="ficha-stats-right">
@@ -322,6 +321,14 @@ body::before {
     <div class="data-grid">
       <div class="data-card">
         <h3><i class="fas fa-id-card"></i> Datos Personales</h3>
+        <div class="data-row">
+          <span class="data-label">Nacionalidad</span>
+          <span class="data-value">
+            <img id="flagIconSmall" class="country-flag-img-small" src="" alt="Bandera" style="display: none; margin-right: 6px;" onerror="this.style.display='none'; document.getElementById('flagFallbackSmall').style.display='inline';">
+            <span id="flagFallbackSmall" style="font-size: 1.3rem; margin-right: 6px; display: none;">🏳️</span>
+            <span id="statNacionalidad">---</span>
+          </span>
+        </div>
         <div class="data-row"><span class="data-label">Sexo</span><span class="data-value" id="statSexo">--- <i class="fas fa-lock locked-icon"></i></span></div>
         <div class="data-row"><span class="data-label">Fecha de Nac.</span><span class="data-value" id="statFechaNac">--- <i class="fas fa-lock locked-icon"></i></span></div>
         <div class="data-row"><span class="data-label">Teléfono</span><span class="data-value" id="statTelefono">--- <i class="fas fa-lock locked-icon"></i></span></div>
