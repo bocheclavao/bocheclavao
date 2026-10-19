@@ -10,13 +10,99 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
-  // Diccionario de banderas
-  const banderas = {
-    'Venezuela': '🇪', 'Colombia': '🇨🇴', 'México': '🇽',
-    'Argentina': '🇦🇷', 'España': '🇸', 'Estados Unidos': '🇺🇸',
-    'Perú': '🇵🇪', 'Chile': '🇨🇱', 'Ecuador': '🇪🇨', 'Panamá': '🇵🇦',
-    'Brasil': '🇧🇷', 'República Dominicana': '🇩🇴'
-  };
+// ==========================================
+// DICCIONARIO COMPLETO DE PAÍSES → CÓDIGO ISO
+// ==========================================
+const paisesAISO = {
+  // América
+  'Argentina': 'ar', 'Bolivia': 'bo', 'Brasil': 'br', 'Chile': 'cl',
+  'Colombia': 'co', 'Costa Rica': 'cr', 'Cuba': 'cu', 'Ecuador': 'ec',
+  'El Salvador': 'sv', 'Estados Unidos': 'us', 'Guatemala': 'gt',
+  'Haití': 'ht', 'Honduras': 'hn', 'Jamaica': 'jm', 'México': 'mx',
+  'Nicaragua': 'ni', 'Panamá': 'pa', 'Paraguay': 'py', 'Perú': 'pe',
+  'República Dominicana': 'do', 'Uruguay': 'uy', 'Venezuela': 've',
+  'Bahamas': 'bs', 'Barbados': 'bb', 'Belice': 'bz', 'Guyana': 'gy',
+  'Surinam': 'sr', 'Trinidad y Tobago': 'tt',
+  
+  // Europa
+  'España': 'es', 'Alemania': 'de', 'Francia': 'fr', 'Italia': 'it',
+  'Reino Unido': 'gb', 'Portugal': 'pt', 'Países Bajos': 'nl',
+  'Bélgica': 'be', 'Suiza': 'ch', 'Austria': 'at', 'Grecia': 'gr',
+  'Polonia': 'pl', 'República Checa': 'cz', 'Hungría': 'hu',
+  'Rumania': 'ro', 'Bulgaria': 'bg', 'Croacia': 'hr', 'Serbia': 'rs',
+  'Ucrania': 'ua', 'Rusia': 'ru', 'Bielorrusia': 'by', 'Lituania': 'lt',
+  'Letonia': 'lv', 'Estonia': 'ee', 'Finlandia': 'fi', 'Suecia': 'se',
+  'Noruega': 'no', 'Dinamarca': 'dk', 'Islandia': 'is', 'Irlanda': 'ie',
+  
+  // Asia
+  'China': 'cn', 'Japón': 'jp', 'Corea del Sur': 'kr', 'Corea del Norte': 'kp',
+  'India': 'in', 'Pakistán': 'pk', 'Bangladés': 'bd', 'Indonesia': 'id',
+  'Filipinas': 'ph', 'Tailandia': 'th', 'Vietnam': 'vn', 'Malasia': 'my',
+  'Singapur': 'sg', 'Hong Kong': 'hk', 'Taiwán': 'tw', 'Mongolia': 'mn',
+  'Nepal': 'np', 'Sri Lanka': 'lk', 'Myanmar': 'mm', 'Camboya': 'kh',
+  'Laos': 'la', 'Brunéi': 'bn', 'Maldivas': 'mv', 'Bután': 'bt',
+  
+  // África
+  'Sudáfrica': 'za', 'Egipto': 'eg', 'Nigeria': 'ng', 'Kenia': 'ke',
+  'Etiopía': 'et', 'Ghana': 'gh', 'Marruecos': 'ma', 'Argelia': 'dz',
+  'Túnez': 'tn', 'Libia': 'ly', 'Sudán': 'sd', 'Tanzania': 'tz',
+  'Uganda': 'ug', 'Zimbabue': 'zw', 'Angola': 'ao', 'Mozambique': 'mz',
+  'Madagascar': 'mg', 'Mauricio': 'mu', 'Seychelles': 'sc',
+  
+  // Oriente Medio
+  'Arabia Saudita': 'sa', 'Emiratos Árabes Unidos': 'ae', 'Qatar': 'qa',
+  'Kuwait': 'kw', 'Baréin': 'bh', 'Omán': 'om', 'Yemen': 'ye',
+  'Irak': 'iq', 'Irán': 'ir', 'Israel': 'il', 'Jordania': 'jo',
+  'Líbano': 'lb', 'Siria': 'sy', 'Turquía': 'tr',
+  
+  // Oceanía
+  'Australia': 'au', 'Nueva Zelanda': 'nz', 'Fiyi': 'fj',
+  'Papúa Nueva Guinea': 'pg', 'Samoa': 'ws', 'Tonga': 'to',
+  'Vanuatu': 'vu', 'Islas Salomón': 'sb',
+  
+  // Caribe
+  'Antigua y Barbuda': 'ag', 'Dominica': 'dm', 'Granada': 'gd',
+  'San Cristóbal y Nieves': 'kn', 'Santa Lucía': 'lc',
+  'San Vicente y las Granadinas': 'vc'
+};
+
+// Función para obtener código ISO desde nombre de país
+const obtenerCodigoPais = (nombrePais) => {
+  if (!nombrePais) return null;
+  
+  // Buscar exacto
+  if (paisesAISO[nombrePais]) {
+    return paisesAISO[nombrePais];
+  }
+  
+  // Buscar ignorando mayúsculas/minúsculas
+  const nombreNormalizado = nombrePais.trim().toLowerCase();
+  for (const [pais, codigo] of Object.entries(paisesAISO)) {
+    if (pais.toLowerCase() === nombreNormalizado) {
+      return codigo;
+    }
+  }
+  
+  // Si no encuentra, retorna null
+  return null;
+};
+
+// Función principal para obtener URL de bandera
+const getBanderaUrl = (pais, tamaño = 80) => {
+  const codigo = obtenerCodigoPais(pais);
+  if (!codigo) return null;
+  
+  // FlagCDN soporta: w40, w80, w160, w320, w640 o .svg
+  return `https://flagcdn.com/w${tamaño}/${codigo}.png`;
+};
+
+// Función para verificar si un país existe en el diccionario
+const paisExiste = (pais) => obtenerCodigoPais(pais) !== null;
+
+// Función para agregar un país nuevo al diccionario (útil si falta alguno)
+const agregarPais = (nombre, codigoISO) => {
+  paisesAISO[nombre] = codigoISO.toLowerCase();
+};
 
   const safeSetText = (id, text) => {
     const el = document.getElementById(id);
