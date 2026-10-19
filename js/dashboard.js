@@ -1,554 +1,183 @@
 document.addEventListener('DOMContentLoaded', async function() {
-    const db = window.supabaseClient;
-    
-    if (!db) {
-        console.error('No se pudo obtener el cliente de Supabase');
-        return;
+  const db = window.supabaseClient;
+  if (!db) { window.location.href = 'index.html'; return; }
+  
+  const { data: { session } } = await db.auth.getSession();
+  if (!session || !session.user) { window.location.href = 'index.html'; return; }
+
+  // ... (Mantén todo el código del diccionario de países y funciones safeSetText/safeSetHTML que ya tenías) ...
+  const paisesAISO = { 'Venezuela': 've', 'Colombia': 'co', 'México': 'mx', 'Argentina': 'ar', 'España': 'es', 'Estados Unidos': 'us', 'Perú': 'pe', 'Chile': 'cl', 'Ecuador': 'ec', 'Panamá': 'pa', 'Brasil': 'br', 'República Dominicana': 'do', 'Bahamas': 'bs' };
+  const normalizarTexto = (texto) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const obtenerCodigoPais = (nombrePais) => {
+    if (!nombrePais) return null;
+    const nombreNormalizado = normalizarTexto(nombrePais);
+    for (const [pais, codigo] of Object.entries(paisesAISO)) {
+      if (normalizarTexto(pais) === nombreNormalizado) return codigo;
+    }
+    return null;
+  };
+  const getBanderaUrl = (pais, tamaño = 80) => {
+    const codigo = obtenerCodigoPais(pais);
+    if (!codigo) return null;
+    return `https://flagcdn.com/w${tamaño}/${codigo}.png`;
+  };
+  const safeSetText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const safeSetHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+  try {
+    const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', session.user.id).single();
+    if (error || !perfil) throw new Error('No se pudo cargar el perfil del bochador.');
+
+    const nombre = perfil.nombre || 'Bochador';
+    const userId = perfil.user_id || 'N/A';
+    const email = session.user.email;
+    const nacionalidad = perfil.nacionalidad || 'No especificada';
+    const banderaUrl = getBanderaUrl(nacionalidad, 160);
+
+    let edad = 'No especificada';
+    if (perfil.fecha_nacimiento) {
+      const hoy = new Date(); const nacimiento = new Date(perfil.fecha_nacimiento);
+      let edadCalc = hoy.getFullYear() - nacimiento.getFullYear();
+      const mes = hoy.getMonth() - nacimiento.getMonth();
+      if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edadCalc--;
+      edad = edadCalc + ' años';
     }
 
-    // 📌 REFERENCIAS AL DOM
+    const manoHabil = perfil.mano_habil ? perfil.mano_habil.charAt(0).toUpperCase() + perfil.mano_habil.slice(1) : 'No especificada';
+    const peso = perfil.peso ? `${perfil.peso} kg` : 'No especificado';
+    const estatura = perfil.estatura ? `${perfil.estatura} cm` : 'No especificada';
+    const brazo = perfil.longitud_brazo ? `${perfil.longitud_brazo} cm` : 'No especificada';
+    const sexo = perfil.sexo || 'No especificado';
+    const telefono = perfil.telefono || 'No especificado';
+    const partidos = perfil.partidos_jugados || 0;
+    const aciertos = perfil.porcentaje_aciertos ? `${perfil.porcentaje_aciertos}%` : '0%';
+    const categoria = perfil.categoria || 'F';
+    const estadoClasif = perfil.estado_clasificacion || 'No clasificado';
+
+    // Renderizar Avatar
+    const avatarUrl = perfil.avatar_url || session.user.user_metadata?.avatar_url;
+    const avatarImg = document.getElementById('profileAvatar');
+    const avatarPlaceholder = document.getElementById('profileAvatarPlaceholder');
+    if (avatarImg && avatarPlaceholder) {
+      if (avatarUrl) { avatarImg.src = avatarUrl; avatarImg.style.display = 'block'; avatarPlaceholder.style.display = 'none'; } 
+      else { avatarImg.style.display = 'none'; avatarPlaceholder.style.display = 'flex'; avatarPlaceholder.textContent = nombre.charAt(0).toUpperCase(); }
+    }
+
+    // Renderizar Bandera
+    const flagImg = document.getElementById('flagIcon');
+    const flagFallback = document.getElementById('flagFallback');
+    if (flagImg && banderaUrl) {
+      flagImg.src = banderaUrl; flagImg.alt = `Bandera de ${nacionalidad}`; flagImg.style.display = 'block';
+      if (flagFallback) flagFallback.style.display = 'none';
+    } else {
+      if (flagImg) flagImg.style.display = 'none';
+      if (flagFallback) flagFallback.style.display = 'block';
+    }
+
+    safeSetText('profileName', nombre);
+    safeSetText('profileId', `ID: ${userId}`);
+    safeSetText('profileEmail', email);
+    safeSetText('statNacionalidad', nacionalidad);
+    safeSetHTML('statSexo', `${sexo} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetHTML('statTelefono', `${telefono} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetHTML('statMano', `${manoHabil} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetHTML('statPeso', `${peso} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetHTML('statEstatura', `${estatura} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetHTML('statBrazo', `${brazo} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetHTML('statPartidos', `${partidos} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetHTML('statAciertos', `${aciertos} <i class="fas fa-lock locked-icon"></i>`);
+    safeSetText('statCategoria', categoria.toUpperCase());
+    safeSetText('statEstadoClasif', estadoClasif);
+
+    // Badge de clasificación
+    const statusBadge = document.getElementById('playerStatusBadge');
+    if (statusBadge) {
+      if (estadoClasif.toLowerCase() === 'clasificado') {
+        statusBadge.className = 'player-status-badge clasificado';
+        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> Clasificado';
+      } else {
+        statusBadge.className = 'player-status-badge no-clasificado';
+        statusBadge.innerHTML = '<i class="fas fa-hourglass-half"></i> No Clasificado';
+      }
+    }
+
+    // Barras de progreso
+    const maxPeso = 150, maxEstatura = 220, maxBrazo = 100;
+    const pesoNum = perfil.peso || 0; const estaturaNum = perfil.estatura || 0; const brazoNum = perfil.longitud_brazo || 0;
+    safeSetText('barPeso', pesoNum ? `${pesoNum} kg` : '-- kg');
+    safeSetText('barEstatura', estaturaNum ? `${estaturaNum} cm` : '-- cm');
+    safeSetText('barBrazo', brazoNum ? `${brazoNum} cm` : '-- cm');
+    const setBar = (id, value, max) => { const el = document.getElementById(id); if (el && value && max) el.style.width = Math.min((value / max) * 100, 100) + '%'; };
+    setBar('barPesoFill', pesoNum, maxPeso); setBar('barEstaturaFill', estaturaNum, maxEstatura); setBar('barBrazoFill', brazoNum, maxBrazo);
+
+    // Estrellas
+    const estrellasEl = document.getElementById('fichaStars');
+    if (estrellasEl) {
+      const aciertosNum = perfil.porcentaje_aciertos || 0;
+      const stars = Math.min(5, Math.floor((aciertosNum / 20) + 1));
+      estrellasEl.textContent = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    }
+
+    safeSetText('fichaPartidos', partidos); safeSetText('fichaAciertos', aciertos);
+    safeSetText('fichaCategoria', categoria.toUpperCase()); safeSetText('fichaEdad', edad === 'No especificada' ? '--' : edad.replace(' años', ''));
+    safeSetText('fichaBadgeCat', categoria.toUpperCase()); safeSetText('fichaBigNumber', partidos);
+
+    await cargarCarruselBochadores();
+
     const loadingState = document.getElementById('loadingState');
-    const contentState = document.getElementById('contentState');
-    const errorState = document.getElementById('errorState');
-    const userEmailDisplay = document.getElementById('userEmailDisplay');
-    const userNameDisplay = document.getElementById('userNameDisplay');
-    const userIdDisplay = document.getElementById('userIdDisplay');
-    const avatarImage = document.getElementById('avatarImage');
-    const avatarPlaceholder = document.getElementById('avatarDisplay');
-    const navAvatarContainer = document.getElementById('navAvatarContainer');
-    const kycBanner = document.getElementById('kycBanner');
-    const kycTitle = document.getElementById('kycTitle');
-    const kycMessage = document.getElementById('kycMessage');
-    const kycBtn = document.getElementById('kycBtn');
-    const cardBochador = document.getElementById('cardBochador');
-    const cardPatrocinador = document.getElementById('cardPatrocinador');
-    const balanceAmount = document.getElementById('balanceAmount');
-    const dropdownUserName = document.getElementById('dropdownUserName');
-    const dropdownUserEmail = document.getElementById('dropdownUserEmail');
-    const dropdownMenu = document.getElementById('dropdownMenu');
-    const menuToggle = document.getElementById('menuToggle');
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    const notificationBtn = document.getElementById('notificationBtn');
-    const mobileOverlay = document.getElementById('mobileOverlay');
+    const profileContent = document.getElementById('profileContent');
+    if (loadingState) loadingState.style.display = 'none';
+    if (profileContent) profileContent.style.display = 'block';
 
-    let estadoKyc = null;
-    let saldoBC = 0;
-
-    // ============================================
-    // 🚀 1. MENÚS MÓVILES
-    // ============================================
-    function sacarMenusDelNavbar() {
-        if (window.innerWidth <= 768) {
-            if (dropdownMenu && dropdownMenu.parentElement !== document.body) {
-                document.body.appendChild(dropdownMenu);
-            }
-            if (notificationDropdown && notificationDropdown.parentElement !== document.body) {
-                document.body.appendChild(notificationDropdown);
-            }
-        }
-    }
-    sacarMenusDelNavbar();
-    window.addEventListener('resize', sacarMenusDelNavbar);
-
-    // ============================================
-    // 👤 2. FUNCIONES DE PERFIL
-    // ============================================
-    function generarIdUnico() { 
-        return 'BC-' + Math.floor(10000000 + Math.random() * 90000000).toString(); 
-    }
-
-    async function cargarOCrearPerfil(user) {
-        try {
-            const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', user.id).single();
-            if (perfil) return perfil;
-            if (error && error.code === 'PGRST116') {
-                const nuevoPerfil = { 
-                    id: user.id, 
-                    user_id: generarIdUnico(), 
-                    nombre: user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario', 
-                    email: user.email, 
-                    avatar_url: user.user_metadata?.avatar_url || null, 
-                    saldo_bc: 0, 
-                    estado_kyc: null 
-                };
-                const { data: creado, error: insertError } = await db.from('perfiles').insert(nuevoPerfil).select().single();
-                if (insertError) { console.error('Error al crear perfil:', insertError); return null; }
-                return creado;
-            }
-            return null;
-        } catch (err) { console.error('Error en cargarOCrearPerfil:', err); return null; }
-    }
-
-    async function verificarSiEsAdmin(userId) {
-        try {
-            let { data, error } = await db.from('admin_roles')
-                .select('es_admin, activo')
-                .eq('id', userId)
-                .eq('es_admin', true)
-                .eq('activo', true)
-                .maybeSingle();
-            
-            if (!data) {
-                const res2 = await db.from('admin_roles')
-                    .select('es_admin, activo')
-                    .eq('user_id', userId)
-                    .eq('es_admin', true)
-                    .eq('activo', true)
-                    .maybeSingle();
-                data = res2.data;
-            }
-            
-            if (error || !data) return false;
-            return true;
-        } catch (err) { 
-            console.error('Error verificando admin:', err);
-            return false; 
-        }
-    }
-
-    function agregarBotonAdmin() {
-        if (!dropdownMenu || document.getElementById('adminMenuItem')) return;
-        const adminItem = document.createElement('button');
-        adminItem.id = 'adminMenuItem';
-        adminItem.className = 'dropdown-item';
-        adminItem.onclick = function() { window.location.href = 'admin.html'; };
-        adminItem.innerHTML = '<i class="fas fa-user-shield"></i><span>Panel Admin</span>';
-        const divider = dropdownMenu.querySelector('.dropdown-divider');
-        if (divider) dropdownMenu.insertBefore(adminItem, divider);
-        else dropdownMenu.appendChild(adminItem);
-    }
-
-    // ============================================
-    // 📱 3. MENÚS MÓVILES (INTERACCIÓN)
-    // ============================================
-    window.cerrarPanelesMovil = function() {
-        if (dropdownMenu) {
-            dropdownMenu.classList.remove('show');
-            dropdownMenu.style.transform = '';
-            dropdownMenu.style.opacity = '';
-            dropdownMenu.style.visibility = '';
-        }
-        if (notificationDropdown) {
-            notificationDropdown.classList.remove('show');
-            notificationDropdown.style.transform = '';
-            notificationDropdown.style.opacity = '';
-            notificationDropdown.style.visibility = '';
-        }
-        if (mobileOverlay) mobileOverlay.classList.remove('active');
-        if (menuToggle) menuToggle.classList.remove('active');
-        if (notificationBtn) notificationBtn.classList.remove('active');
-
-        document.body.classList.remove('menu-open');
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
+    // ==========================================
+    // MODO EVENTO (SOLO PARA ADMIN)
+    // ==========================================
+    const esAdmin = session.user.user_metadata?.role === 'admin' || session.user.user_metadata?.isAdmin === true;
+    const btnEvento = document.getElementById('btnAdminEvento');
+    if (esAdmin && btnEvento) {
+      btnEvento.style.display = 'flex';
+      btnEvento.addEventListener('click', () => {
+        const ancho = Math.min(screen.width * 0.9, 1200);
+        const alto = Math.min(screen.height * 0.9, 800);
+        const izquierda = (screen.width - ancho) / 2;
+        const arriba = (screen.height - alto) / 2;
         
-        const scrollY = parseInt(document.body.dataset.scrollPos || '0');
-        window.scrollTo(0, scrollY);
-    };
-
-    function bloquearScrollFondo() {
-        const scrollY = window.scrollY;
-        document.body.classList.add('menu-open');
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollY}px`;
-        document.body.style.width = '100%';
-        document.body.style.overflow = 'hidden';
-        document.body.dataset.scrollPos = scrollY;
+        const ventanaEvento = window.open(
+          `evento.html?uid=${session.user.id}`, 
+          'ModoEventoBoche', 
+          `width=${ancho},height=${alto},top=${arriba},left=${izquierda},resizable=yes,scrollbars=no`
+        );
+        if (ventanaEvento) ventanaEvento.focus();
+        else alert('Por favor, permite las ventanas emergentes (pop-ups) en tu navegador para usar el Modo Evento.');
+      });
     }
 
-    function forzarVisibilidadMenu(elemento) {
-        if (!elemento) return;
-        elemento.style.transform = '';
-        elemento.style.opacity = '';
-        elemento.style.visibility = '';
-        elemento.style.display = '';
-        void elemento.offsetHeight;
-        elemento.classList.add('show');
-        setTimeout(() => {
-            elemento.style.transform = 'translateY(0) translateZ(0)';
-            elemento.style.opacity = '1';
-            elemento.style.visibility = 'visible';
-            elemento.style.pointerEvents = 'auto';
-        }, 10);
-    }
+  } catch (err) {
+    console.error('Error al cargar el perfil:', err);
+    const loadingState = document.getElementById('loadingState');
+    if (loadingState) loadingState.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: var(--rojo); font-size: 2rem;"></i><p style="color: var(--rojo); margin-top: 15px;">Error al cargar el perfil.</p>`;
+  }
 
-    window.toggleMenu = function(event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        if (notificationDropdown && notificationDropdown.classList.contains('show')) {
-            notificationDropdown.classList.remove('show');
-        }
-        const isShowing = dropdownMenu.classList.contains('show');
-        if (isShowing) { cerrarPanelesMovil(); } 
-        else {
-            bloquearScrollFondo();
-            forzarVisibilidadMenu(dropdownMenu);
-            if (menuToggle) menuToggle.classList.add('active');
-            if (mobileOverlay) mobileOverlay.classList.add('active');
-        }
-    };
-
-    window.toggleNotifications = function(event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        if (dropdownMenu && dropdownMenu.classList.contains('show')) {
-            dropdownMenu.classList.remove('show');
-        }
-        const isShowing = notificationDropdown.classList.contains('show');
-        if (isShowing) { cerrarPanelesMovil(); } 
-        else {
-            bloquearScrollFondo();
-            forzarVisibilidadMenu(notificationDropdown);
-            if (notificationBtn) notificationBtn.classList.add('active');
-            if (mobileOverlay) mobileOverlay.classList.add('active');
-        }
-    };
-
-    if (notificationBtn) {
-        notificationBtn.onclick = null;
-        notificationBtn.addEventListener('click', toggleNotifications);
-    }
-    if (menuToggle) {
-        menuToggle.onclick = null;
-        menuToggle.addEventListener('click', toggleMenu);
-    }
-    
-    document.querySelectorAll('.panel-close-btn').forEach(btn => {
-        btn.addEventListener('click', window.cerrarPanelesMovil);
-    });
-    
-    if (mobileOverlay) {
-        mobileOverlay.addEventListener('click', window.cerrarPanelesMovil);
-        mobileOverlay.addEventListener('touchstart', window.cerrarPanelesMovil);
-    }
-
-    document.addEventListener('click', function(event) {
-        if (window.innerWidth > 768) {
-            const menuContainer = document.querySelector('.user-menu-container');
-            if (menuContainer && !menuContainer.contains(event.target) && dropdownMenu) {
-                dropdownMenu.classList.remove('show');
-                if (menuToggle) menuToggle.classList.remove('active');
-            }
-            const notifContainer = notificationBtn?.parentElement;
-            if (notifContainer && !notifContainer.contains(event.target) && notificationDropdown) {
-                notificationDropdown.classList.remove('show');
-                if (notificationBtn) notificationBtn.classList.remove('active');
-            }
-        }
-    });
-
-    // ============================================
-    // 🔗 4. NAVEGACIÓN
-    // ============================================
-    window.irAPerfil = function() { window.location.href = 'perfil.html'; };
-    window.irABilletera = function() { window.location.href = 'billetera.html'; };
-    window.irAApuestas = function() { alert('Mis apuestas estará disponible próximamente'); };
-    window.irASoporte = function() { alert('Soporte estará disponible próximamente'); };
-    window.irAConfiguracion = function() { alert('Configuración estará disponible próximamente'); };
-
-    // ============================================
-    // 📺 5. STREAM EN VIVO
-    // ============================================
-    async function cargarStreamEnVivo() {
-        try {
-            const { data: streamConfig, error } = await db.from('config_stream_vivo').select('*').eq('activo', true).single();
-            const liveSection = document.getElementById('liveStreamSection');
-            const liveBadgeContainer = document.getElementById('liveBadgeContainer');
-            const videoPlaceholder = document.getElementById('videoPlaceholder');
-            const liveVideo = document.getElementById('liveVideo');
-            const liveIframe = document.getElementById('liveIframe');
-            const liveInfo = document.getElementById('liveInfo');
-            const liveTitle = document.getElementById('liveTitle');
-            const liveDescription = document.getElementById('liveDescription');
-
-            if (error || !streamConfig || !streamConfig.activo) {
-                liveSection.classList.remove('active'); 
-                videoPlaceholder.style.display = 'flex';
-                liveVideo.style.display = 'none'; 
-                liveIframe.style.display = 'none';
-                liveInfo.style.display = 'none'; 
-                liveBadgeContainer.innerHTML = ''; 
-                return;
-            }
-
-            liveSection.classList.add('active'); 
-            videoPlaceholder.style.display = 'none';
-            liveInfo.style.display = 'block'; 
-            liveTitle.textContent = streamConfig.titulo || 'Transmisión en Vivo';
-            liveDescription.textContent = streamConfig.descripcion || 'Evento en vivo';
-            liveBadgeContainer.innerHTML = `<div class="live-badge"><div class="live-dot"></div> EN VIVO</div>${streamConfig.espectadores ? `<div class="live-viewers"><i class="fas fa-eye"></i> ${streamConfig.espectadores} espectadores</div>` : ''}`;
-            liveVideo.style.display = 'none'; 
-            liveIframe.style.display = 'none';
-
-            if (streamConfig.url_stream.includes('youtube.com') || streamConfig.url_stream.includes('youtu.be')) {
-                liveIframe.style.display = 'block'; 
-                let embedUrl = streamConfig.url_stream;
-                if (embedUrl.includes('/live/') || embedUrl.includes('/watch?v=')) {
-                    const videoId = embedUrl.split('/live/')[1]?.split('?')[0] || embedUrl.split('v=')[1]?.split('&')[0];
-                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-                }
-                liveIframe.src = embedUrl;
-            } else if (streamConfig.tipo_stream === 'hls' && streamConfig.url_stream) {
-                liveVideo.style.display = 'block';
-                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                    const hls = new Hls(); 
-                    hls.loadSource(streamConfig.url_stream); 
-                    hls.attachMedia(liveVideo);
-                    hls.on(Hls.Events.MANIFEST_PARSED, function() { 
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); 
-                    });
-                } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
-                    liveVideo.src = streamConfig.url_stream;
-                    liveVideo.addEventListener('loadedmetadata', function() { 
-                        liveVideo.play().catch(e => console.log('Autoplay bloqueado:', e)); 
-                    });
-                }
-            } else {
-                liveIframe.style.display = 'block'; 
-                liveIframe.src = streamConfig.url_stream;
-            }
-        } catch (err) { console.error('Error cargando stream en vivo:', err); }
-    }
-
-    // ============================================
-    // 🛡️ 6. KYC Y AVATAR
-    // ============================================
-    function actualizarBannerKYC(estado) {
-        if (estado === 'verificado') {
-            kycBanner.style.display = 'none'; 
-            cardBochador.classList.remove('disabled'); 
-            cardPatrocinador.classList.remove('disabled'); 
-            return;
-        }
-        kycBanner.style.display = 'flex';
-        if (estado === null || estado === undefined || estado === '') {
-            kycBanner.classList.remove('verified', 'rejected'); 
-            kycBanner.style.borderColor = '#FFD700';
-            kycTitle.textContent = '⚠️ Verificación KYC Pendiente'; 
-            kycMessage.textContent = 'Para participar como Bochador o Patrocinador, debes completar tu verificación de identidad (KYC).';
-            kycBtn.innerHTML = '<i class="fas fa-user-check"></i> Completar KYC ahora'; 
-            kycBtn.style.pointerEvents = 'auto'; 
-            kycBtn.style.opacity = '1'; 
-            kycBtn.style.background = '';
-            kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            cardBochador.classList.add('disabled'); 
-            cardPatrocinador.classList.add('disabled');
-        } else if (estado === 'pendiente' || estado === 'revision') {
-            kycBanner.classList.remove('verified', 'rejected'); 
-            kycBanner.style.borderColor = '#FFA500';
-            kycTitle.textContent = '⏳ Verificación KYC en Revisión'; 
-            kycMessage.textContent = 'Tus documentos están siendo revisados.';
-            kycBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> En Revisión'; 
-            kycBtn.style.pointerEvents = 'none'; 
-            kycBtn.style.opacity = '0.6'; 
-            kycBtn.style.background = '#666';
-            kycBtn.onclick = null; 
-            cardBochador.classList.add('disabled'); 
-            cardPatrocinador.classList.add('disabled');
-        } else if (estado === 'rechazado') {
-            kycBanner.classList.add('rejected'); 
-            kycBanner.classList.remove('verified');
-            kycTitle.textContent = '❌ Verificación KYC Rechazada'; 
-            kycMessage.textContent = 'Tus documentos no fueron aprobados. Vuelve a enviarla.';
-            kycBtn.innerHTML = '<i class="fas fa-redo"></i> Reintentar'; 
-            kycBtn.style.pointerEvents = 'auto'; 
-            kycBtn.style.opacity = '1'; 
-            kycBtn.style.background = '';
-            kycBtn.onclick = function() { window.location.href = 'perfil.html'; };
-            cardBochador.classList.add('disabled'); 
-            cardPatrocinador.classList.add('disabled');
-        }
-    }
-
-    function mostrarAvatarNavbar(nombre, avatarUrl) {
-        if (avatarUrl) {
-            navAvatarContainer.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-small">`;
-        } else {
-            const inicial = (nombre || 'U').charAt(0).toUpperCase();
-            navAvatarContainer.innerHTML = `<div class="avatar-placeholder-small">${inicial}</div>`;
-        }
-    }
-
-    function mostrarDatos(user, perfil) {
-        const nombre = perfil?.nombre || user.user_metadata?.nombre || user.user_metadata?.full_name || 'Usuario';
-        const email = user.email;
-        const userId = perfil?.user_id || generarIdUnico();
-        const avatarUrl = perfil?.avatar_url || user.user_metadata?.avatar_url;
-        const estado = (perfil?.estado_kyc || '').toString().toLowerCase().trim();
-        saldoBC = perfil?.saldo_bc ?? 0;
-
-        userNameDisplay.textContent = nombre; 
-        userEmailDisplay.textContent = email;
-        
-        if (estado === 'verificado') {
-            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-check-circle" style="color: #00ff00; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #00ff00; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Verificado</span>`;
-        } else if (estado === 'pendiente' || estado === 'revision') {
-            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-clock" style="color: #FFA500; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #FFA500; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">En Revisión</span>`;
-        } else {
-            userIdDisplay.innerHTML = `ID: ${userId} <i class="fas fa-exclamation-circle" style="color: #ff4444; margin-left: 8px; font-size: 0.9rem;"></i> <span style="color: #ff4444; font-size: 0.75rem; font-weight: 700; margin-left: 5px;">Pendiente</span>`;
-        }
-        
-        dropdownUserName.textContent = nombre; 
-        dropdownUserEmail.textContent = email;
-        balanceAmount.textContent = `${parseFloat(saldoBC).toFixed(2)} PP`;
-
-        if (avatarUrl) { 
-            avatarImage.src = avatarUrl; 
-            avatarImage.style.display = 'block'; 
-            avatarPlaceholder.style.display = 'none'; 
-        } else { 
-            avatarPlaceholder.textContent = nombre.charAt(0).toUpperCase(); 
-            avatarPlaceholder.style.display = 'flex'; 
-            avatarImage.style.display = 'none'; 
-        }
-
-        mostrarAvatarNavbar(nombre, avatarUrl);
-        actualizarBannerKYC(estado);
-
-        verificarSiEsAdmin(user.id).then(esAdmin => { 
-            if (esAdmin) agregarBotonAdmin(); 
-        });
-    }
-
-    window.seleccionarRol = function(rol) {
-        if (estadoKyc !== 'verificado') {
-            if (typeof window.mostrarModalKYC === 'function') {
-                window.mostrarModalKYC();
-            } else {
-                alert('Debes completar y ser aprobado en la verificación KYC antes de poder participar.');
-            }
-            return;
-        }
-        if (rol === 'bochador') window.location.href = 'dashboard-bochador.html';
-        else if (rol === 'patrocinador') window.location.href = 'dashboard-patrocinador.html';
-    };
-
-    // ============================================
-    // 🔒 7. PROTEGER RUTA (Limpia y optimizada)
-    // ============================================
-    async function protegerRuta() {
-        try {
-            const { data: { session }, error: sessionError } = await db.auth.getSession();
-            
-            if (sessionError) {
-                console.error('Error de sesión:', sessionError);
-            }
-
-            if (!session || !session.user) { 
-                console.warn('⚠️ No hay sesión activa, redirigiendo al login...');
-                window.location.href = 'index.html'; 
-                return; 
-            }
-
-            const user = session.user; // Definimos 'user' aquí de forma segura
-
-            // 🛡️ VERIFICAR BLOQUEO PERMANENTE
-            const { data: perfil, error: perfilError } = await db
-                .from('perfiles')
-                .select('bloqueado, motivo_bloqueo')
-                .eq('id', user.id)
-                .maybeSingle();
-
-            if (perfilError) {
-                console.warn('⚠️ No se pudo verificar el estado de bloqueo:', perfilError.message);
-            }
-
-            if (perfil && perfil.bloqueado === true) {
-                console.warn(`🚫 Acceso denegado: Cuenta bloqueada (${user.email})`);
-                await db.auth.signOut({ scope: 'global' });
-                localStorage.removeItem('session_token');
-                
-                const motivo = perfil.motivo_bloqueo || 'Violación de las políticas de la plataforma.';
-                sessionStorage.setItem('auth_message', `🚫 <strong>TU CUENTA HA SIDO BLOQUEADA PERMANENTEMENTE</strong><br><br>Motivo: ${motivo}<br><br>Contacta a soporte si crees que esto es un error.`);
-                sessionStorage.setItem('auth_type', 'error');
-                
-                window.location.href = 'index.html';
-                return; 
-            }
-
-            // ✅ CARGA NORMAL DEL DASHBOARD
-            const perfilCompleto = await cargarOCrearPerfil(user);
-            estadoKyc = (perfilCompleto?.estado_kyc || '').toString().toLowerCase().trim();
-            
-            mostrarDatos(user, perfilCompleto);
-            
-            try {
-                await cargarStreamEnVivo();
-            } catch (streamErr) {
-                console.warn('⚠️ Error cargando stream:', streamErr.message);
-            }
-
-            if (loadingState) loadingState.style.display = 'none';
-            if (contentState) contentState.style.display = 'block';
-            
-            // ✅ Iniciar Realtime pasando el objeto 'user' directamente como argumento
-            iniciarRealtime(user);
-            
-        } catch (err) {
-            console.error('❌ Error crítico en la guardia de seguridad:', err);
-            if (loadingState) loadingState.style.display = 'none';
-            if (errorState) {
-                errorState.style.display = 'block';
-                errorState.innerHTML = `<i class="fas fa-exclamation-triangle"></i><p>Error al cargar el dashboard. <br><small>${err.message}</small></p>`;
-            }
-            if (err.message && err.message.toLowerCase().includes('session')) {
-                setTimeout(() => { window.location.href = 'index.html'; }, 3000);
-            }
-        }
-    }
-
-    protegerRuta();
-
-    // ============================================
-    // 🚪 CERRAR SESIÓN
-    // ============================================
-    window.cerrarSesion = async function() {
-        if (!db) return;
-        try {
-            const { error } = await db.auth.signOut({ scope: 'global' });
-            if (error) throw error;
-            localStorage.removeItem('session_token');
-            window.location.href = 'index.html';
-        } catch (err) {
-            console.error('Error al cerrar sesión:', err);
-            alert('Hubo un error al cerrar sesión.');
-        }
-    }
-
-    // ============================================
-    // ⚡ 8. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE)
-    // ============================================
-    // Recibimos 'usuarioActivo' como parámetro para NO depender de variables globales
-    function iniciarRealtime(usuarioActivo) {
-        if (!usuarioActivo || !usuarioActivo.id) {
-            console.warn('⚠️ No se pudo iniciar Realtime: usuario no válido');
-            return;
-        }
-
-        const userId = usuarioActivo.id;
-
-        // 1. Escuchar cambios en el saldo del usuario
-        const channelSaldo = db.channel('saldo_updates')
-            .on('postgres_changes', 
-                { event: 'UPDATE', schema: 'public', table: 'perfiles', filter: `id=eq.${userId}` }, 
-                (payload) => {
-                    const nuevoSaldo = payload.new.saldo_bc ?? 0;
-                    const balanceEl = document.getElementById('balanceAmount');
-                    if (balanceEl) {
-                        balanceEl.textContent = `${parseFloat(nuevoSaldo).toFixed(2)} PP`;
-                    }
-                }
-            )
-            .subscribe();
-
-        // 2. Escuchar nuevas notificaciones
-        const channelNotif = db.channel('notificaciones_updates')
-            .on('postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${userId}` },
-                (payload) => {
-                    console.log('🔔 Nueva notificación recibida');
-                }
-            )
-            .subscribe();
-    }
+  async function cargarCarruselBochadores() {
+    try {
+      const { data: bochadores, error } = await db.from('perfiles').select('nombre, avatar_url, partidos_jugados, porcentaje_aciertos, estado_clasificacion, categoria').eq('estado_kyc', 'verificado').order('porcentaje_aciertos', { ascending: false }).limit(10);
+      if (error) throw error;
+      const track = document.getElementById('carouselTrack');
+      if (!track) return;
+      let htmlContent = '';
+      bochadores.forEach((jugador, index) => {
+        const nombre = jugador.nombre || 'Jugador Anónimo';
+        const avatar = jugador.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=FFD700&color=000&size=128`;
+        const partidos = jugador.partidos_jugados || 0;
+        const aciertos = jugador.porcentaje_aciertos ? jugador.porcentaje_aciertos.toFixed(1) : '0.0';
+        const categoria = jugador.categoria || 'F';
+        const estado = jugador.estado_clasificacion || 'No clasificado';
+        const esTop3 = index < 3;
+        const borderColor = esTop3 ? 'var(--dorado)' : 'var(--azul-electrico)';
+        const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+        htmlContent += `<div class="player-card" style="border-color: ${borderColor};"><div class="player-rank">${rankIcon} • Categoría ${categoria.toUpperCase()}</div><img src="${avatar}" alt="${nombre}" class="player-avatar" style="border-color: ${borderColor};"><div class="player-name">${nombre}</div><div style="font-size: 0.75rem; color: ${estado.toLowerCase() === 'clasificado' ? '#00ff00' : 'var(--gris-texto)'}; margin-bottom: 12px; font-weight: 600;">${estado}</div><div class="player-stats"><div class="stat-item"><span class="stat-value">${partidos}</span><span class="stat-label">Partidos</span></div><div class="stat-item"><span class="stat-value">${aciertos}%</span><span class="stat-label">Precisión</span></div></div></div>`;
+      });
+      track.innerHTML = htmlContent + htmlContent;
+    } catch (err) { console.error('Error al cargar bochadores:', err); }
+  }
 });
