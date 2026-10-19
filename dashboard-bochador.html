@@ -67,6 +67,18 @@ body::before {
 }
 .ficha-sport-name { font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--blanco); }
 .ficha-sport-name i { margin-right: 8px; color: var(--dorado); }
+  .ficha-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  margin-right: 10px;
+  vertical-align: middle;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: transform 0.3s ease;
+}
+.ficha-logo:hover {
+  transform: scale(1.1) rotate(5deg);
+}
 .ficha-body { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 24px; padding: 30px 28px; align-items: center; position: relative; }
 .ficha-stats-left { display: flex; flex-direction: column; gap: 12px; }
 .stat-box {
@@ -211,8 +223,10 @@ body::before {
   <div id="profileContent" style="display: none;">
     <div class="player-ficha">
       <div class="ficha-header">
-        <div class="ficha-sport-name"><i class="fas fa-bullseye"></i> Boche Clava'o</div>
-      </div>
+       <div class="ficha-sport-name">
+  <img src="../img/boche.png" alt="Boche Clava'o" class="ficha-logo">
+  Boche Clava'o
+</div>
       <div class="ficha-body">
         <div class="ficha-stats-left">
           <div class="stat-box"><div class="stat-box-label">Partidos</div><div class="stat-box-value" id="fichaPartidos">0</div></div>
