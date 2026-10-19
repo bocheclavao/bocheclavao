@@ -262,6 +262,7 @@ document.addEventListener('DOMContentLoaded', async function() {
           </div>
         `;
       });
+      // Duplicamos para el efecto infinito en desktop, en móvil el scroll-snap lo maneja perfecto
       track.innerHTML = htmlContent + htmlContent;
     } catch (err) {
       console.error('Error al cargar bochadores:', err);
