@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modo Evento - Boche Clava'o</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --azul: #0057FF; --dorado: #FFD700; --negro: #050505; --blanco: #FFFFFF; --verde: #00C853; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background-color: var(--negro); color: var(--blanco); font-family: 'Montserrat', sans-serif;
+    height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden; position: relative;
+  }
+  .btn-cerrar {
+    position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2);
+    color: white; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: 0.3s; z-index: 10;
+  }
+  .btn-cerrar:hover { background: #FF1B1B; border-color: #FF1B1B; }
+  
+  .evento-card {
+    text-align: center; max-width: 90vw; width: 900px;
+    background: linear-gradient(135deg, #0F0F10 0%, #161618 100%);
+    border: 3px solid var(--dorado); border-radius: 40px; padding: 50px;
+    box-shadow: 0 0 100px rgba(0, 87, 255, 0.4);
+  }
+  .evento-avatar {
+    width: 300px; height: 300px; border-radius: 50%; border: 8px solid var(--dorado);
+    object-fit: cover; margin: 0 auto 20px; background: #222;
+  }
+  .evento-nombre { font-size: 4rem; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; color: var(--blanco); letter-spacing: 2px; }
+  .evento-id { font-size: 1.5rem; color: var(--azul); font-weight: 700; margin-bottom: 10px; }
+  
+  .evento-badge {
+    display: inline-flex; align-items: center; gap: 10px; padding: 10px 24px; border-radius: 30px;
+    font-size: 1.2rem; font-weight: 800; text-transform: uppercase; margin-bottom: 40px;
+  }
+  .evento-badge.clasificado { background: rgba(0, 200, 83, 0.2); color: var(--verde); border: 2px solid var(--verde); }
+  .evento-badge.no-clasificado { background: rgba(154, 157, 166, 0.2); color: #9A9DA6; border: 2px solid #9A9DA6; }
+
+  .evento-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px; }
+  .evento-stat-box {
+    background: rgba(0, 87, 255, 0.1); border: 2px solid rgba(0, 87, 255, 0.3);
+    border-radius: 20px; padding: 30px 20px;
+  }
+  .evento-stat-label { font-size: 1.2rem; color: #9A9DA6; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+  .evento-stat-value { font-size: 4rem; font-weight: 900; color: var(--dorado); margin-top: 10px; }
+  
+  .loading { font-size: 2.5rem; color: var(--azul); display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .loading i { font-size: 4rem; animation: spin 1s linear infinite; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <button class="btn-cerrar" onclick="window.close()" title="Cerrar Modo Evento"><i class="fas fa-times"></i></button>
+  <div id="loading" class="loading"><i class="fas fa-circle-notch"></i> Cargando perfil del jugador...</div>
+  
+  <div id="eventoContent" style="display: none;">
+    <div class="evento-card">
+      <img id="evAvatar" class="evento-avatar" src="" alt="Avatar">
+      <div id="evNombre" class="evento-nombre">JUGADOR</div>
+      <div id="evId" class="evento-id">ID: ---</div>
+      <div id="evBadge" class="evento-badge no-clasificado">
+        <i class="fas fa-hourglass-half"></i> No Clasificado
+      </div>
+      
+      <div class="evento-stats">
+        <div class="evento-stat-box">
+          <div class="evento-stat-label">Partidos</div>
+          <div id="evPartidos" class="evento-stat-value">0</div>
+        </div>
+        <div class="evento-stat-box">
+          <div class="evento-stat-label">Precisión</div>
+          <div id="evAciertos" class="evento-stat-value">0%</div>
+        </div>
+        <div class="evento-stat-box">
+          <div class="evento-stat-label">Categoría</div>
+          <div id="evCategoria" class="evento-stat-value">F</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const db = window.supabaseClient;
+      if (!db) { document.getElementById('loading').innerHTML = '⚠️ Error de conexión.'; return; }
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const uid = urlParams.get('uid');
+      if (!uid) { document.getElementById('loading').innerHTML = '⚠️ No se especificó un jugador.'; return; }
+
+      try {
+        const { data: perfil, error } = await db.from('perfiles').select('*').eq('id', uid).single();
+        if (error || !perfil) throw new Error('Perfil no encontrado');
+
+        const avatarUrl = perfil.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(perfil.nombre || 'J')}&background=FFD700&color=000&size=300`;
+        document.getElementById('evAvatar').src = avatarUrl;
+        document.getElementById('evNombre').textContent = perfil.nombre || 'Jugador';
+        document.getElementById('evId').textContent = `ID: ${perfil.user_id || 'N/A'}`;
+        document.getElementById('evPartidos').textContent = perfil.partidos_jugados || 0;
+        document.getElementById('evAciertos').textContent = (perfil.porcentaje_aciertos || 0) + '%';
+        document.getElementById('evCategoria').textContent = (perfil.categoria || 'F').toUpperCase();
+
+        const badge = document.getElementById('evBadge');
+        const estado = (perfil.estado_clasificacion || 'No clasificado').toLowerCase();
+        if (estado === 'clasificado') {
+          badge.className = 'evento-badge clasificado';
+          badge.innerHTML = '<i class="fas fa-check-circle"></i> Clasificado';
+        } else {
+          badge.className = 'evento-badge no-clasificado';
+          badge.innerHTML = '<i class="fas fa-hourglass-half"></i> No Clasificado';
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('eventoContent').style.display = 'block';
+      } catch (err) {
+        document.getElementById('loading').innerHTML = '⚠️ Error al cargar el perfil.';
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
