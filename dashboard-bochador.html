@@ -13,8 +13,7 @@
   --rojo: #FF1B1B; --rojo-hover: #CC0000; --negro-fondo: #050505;
   --negro-superficie: #0F0F10; --negro-superficie-2: #161618;
   --gris-texto: #9A9DA6; --gris-borde: rgba(255, 255, 255, 0.06);
-  --dorado: #FFD700; --blanco: #FFFFFF;
-  --verde: #00C853;
+  --dorado: #FFD700; --blanco: #FFFFFF; --verde: #00C853;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {
@@ -32,34 +31,31 @@ body::before {
 }
 @keyframes moveBackground { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
 
-/* NAVBAR */
+/* NAVBAR ALINEADA A LA IZQUIERDA */
 .navbar {
   background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--gris-borde);
-  padding: 12px 16px; display: flex; justify-content: center; align-items: center; 
+  padding: 12px 16px; display: flex; justify-content: flex-start; align-items: center; 
   position: sticky; top: 0; z-index: 100;
 }
-.navbar-left { display: flex; align-items: center; gap: 12px; position: absolute; left: 16px; }
+.navbar-left { display: flex; align-items: center; gap: 16px; }
 .navbar-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--blanco); }
 .navbar-logo { width: 36px; height: auto; }
 .navbar-title { font-size: 1rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
 .navbar-title span { color: var(--azul-electrico); }
 .btn-volver {
-  display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gris-borde); border-radius: 10px;
-  color: var(--gris-texto); text-decoration: none; font-size: 1rem; transition: all 0.3s ease;
+  color: var(--gris-texto); text-decoration: none; font-size: 0.9rem; font-weight: 600; 
+  padding: 8px 14px; transition: all 0.3s ease; cursor: pointer;
 }
 .btn-volver:hover { background: rgba(0, 87, 255, 0.1); border-color: var(--azul-electrico); color: var(--azul-electrico); }
 .btn-volver .btn-text { display: none; }
 
-/* MAIN CONTENT */
-.main-content { 
-  flex: 1; 
-  padding: 20px 16px; 
-  width: 100%; 
-  max-width: 900px; 
-  margin: 0 auto; 
-}
+/* Botón especial para admin */
+.btn-evento-admin { border-color: var(--dorado); color: var(--dorado); }
+.btn-evento-admin:hover { background: rgba(255, 215, 0, 0.1); border-color: var(--dorado); color: var(--dorado); }
 
+.main-content { flex: 1; padding: 20px 16px; width: 100%; max-width: 900px; margin: 0 auto; }
 .loading-container { text-align: center; padding: 60px 20px; color: var(--gris-texto); font-size: 1rem; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .loading-container i { color: var(--azul-electrico); font-size: 1.5rem; animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -84,12 +80,8 @@ body::before {
 }
 .ficha-logo { width: 28px; height: 28px; object-fit: contain; margin-right: 10px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
 
-.ficha-body { 
-  display: flex; flex-direction: column; gap: 20px; padding: 24px 20px; align-items: center; 
-}
-.ficha-stats-left { 
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 280px;
-}
+.ficha-body { display: flex; flex-direction: column; gap: 20px; padding: 24px 20px; align-items: center; }
+.ficha-stats-left { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 280px; }
 .stat-box {
   background: rgba(0, 87, 255, 0.08); border: 1px solid rgba(0, 87, 255, 0.2); border-radius: 12px;
   padding: 12px 8px; text-align: center; transition: all 0.3s ease;
@@ -116,22 +108,13 @@ body::before {
 }
 .player-name-box .player-id-small { display: block; font-size: 0.65rem; font-weight: 600; color: var(--azul-electrico); letter-spacing: 0.5px; }
 
-/* BADGE DE CLASIFICACIÓN */
 .player-status-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 12px; border-radius: 20px;
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px;
-  text-transform: uppercase; margin-top: 2px;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 12px;
+  backdrop-filter: blur(10px); transition: all 0.3s ease;
 }
-.player-status-badge.clasificado {
-  background: rgba(0, 200, 83, 0.15); color: var(--verde);
-  border: 1px solid rgba(0, 200, 83, 0.3);
-}
-.player-status-badge.no-clasificado {
-  background: rgba(154, 157, 166, 0.15); color: var(--gris-texto);
-  border: 1px solid rgba(154, 157, 166, 0.3);
-}
-.player-status-badge i { font-size: 0.65rem; }
+.player-status-badge.clasificado { background: rgba(0, 200, 83, 0.15); color: var(--verde); border: 1px solid rgba(0, 200, 83, 0.4); }
+.player-status-badge.no-clasificado { background: rgba(154, 157, 166, 0.15); color: var(--gris-texto); border: 1px solid rgba(154, 157, 166, 0.3); }
 
 .ficha-stats-right { display: flex; flex-direction: row; justify-content: center; gap: 20px; width: 100%; }
 .badge-circle {
@@ -142,7 +125,6 @@ body::before {
 .badge-circle .badge-label { font-size: 0.5rem; font-weight: 800; letter-spacing: 1px; color: var(--negro-fondo); text-transform: uppercase; }
 .badge-circle .badge-value { font-size: 1.2rem; font-weight: 900; color: var(--negro-fondo); line-height: 1; }
 .country-box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-
 .country-flag-img {
   width: 50px; height: auto; border-radius: 6px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; background: var(--negro-superficie-2);
@@ -167,7 +149,6 @@ body::before {
 .ficha-big-number .number { font-size: 3.5rem; font-weight: 900; color: var(--blanco); line-height: 1; text-shadow: 0 0 20px rgba(0, 87, 255, 0.4); }
 .ficha-big-number .number-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 1.5px; color: var(--gris-texto); text-transform: uppercase; margin-top: 6px; }
 
-/* DATOS DETALLADOS */
 .data-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 30px; }
 .data-card { background: var(--negro-superficie); border: 1px solid var(--gris-borde); border-radius: 16px; padding: 20px; }
 .data-card h3 { font-size: 0.9rem; font-weight: 700; color: var(--dorado); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
@@ -178,32 +159,19 @@ body::before {
 .data-value.highlight { color: var(--dorado); }
 .locked-icon { color: var(--gris-texto); font-size: 0.7rem; opacity: 0.5; }
 
-/* CARRUSEL - CORREGIDO PARA MÓVIL */
 .carousel-section { margin: 30px 0; text-align: center; }
 .carousel-section h2 { font-size: 1.2rem; font-weight: 800; color: var(--blanco); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 .carousel-section h2 span { color: var(--azul-electrico); }
 .carousel-section p { color: var(--gris-texto); font-size: 0.85rem; margin-bottom: 20px; padding: 0 10px; }
-
-/* Contenedor del carrusel en móvil: scroll horizontal */
 .carousel-wrapper {
   position: relative; width: 100%; overflow-x: auto; padding: 10px 0 20px 0;
-  scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; 
+  scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; 
 }
 .carousel-wrapper::-webkit-scrollbar { display: none; }
-
-/* Track en móvil: permite scroll, no animación */
-.carousel-track { 
-  display: flex; 
-  gap: 16px; 
-  padding: 0 16px; 
-  width: max-content;
-}
-
+.carousel-track { display: flex; gap: 16px; padding: 0 16px; width: max-content; }
 .player-card {
   background: var(--negro-superficie); border: 1px solid var(--gris-borde); border-radius: 16px;
-  padding: 20px 16px; width: 260px; text-align: center; flex-shrink: 0;
-  scroll-snap-align: center;
+  padding: 20px 16px; width: 260px; text-align: center; flex-shrink: 0; scroll-snap-align: center;
 }
 .player-card .player-avatar { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--azul-electrico); margin: 0 auto 12px; background: var(--negro-superficie-2); }
 .player-card .player-name { font-size: 1rem; font-weight: 800; color: var(--blanco); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -227,74 +195,31 @@ body::before {
    ========================================== */
 @media (min-width: 768px) {
   .navbar { padding: 16px 24px; }
-  .navbar-left { position: static; }
-  .btn-volver { width: auto; padding: 8px 14px; }
   .btn-volver .btn-text { display: inline; }
-  
   .main-content { padding: 40px 24px; max-width: 1000px; }
   .player-ficha { margin: 0 auto 30px auto; max-width: 800px; }
-  
-  .ficha-body { 
-    flex-direction: row; 
-    align-items: center; 
-    padding: 30px 28px;
-    justify-content: space-between;
-  }
-  
-  .ficha-stats-left { 
-    display: flex; 
-    flex-direction: column; 
-    width: auto; 
-    max-width: none;
-  }
-  
+  .ficha-body { flex-direction: row; align-items: center; padding: 30px 28px; justify-content: space-between; }
+  .ficha-stats-left { display: flex; flex-direction: column; width: auto; max-width: none; }
   .stat-box:hover { background: rgba(0, 87, 255, 0.2); transform: translateX(4px); }
-  
   .ficha-center { width: auto; }
   .avatar-circle { width: 180px; height: 180px; }
   .player-name-box { font-size: 1.3rem; padding: 14px 36px; }
-  
-  .ficha-stats-right { 
-    flex-direction: column; 
-    align-items: flex-end; 
-    width: auto; 
-  }
-  
+  .ficha-stats-right { flex-direction: column; align-items: flex-end; width: auto; }
   .badge-circle { width: 80px; height: 80px; }
   .country-flag-img { width: 60px; }
-  
-  .ficha-footer { 
-    flex-direction: row; 
-    text-align: left; 
-    padding: 28px;
-    justify-content: space-between;
-  }
-  
+  .ficha-footer { flex-direction: row; text-align: left; padding: 28px; justify-content: space-between; }
   .ficha-bars { margin: 0; max-width: none; flex: 1; }
   .ficha-big-number { text-align: right; }
   .ficha-big-number .number { font-size: 4.5rem; }
-  
-  .data-grid { 
-    grid-template-columns: repeat(2, 1fr); 
-    max-width: 800px;
-    margin: 0 auto 30px auto;
-  }
-  
-  /* Carrusel animado en desktop */
+  .data-grid { grid-template-columns: repeat(2, 1fr); max-width: 800px; margin: 0 auto 30px auto; }
   .carousel-section { max-width: 800px; margin: 40px auto; }
   .carousel-wrapper { overflow: hidden; scroll-snap-type: none; }
-  .carousel-track { 
-    padding: 0; 
-    animation: scrollCarousel 40s linear infinite; 
-    width: max-content;
-  }
+  .carousel-track { padding: 0; animation: scrollCarousel 40s linear infinite; width: max-content; }
   .carousel-track:hover { animation-play-state: paused; }
   .player-card:hover { transform: translateY(-8px); border-color: var(--azul-electrico); box-shadow: 0 10px 30px rgba(0, 87, 255, 0.15); }
-  
   .btn-ranking-completo { width: auto; }
   .btn-ranking-completo:hover { background: var(--blanco); color: var(--azul-electrico); transform: translateY(-3px); }
 }
-
 @media (min-width: 1024px) {
   .data-grid { grid-template-columns: repeat(4, 1fr); }
   .ficha-big-number .number { font-size: 5rem; }
@@ -302,7 +227,6 @@ body::before {
   .player-ficha { max-width: 900px; }
   .data-grid { max-width: 900px; }
 }
-
 @keyframes scrollCarousel { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 </style>
 </head>
@@ -314,6 +238,10 @@ body::before {
       <img src="../img/logo.png" alt="Logo" class="navbar-logo">
       <span class="navbar-title">Boche <span>Clava'o</span></span>
     </a>
+    <!-- Botón Modo Evento (Oculto por defecto, solo visible para admins) -->
+    <button id="btnAdminEvento" class="btn-volver btn-evento-admin" style="display: none;">
+      <i class="fas fa-tv"></i> <span class="btn-text">Modo Evento</span>
+    </button>
   </div>
 </nav>
 
@@ -341,19 +269,19 @@ body::before {
         </div>
         
         <div class="ficha-center">
-  <div class="avatar-circle">
-    <img id="profileAvatar" src="" alt="Avatar" style="display: none;">
-    <div id="profileAvatarPlaceholder" class="avatar-placeholder" style="display: none;">?</div>
-  </div>
-  <div class="player-name-box">
-    <span id="profileName">Jugador</span>
-    <span class="player-id-small" id="profileId">ID: ---</span>
-  </div>
-</div>
-<div id="playerStatusBadge" class="player-status-badge no-clasificado">
-  <i class="fas fa-hourglass-half"></i> No Clasificado
-</div>
+          <div class="avatar-circle">
+            <img id="profileAvatar" src="" alt="Avatar" style="display: none;">
+            <div id="profileAvatarPlaceholder" class="avatar-placeholder" style="display: none;">?</div>
           </div>
+          <div class="player-name-box">
+            <span id="profileName">Jugador</span>
+            <span class="player-id-small" id="profileId">ID: ---</span>
+          </div>
+        </div>
+        
+        <!-- Badge FUERA del contenedor blanco -->
+        <div id="playerStatusBadge" class="player-status-badge no-clasificado">
+          <i class="fas fa-hourglass-half"></i> No Clasificado
         </div>
 
         <div class="ficha-stats-right">
