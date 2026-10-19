@@ -51,25 +51,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     'Yibuti': 'dj', 'Zambia': 'zm', 'Zimbabue': 'zw'
   };
 
-  // Función para normalizar texto (quita acentos y pasa a minúsculas para evitar errores de escritura)
   const normalizarTexto = (texto) => {
     return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   };
 
-  // Función para obtener el código ISO del país de forma inteligente
   const obtenerCodigoPais = (nombrePais) => {
     if (!nombrePais) return null;
     const nombreNormalizado = normalizarTexto(nombrePais);
-    
     for (const [pais, codigo] of Object.entries(paisesAISO)) {
-      if (normalizarTexto(pais) === nombreNormalizado) {
-        return codigo;
-      }
+      if (normalizarTexto(pais) === nombreNormalizado) return codigo;
     }
-    return null; // Si no se encuentra, retorna null y se usará el fallback
+    return null;
   };
 
-  // Función para generar la URL de la bandera
   const getBanderaUrl = (pais, tamaño = 80) => {
     const codigo = obtenerCodigoPais(pais);
     if (!codigo) return null;
@@ -93,8 +87,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     const userId = perfil.user_id || 'N/A';
     const email = session.user.email;
     const nacionalidad = perfil.nacionalidad || 'No especificada';
-    
-    // Obtener URL de la bandera real (o null si no existe)
     const banderaUrl = getBanderaUrl(nacionalidad, 160);
 
     let edad = 'No especificada';
