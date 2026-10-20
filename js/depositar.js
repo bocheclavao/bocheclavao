@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     let metodoSeleccionado = null;
     let archivoComprobante = null;
     let cantidadSeleccionada = 0;
-    let tasaBCV = 0; // Se cargará desde Supabase
+    let tasaBCV = 0;
     let fechaTasaBCV = null;
     let session = null;
 
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const metodosPago = {
         pagomovil: {
             nombre: "Pago Móvil",
-            imagen: "../img/pg.png",
+            imagen: "../img/pg.pnb.png",
             campos: [
                 { nombre: "banco_emisor", etiqueta: "Tu Banco", tipo: "select", opciones: ["Banco de Venezuela", "Banesco", "Mercantil", "Provincial", "Bancaribe", "100% Banco", "Otro"] },
                 { nombre: "telefono_emisor", etiqueta: "Tu Teléfono", tipo: "text", placeholder: "0412-1234567" },
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         paypal: {
             nombre: "PayPal",
-            imagen: "../img/paypal.png",
+            imagen: "../img/paypla.png",
             campos: [
                 { nombre: "correo_emisor", etiqueta: "Tu Correo PayPal", tipo: "email", placeholder: "tu@email.com" },
                 { nombre: "referencia", etiqueta: "ID de Transacción PayPal", tipo: "text", placeholder: "ID de la transacción" }
@@ -136,7 +136,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 4. INICIALIZACIÓN
     // ==========================================
     async function init() {
-        // Obtener sesión
         const sessionData = await db.auth.getSession();
         session = sessionData.data.session;
         if (!session) {
@@ -144,22 +143,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        // Cargar datos del usuario
         try {
             const { data: perfil } = await db.from('perfiles').select('nombre, user_id, saldo_bc').eq('id', session.user.id).single();
             if (perfil) {
                 if (userNameDisplay) userNameDisplay.textContent = perfil.nombre || 'Usuario';
                 if (userIdDisplay) userIdDisplay.textContent = perfil.user_id || '---';
-                if (currentBalance) currentBalance.textContent = (perfil.saldo_bc || 0).toFixed(2);
+                if (currentBalance) currentBalance.textContent = (parseFloat(perfil.saldo_bc) || 0).toFixed(2);
             }
         } catch (err) {
             console.error('Error cargando perfil:', err);
         }
 
-        // Cargar tasa BCV desde Supabase
         await cargarTasaBCV();
-
-        // Renderizar paquetes y métodos
         renderPaquetes();
         renderPaymentMethods();
     }
@@ -185,7 +180,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 tasaBCV = parseFloat(data.valor);
                 fechaTasaBCV = data.fecha_actualizacion ? new Date(data.fecha_actualizacion) : new Date();
 
-                if (tasaBCV > 0 && tasaBCV < 1000) {
+                if (tasaBCV > 0 && tasaBCV < 2000) {
                     mostrarTasaBCV(tasaBCV, fechaTasaBCV);
                     console.log('✅ Tasa BCV cargada:', tasaBCV);
                 } else {
@@ -287,7 +282,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         const metodo = metodosPago[key];
 
-        // Mostrar datos de la empresa
         if (companyDataBox) companyDataBox.style.display = 'block';
         if (companyDataContent) {
             companyDataContent.innerHTML = `
@@ -305,7 +299,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
         }
 
-        // Mostrar formulario dinámico
         const dynamicForm = document.getElementById('dynamicForm');
         if (dynamicForm) dynamicForm.style.display = 'block';
 
@@ -357,7 +350,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         customAmount.addEventListener('input', function() {
             const valor = parseFloat(this.value) || 0;
             cantidadSeleccionada = valor;
-            // Deseleccionar paquetes si el valor no coincide
             document.querySelectorAll('.package-card').forEach(c => {
                 c.classList.toggle('selected', parseInt(c.dataset.cantidad) === valor);
             });
@@ -401,7 +393,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // ==========================================
-    // 11. ENVÍO DEL FORMULARIO
+    // 11. ENVÍO DEL FORMULARIO (✅ CORREGIDO)
     // ==========================================
     if (formDeposito) {
         formDeposito.addEventListener('submit', async function(e) {
@@ -448,10 +440,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 // 2. Calcular montos
                 const precioBaseUSD = cantidad * 0.01;
-                const subtotalConDescuento = precioBaseUSD * 0.95;
-                const comision = subtotalConDescuento * 0.003;
+                const descuento = precioBaseUSD * 0.05; // 5% de descuento
+                const subtotalConDescuento = precioBaseUSD - descuento;
+                const comision = subtotalConDescuento * 0.003; // 0.30%
                 const totalUSD = subtotalConDescuento + comision;
-                const totalVES = totalUSD * tasaBCV;
+                const totalBS = totalUSD * tasaBCV;
 
                 // 3. Recopilar datos del formulario dinámico
                 const formData = new FormData(formDeposito);
@@ -460,17 +453,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                     datosPago[key] = value;
                 }
 
-                // 4. Guardar en la base de datos
+                // 4. ✅ GUARDAR EN LA BASE DE DATOS (con nombres de columnas correctos)
                 const { data: deposito, error: dbError } = await db.from('depositos').insert({
                     user_id: session.user.id,
                     cantidad_monedas: cantidad,
                     metodo_pago: metodoSeleccionado,
                     datos_pago: datosPago,
                     monto_usd: totalUSD,
-                    monto_ves: totalVES,
-                    tasa_bcv: tasaBCV,
+                    monto_bs: totalBS,                    // ✅ CORREGIDO (antes era monto_ves)
+                    tasa_bcv_usada: tasaBCV,              // ✅ CORREGIDO (antes era tasa_bcv)
+                    descuento_aplicado: descuento,        // ✅ NUEVO (5% de descuento)
                     comprobante_url: comprobanteUrl,
-                    estado: 'pendiente'
+                    estado: 'pendiente',
+                    creado_en: new Date().toISOString(),
+                    actualizado_en: new Date().toISOString()
                 }).select().single();
 
                 if (dbError) throw new Error('Error al guardar el depósito: ' + dbError.message);
@@ -483,7 +479,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             nombre: session.user.user_metadata?.nombre || 'Usuario',
                             montoBC: cantidad,
                             montoUSD: totalUSD.toFixed(2),
-                            montoBS: totalVES.toFixed(2),
+                            montoBS: totalBS.toFixed(2),
                             metodo: metodosPago[metodoSeleccionado].nombre,
                             fecha: new Date().toLocaleString('es-VE'),
                             idTransaccion: deposito.id,
@@ -495,7 +491,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
 
                 // 6. Mostrar vista de éxito
-                mostrarExito(cantidad, totalUSD, totalVES, deposito);
+                mostrarExito(cantidad, totalUSD, totalBS, deposito);
 
             } catch (err) {
                 console.error('❌ Error en el depósito:', err);
@@ -512,7 +508,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ==========================================
     // 12. VISTA DE ÉXITO
     // ==========================================
-    function mostrarExito(cantidad, totalUSD, totalVES, deposito) {
+    function mostrarExito(cantidad, totalUSD, totalBS, deposito) {
         if (formDeposito) formDeposito.style.display = 'none';
         if (successView) {
             if (successAmount) successAmount.textContent = cantidad;
