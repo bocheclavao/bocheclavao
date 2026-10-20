@@ -587,16 +587,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         window.location.href = 'index.html';
     };
 
-    window.seleccionarRol = function (rol) {
-        if (!currentPerfil) return;
-        if (currentPerfil.estado_kyc !== 'verificado') {
-            showToast('Debes completar tu verificación KYC primero', 'error');
-            window.location.href = 'perfil.html';
-            return;
-        }
-        if (rol === 'bochador') window.location.href = 'bochador.html';
-        else if (rol === 'patrocinador') window.location.href = 'patrocinador.html';
-    };
+  window.seleccionarRol = function (rol) {
+    if (!currentPerfil) return;
+    if (currentPerfil.estado_kyc !== 'verificado') {
+        showToast('Debes completar tu verificación KYC primero', 'error');
+        window.location.href = 'perfil.html';
+        return;
+    }
+    if (rol === 'bochador') window.location.href = 'dashboard-bochador.html';  // ✅ AHORA
+    else if (rol === 'patrocinador') window.location.href = 'patrocinador.html';
+};
 
     window.marcarTodasLeidas = async function (e) {
         if (e) e.stopPropagation();
