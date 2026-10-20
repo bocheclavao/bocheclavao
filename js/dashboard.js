@@ -101,11 +101,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         return div.innerHTML;
     }
 
-    function esAdmin(user) {
-        const meta = user?.user_metadata || {};
-        return meta.role === 'admin' || meta.isAdmin === true || meta.is_admin === true;
-    }
-
     // ========== CARGAR PERFIL COMPLETO ==========
     async function cargarPerfil() {
         try {
@@ -122,8 +117,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             const userId = perfil.user_id || currentUserId.substring(0, 8).toUpperCase();
             const email = session.user.email;
 
-            // Saldo
-            const saldo = perfil.saldo || 0;
+            // ✅ CORRECCIÓN 1: Usar saldo_bc en lugar de saldo
+            const saldo = parseFloat(perfil.saldo_bc) || 0;
             if (balanceAmount) balanceAmount.textContent = formatBalance(saldo);
 
             // Info usuario
@@ -153,10 +148,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Avatar navbar
             renderNavAvatar(avatarUrl, nombre);
 
-            // Admin button
-            if (esAdmin(session.user) && adminMenuSection) {
-                adminMenuSection.style.display = 'block';
-            }
+            // ✅ CORRECCIÓN 3: Verificar admin consultando la tabla admin_roles
+            await verificarAdmin();
 
             // Mostrar contenido
             if (loadingState) loadingState.style.display = 'none';
@@ -166,6 +159,34 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.error('Error cargando perfil:', err);
             if (loadingState) loadingState.style.display = 'none';
             if (errorState) errorState.style.display = 'flex';
+        }
+    }
+
+    // ========== VERIFICAR SI ES ADMIN (consultando tabla admin_roles) ==========
+    async function verificarAdmin() {
+        try {
+            const { data: adminRow, error } = await db
+                .from('admin_roles')
+                .select('es_admin, activo')
+                .eq('id', currentUserId)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Error verificando admin:', error);
+                return;
+            }
+
+            // Es admin si existe el registro, es_admin = true y activo = true
+            const esAdminUser = adminRow && adminRow.es_admin === true && adminRow.activo === true;
+
+            if (esAdminUser && adminMenuSection) {
+                adminMenuSection.style.display = 'block';
+                console.log('✅ Usuario es ADMIN - Panel visible');
+            } else {
+                console.log('ℹ️ Usuario NO es admin');
+            }
+        } catch (err) {
+            console.error('Error en verificarAdmin:', err);
         }
     }
 
@@ -191,20 +212,30 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
-    // ========== CAMBIAR AVATAR ==========
+    // ========== AVATAR CLICKEABLE + CAMBIAR FOTO ==========
+    // ✅ CORRECCIÓN 2: Click normal va a perfil.html, Shift+Click cambia foto
     if (avatarContainer && avatarInput) {
-        avatarContainer.addEventListener('click', () => avatarInput.click());
+        avatarContainer.addEventListener('click', (e) => {
+            if (e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                avatarInput.click();
+            } else {
+                window.location.href = 'perfil.html';
+            }
+        });
+
+        avatarContainer.title = 'Click: Ver perfil | Shift+Click: Cambiar foto';
+
         avatarInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Validar tamaño (máx 2MB)
             if (file.size > 2 * 1024 * 1024) {
                 showToast('La imagen no debe superar 2MB', 'error');
                 return;
             }
 
-            // Validar tipo
             if (!file.type.startsWith('image/')) {
                 showToast('Solo se permiten imágenes', 'error');
                 return;
@@ -213,7 +244,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             try {
                 showToast('Subiendo imagen...', 'success');
 
-                // Subir a Supabase Storage
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${currentUserId}-${Date.now()}.${fileExt}`;
                 const filePath = `avatars/${fileName}`;
@@ -224,14 +254,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 if (uploadError) throw uploadError;
 
-                // Obtener URL pública
                 const { data: urlData } = db.storage
                     .from('avatars')
                     .getPublicUrl(filePath);
 
                 const publicUrl = urlData.publicUrl;
 
-                // Actualizar perfil
                 const { error: updateError } = await db
                     .from('perfiles')
                     .update({ avatar_url: publicUrl })
@@ -239,7 +267,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 if (updateError) throw updateError;
 
-                // Actualizar UI
                 renderAvatar(publicUrl, currentPerfil.nombre);
                 renderNavAvatar(publicUrl, currentPerfil.nombre);
                 currentPerfil.avatar_url = publicUrl;
@@ -306,7 +333,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             liveVideo.src = '';
 
             if (!config || !config.activo || !config.url_stream) {
-                // Offline
                 videoPlaceholder.style.display = 'flex';
                 videoPlaceholder.querySelector('p').textContent = 'No hay transmisión activa';
                 videoPlaceholder.querySelector('span').textContent = 'Pronto habrá eventos en vivo';
@@ -319,7 +345,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
-            // EN VIVO
             videoPlaceholder.style.display = 'none';
             videoContainer.classList.add('live-active');
             if (liveStreamSection) liveStreamSection.classList.add('active');
@@ -327,7 +352,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 liveBadgeContainer.innerHTML = '<span class="live-badge"><span class="live-dot"></span> EN VIVO</span>';
             }
 
-            // Título y descripción
             if (liveInfo) liveInfo.style.display = 'block';
             if (liveTitle) liveTitle.textContent = config.titulo || 'Evento en vivo';
             if (liveDescription) liveDescription.textContent = config.descripcion || '';
@@ -459,7 +483,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         try {
             const { error } = await db.from('chat_messages').insert({
                 sender_id: currentUserId,
-                receiver_id: 'admin', // ID del admin (ajusta si tienes un ID específico)
+                receiver_id: 'admin',
                 message: texto,
                 read: false
             });
@@ -503,13 +527,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Marcar como leídos los recibidos
             await db.from('chat_messages')
                 .update({ read: true })
                 .eq('receiver_id', currentUserId)
                 .eq('read', false);
 
-            // Actualizar badge
             if (chatBadge) chatBadge.style.display = 'none';
 
             lastChatMessageId = mensajes[mensajes.length - 1]?.id || null;
@@ -533,7 +555,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     await cargarMensajesChat();
                 }
 
-                // Contar no leídos para el badge si el chat está cerrado
                 if (!chatWindow.classList.contains('show')) {
                     const { data: noLeidos } = await db
                         .from('chat_messages')
