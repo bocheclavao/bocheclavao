@@ -1,267 +1,351 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boche Clava'o - Depositar</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="../img/moneda.png">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Montserrat', sans-serif; background-color: #000000; background-image: radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 25%); min-height: 100vh; color: #ffffff; display: flex; flex-direction: column; }
-        .navbar { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #222; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
-        .navbar-logo { max-width: 60px; height: auto; }
-        .navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
-        .btn-volver { background: transparent; border: 1px solid #444; color: #ccc; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
-        .btn-volver:hover { border-color: #FFD700; color: #FFD700; }
-        .main-content { flex: 1; padding: 30px 20px; max-width: 800px; margin: 0 auto; width: 100%; }
-        .user-balance-bar { background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); border: 1px solid #333; border-radius: 12px; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
-        .user-info h3 { color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
-        .user-info p { color: #888; font-size: 0.85rem; }
-        .balance-info { text-align: right; }
-        .balance-info .label { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
-        .balance-info .amount { color: #FFD700; font-size: 1.8rem; font-weight: 900; }
-        .bcv-banner { background: rgba(0, 50, 150, 0.1); border: 1px solid #003296; border-radius: 10px; padding: 15px; margin-bottom: 30px; text-align: center; }
-        .bcv-banner img { max-width: 100%; max-height: 90px; object-fit: contain; border-radius: 6px; background: #fff; padding: 5px; }
-        .bcv-banner p { font-size: 0.75rem; color: #888; margin-top: 8px; }
-        .section-title { font-size: 1.1rem; font-weight: 700; color: #FFD700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-        .packages-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; margin-bottom: 30px; }
-        .package-card { background: #111; border: 1px solid #333; border-radius: 10px; padding: 15px 10px; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative; }
-        .package-card:hover { border-color: #FFD700; transform: translateY(-3px); }
-        .package-card.selected { border-color: #00ff00; background: rgba(0, 255, 0, 0.05); }
-        .package-card .coins { font-size: 1.3rem; font-weight: 800; color: #FFD700; display: block; margin-bottom: 5px; }
-        .package-card .price { font-size: 0.85rem; color: #ccc; }
-        .package-card .discount { position: absolute; top: -8px; right: -8px; background: #ff0000; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 3px 6px; border-radius: 4px; }
-        .manual-input-group { margin-bottom: 30px; }
-        .manual-input-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
-        .input-with-addons { display: flex; align-items: center; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
-        .input-with-addons input { flex: 1; padding: 14px; background: transparent; border: none; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 700; }
-        .input-with-addons input:focus { outline: none; }
-        .input-addon { padding: 14px 20px; background: #1a1a1a; color: #FFD700; font-weight: 700; border-left: 1px solid #333; }
-        .conversion-preview { margin-top: 10px; font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; }
-        .conversion-preview span { color: #00ff00; font-weight: 600; }
-        .payment-methods-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-bottom: 25px; }
-        .warning-notice { background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 165, 0, 0.4); border-left: 4px solid #FFA500; border-radius: 10px; padding: 20px; margin-bottom: 25px; display: flex; gap: 15px; align-items: flex-start; animation: fadeInWarning 0.5s ease; }
-        @keyframes fadeInWarning { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .warning-icon { flex-shrink: 0; width: 45px; height: 45px; background: rgba(255, 165, 0, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .warning-icon i { font-size: 1.5rem; color: #FFA500; }
-        .warning-content { flex: 1; }
-        .warning-content h4 { color: #FFA500; font-size: 1rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .warning-content p { color: #ccc; font-size: 0.85rem; line-height: 1.6; margin: 0; }
-        .warning-content p strong { color: #fff; font-weight: 700; }
-        .warning-highlight { display: inline-block; background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.3); padding: 8px 12px; border-radius: 6px; color: #00ff00 !important; font-size: 0.8rem !important; margin-top: 8px; }
-        .warning-highlight i { margin-right: 5px; }
-        @media (max-width: 600px) { .warning-notice { flex-direction: column; align-items: center; text-align: center; } .warning-content h4 { justify-content: center; } .packages-grid { grid-template-columns: repeat(3, 1fr); } .payment-methods-grid { grid-template-columns: repeat(2, 1fr); } }
-        .method-card { background: #111; border: 1px solid #333; border-radius: 10px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease; }
-        .method-card:hover { border-color: #FFD700; }
-        .method-card.selected { border-color: #0064ff; background: rgba(0, 100, 255, 0.05); }
-        .method-card img { width: 45px; height: 45px; object-fit: contain; }
-        .method-card span { font-size: 0.8rem; font-weight: 600; color: #ccc; text-align: center; }
-        .company-data-box { background: rgba(255, 215, 0, 0.05); border: 1px dashed #FFD700; border-radius: 10px; padding: 20px; margin-bottom: 25px; display: none; }
-        .company-data-box h4 { color: #FFD700; font-size: 0.95rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
-        .data-row:last-child { border-bottom: none; }
-        .data-row .label { color: #888; }
-        .data-row .value { color: #fff; font-weight: 600; text-align: right; word-break: break-all; }
-        .dynamic-form { display: none; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
-        .form-group input, .form-group select { width: 100%; padding: 14px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; }
-        .form-group small { color: #666; font-size: 0.75rem; margin-top: 5px; display: block; }
-        .file-upload { border: 2px dashed #333; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative; }
-        .file-upload:hover { border-color: #FFD700; background: rgba(255, 215, 0, 0.02); }
-        .file-upload input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-        .file-upload i { font-size: 2rem; color: #666; margin-bottom: 10px; }
-        .file-upload p { color: #888; font-size: 0.85rem; }
-        .file-preview { position: relative; display: flex; justify-content: center; align-items: center; margin-top: 15px; }
-        .file-preview img { max-width: 100%; max-height: 200px; border-radius: 8px; border: 2px solid #FFD700; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2); object-fit: contain; }
-        .remove-file { position: absolute; top: -10px; right: -10px; width: 30px; height: 30px; background: #ff0000; color: #fff; border: 2px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
-        .remove-file:hover { background: #cc0000; transform: scale(1.1); }
-        .file-upload.has-image .file-upload-content { display: none; }
-        .file-upload.has-image { padding: 15px; }
-        .btn-primary { width: 100%; padding: 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; border-radius: 8px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; font-family: 'Montserrat', sans-serif; margin-top: 10px; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-        .message { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-size: 0.85rem; font-weight: 600; }
-        .message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
-        .message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
-        .main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
-        .footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
-        .footer-text span { color: #FFD700; font-weight: 600; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulseSuccess { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); } 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(0, 255, 0, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
-        .success-view { text-align: center; padding: 40px 20px; animation: fadeIn 0.5s ease; display: none; }
-        .success-icon-container { width: 90px; height: 90px; background: rgba(0, 255, 0, 0.1); border: 2px solid #00ff00; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; animation: pulseSuccess 2s infinite; }
-        .success-view h2 { color: #00ff00; font-size: 1.6rem; margin-bottom: 15px; font-weight: 800; }
-        .success-view p { color: #ccc; font-size: 1rem; line-height: 1.6; margin-bottom: 20px; max-width: 500px; margin-left: auto; margin-right: auto; }
-        .success-info-box { background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; border-radius: 8px; padding: 20px; margin-bottom: 30px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
-        .success-info-box p { margin: 0; font-size: 0.9rem; }
-        .success-info-box p + p { margin-top: 10px; color: #aaa; font-size: 0.85rem; }
-        .success-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
-        .btn-secondary { padding: 12px 30px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 8px; }
-        .btn-secondary:hover { background: #333; border-color: #666; transform: translateY(-2px); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Boche Clava'o - Depositar</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="../img/moneda.png">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Montserrat', sans-serif; background-color: #000000; background-image: radial-gradient(circle at 15% 50%, rgba(255, 215, 0, 0.08) 0%, transparent 25%); min-height: 100vh; color: #ffffff; display: flex; flex-direction: column; }
+.navbar { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #222; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+.navbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+.navbar-logo { max-width: 60px; height: auto; }
+.navbar-title { font-size: 1.1rem; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
+.btn-volver { background: transparent; border: 1px solid #444; color: #ccc; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; text-decoration: none; }
+.btn-volver:hover { border-color: #FFD700; color: #FFD700; }
+.main-content { flex: 1; padding: 30px 20px; max-width: 800px; margin: 0 auto; width: 100%; }
+.user-balance-bar { background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); border: 1px solid #333; border-radius: 12px; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+.user-info h3 { color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
+.user-info p { color: #888; font-size: 0.85rem; }
+.balance-info { text-align: right; }
+.balance-info .label { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+.balance-info .amount { color: #FFD700; font-size: 1.8rem; font-weight: 900; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.balance-info .amount img { width: 28px; height: 28px; object-fit: contain; }
+
+/* ========== BANNER BCV ========== */
+.bcv-banner {
+background: linear-gradient(135deg, rgba(0, 50, 150, 0.15) 0%, rgba(0, 30, 90, 0.1) 100%);
+border: 1px solid #003296;
+border-radius: 12px;
+padding: 18px 20px;
+margin-bottom: 30px;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 18px;
+position: relative;
+overflow: hidden;
+}
+.bcv-banner::before {
+content: '';
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
+pointer-events: none;
+}
+.bcv-banner img.bcv-logo {
+width: 55px; height: 55px;
+object-fit: contain;
+background: #fff;
+padding: 6px;
+border-radius: 8px;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+flex-shrink: 0;
+}
+.bcv-banner-content { text-align: left; position: relative; z-index: 1; }
+.bcv-banner-label {
+font-size: 0.75rem;
+color: #888;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+margin-bottom: 4px;
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.bcv-banner-label .live-dot {
+width: 6px; height: 6px;
+background: #00ff00;
+border-radius: 50%;
+animation: blink 1.5s infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.bcv-banner-rate {
+font-size: 1.5rem;
+font-weight: 900;
+color: #fff;
+line-height: 1.2;
+}
+.bcv-banner-rate span.rate-value { color: #00ff00; font-size: 1.7rem; }
+.bcv-banner-date { font-size: 0.7rem; color: #666; margin-top: 2px; }
+.bcv-banner-error { color: #ff6b6b; font-size: 0.85rem; font-weight: 600; }
+
+.section-title { font-size: 1.1rem; font-weight: 700; color: #FFD700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+.packages-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; margin-bottom: 30px; }
+.package-card { background: #111; border: 1px solid #333; border-radius: 10px; padding: 15px 10px; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative; }
+.package-card:hover { border-color: #FFD700; transform: translateY(-3px); }
+.package-card.selected { border-color: #00ff00; background: rgba(0, 255, 0, 0.05); }
+.package-card .coins { font-size: 1.3rem; font-weight: 800; color: #FFD700; display: block; margin-bottom: 5px; }
+.package-card .price { font-size: 0.85rem; color: #ccc; }
+.package-card .discount { position: absolute; top: -8px; right: -8px; background: #ff0000; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 3px 6px; border-radius: 4px; }
+
+.manual-input-group { margin-bottom: 30px; }
+.manual-input-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
+.input-with-addons { display: flex; align-items: center; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+.input-with-addons input { flex: 1; padding: 14px; background: transparent; border: none; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 700; }
+.input-with-addons input:focus { outline: none; }
+.input-addon { padding: 14px 20px; background: #1a1a1a; color: #FFD700; font-weight: 700; border-left: 1px solid #333; }
+.conversion-preview { margin-top: 10px; font-size: 0.85rem; color: #888; display: flex; justify-content: space-between; }
+.conversion-preview span { color: #00ff00; font-weight: 600; }
+
+.payment-methods-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-bottom: 25px; }
+
+.warning-notice { background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 165, 0, 0.4); border-left: 4px solid #FFA500; border-radius: 10px; padding: 20px; margin-bottom: 25px; display: flex; gap: 15px; align-items: flex-start; animation: fadeInWarning 0.5s ease; }
+@keyframes fadeInWarning { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.warning-icon { flex-shrink: 0; width: 45px; height: 45px; background: rgba(255, 165, 0, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.warning-icon i { font-size: 1.5rem; color: #FFA500; }
+.warning-content { flex: 1; }
+.warning-content h4 { color: #FFA500; font-size: 1rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.warning-content p { color: #ccc; font-size: 0.85rem; line-height: 1.6; margin: 0; }
+.warning-content p strong { color: #fff; font-weight: 700; }
+.warning-highlight { display: inline-block; background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.3); padding: 8px 12px; border-radius: 6px; color: #00ff00 !important; font-size: 0.8rem !important; margin-top: 8px; }
+.warning-highlight i { margin-right: 5px; }
+
+@media (max-width: 600px) {
+.bcv-banner { flex-direction: column; text-align: center; padding: 16px; }
+.bcv-banner-content { text-align: center; }
+.bcv-banner-rate { font-size: 1.3rem; }
+.bcv-banner-rate span.rate-value { font-size: 1.5rem; }
+.warning-notice { flex-direction: column; align-items: center; text-align: center; }
+.warning-content h4 { justify-content: center; }
+.packages-grid { grid-template-columns: repeat(3, 1fr); }
+.payment-methods-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.method-card { background: #111; border: 1px solid #333; border-radius: 10px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease; }
+.method-card:hover { border-color: #FFD700; transform: translateY(-2px); }
+.method-card.selected { border-color: #0064ff; background: rgba(0, 100, 255, 0.05); }
+.method-card img { width: 50px; height: 50px; object-fit: contain; }
+.method-card span { font-size: 0.8rem; font-weight: 600; color: #ccc; text-align: center; }
+
+.company-data-box { background: rgba(255, 215, 0, 0.05); border: 1px dashed #FFD700; border-radius: 10px; padding: 20px; margin-bottom: 25px; display: none; }
+.company-data-box h4 { color: #FFD700; font-size: 0.95rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
+.data-row:last-child { border-bottom: none; }
+.data-row .label { color: #888; }
+.data-row .value { color: #fff; font-weight: 600; text-align: right; word-break: break-all; cursor: pointer; transition: color 0.2s; }
+.data-row .value:hover { color: #FFD700; }
+
+.dynamic-form { display: none; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; color: #ccc; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
+.form-group input, .form-group select { width: 100%; padding: 14px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; }
+.form-group small { color: #666; font-size: 0.75rem; margin-top: 5px; display: block; }
+
+.file-upload { border: 2px dashed #333; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative; }
+.file-upload:hover { border-color: #FFD700; background: rgba(255, 215, 0, 0.02); }
+.file-upload input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.file-upload i { font-size: 2rem; color: #666; margin-bottom: 10px; }
+.file-upload p { color: #888; font-size: 0.85rem; }
+.file-preview { position: relative; display: flex; justify-content: center; align-items: center; margin-top: 15px; }
+.file-preview img { max-width: 100%; max-height: 200px; border-radius: 8px; border: 2px solid #FFD700; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2); object-fit: contain; }
+.remove-file { position: absolute; top: -10px; right: -10px; width: 30px; height: 30px; background: #ff0000; color: #fff; border: 2px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+.remove-file:hover { background: #cc0000; transform: scale(1.1); }
+.file-upload.has-image .file-upload-content { display: none; }
+.file-upload.has-image { padding: 15px; }
+
+.btn-primary { width: 100%; padding: 16px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; border: none; border-radius: 8px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; font-family: 'Montserrat', sans-serif; margin-top: 10px; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+.message { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; display: none; font-size: 0.85rem; font-weight: 600; }
+.message.success { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; display: block; }
+.message.error { background: rgba(255, 0, 0, 0.1); border: 1px solid #ff0000; color: #ff0000; display: block; }
+
+.main-footer { background: #050505; border-top: 1px solid #222; padding: 30px 20px; text-align: center; margin-top: auto; }
+.footer-text { color: #666; font-size: 0.8rem; line-height: 1.6; }
+.footer-text span { color: #FFD700; font-weight: 600; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulseSuccess { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); } 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(0, 255, 0, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
+
+.success-view { text-align: center; padding: 40px 20px; animation: fadeIn 0.5s ease; display: none; }
+.success-icon-container { width: 90px; height: 90px; background: rgba(0, 255, 0, 0.1); border: 2px solid #00ff00; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; animation: pulseSuccess 2s infinite; }
+.success-view h2 { color: #00ff00; font-size: 1.6rem; margin-bottom: 15px; font-weight: 800; }
+.success-view p { color: #ccc; font-size: 1rem; line-height: 1.6; margin-bottom: 20px; max-width: 500px; margin-left: auto; margin-right: auto; }
+.success-info-box { background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; border-radius: 8px; padding: 20px; margin-bottom: 30px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
+.success-info-box p { margin: 0; font-size: 0.9rem; }
+.success-info-box p + p { margin-top: 10px; color: #aaa; font-size: 0.85rem; }
+.success-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+.btn-secondary { padding: 12px 30px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 8px; }
+.btn-secondary:hover { background: #333; border-color: #666; transform: translateY(-2px); }
+</style>
 </head>
 <body>
-    <nav class="navbar">
-        <a href="billetera.html" class="navbar-brand">
-            <img src="../img/logo.png" alt="Logo" class="navbar-logo">
-            <span class="navbar-title">Boche Clava'o</span>
-        </a>
-        <button class="btn-volver" onclick="window.location.href='billetera.html'">
-            <i class="fas fa-arrow-left"></i> Billetera
-        </button>
-    </nav>
-    
-    <div class="main-content">
-        <div class="user-balance-bar">
-            <div class="user-info">
-                <h3 id="userNameDisplay">Cargando...</h3>
-                <p>ID: <span id="userIdDisplay">---</span></p>
-            </div>
-            <div class="balance-info">
-                <div class="label">Saldo Actual</div>
-                <div class="amount" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-                    <img src="../img/moneda.png" alt="BC" style="width: 28px; height: 28px; object-fit: contain;">
-                    <span id="currentBalance">0.00</span> BC
-                </div>
-            </div>
-        </div>
-        
-        <div class="bcv-banner" style="display: flex; align-items: center; justify-content: center; gap: 15px;">
-            <img src="../img/bcv.png" alt="BCV" style="width: 50px; height: 50px; object-fit: contain; background: #fff; padding: 5px; border-radius: 6px;">
-            <div style="text-align: left;">
-                <div style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Tasa Oficial BCV del Día</div>
-                <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">
-                    1 USD = <span id="tasaBCVDisplay" style="color: #00ff00;">Cargando...</span> Bs
-                </div>
-                <small style="color: #666;" id="fechaBCVDisplay">Obteniendo datos...</small>
-            </div>
-        </div>
-        
-        <form id="formDeposito">
-            <div class="section-title"><i class="fas fa-gift"></i> Selecciona un Paquete (5% OFF)</div>
-            <div class="packages-grid" id="packagesGrid"></div>
-            
-            <div class="manual-input-group">
-                <label>O ingresa la cantidad exacta de monedas que deseas:</label>
-                <div class="input-with-addons">
-                    <input type="number" id="customAmount" step="1" min="1" placeholder="Ej: 12">
-                    <div class="input-addon">BC</div>
-                </div>
-                <div class="conversion-preview" style="flex-direction: column; gap: 10px; background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.3); padding: 15px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <div>
-                            <span style="color: #888; font-size: 0.8rem; display: block;">Total a pagar (con comisión 0.30%):</span>
-                            <span style="color: #00ff00; font-size: 1.4rem; font-weight: 800;">$<span id="totalUSD">0.00</span></span>
-                        </div>
-                        <div style="text-align: right;">
-                            <span style="color: #888; font-size: 0.8rem; display: block;">Equivalente en Bs:</span>
-                            <span style="color: #00ff00; font-size: 1.4rem; font-weight: 800;"><span id="totalVES">0.00</span> Bs</span>
-                        </div>
-                    </div>
-                    <div style="text-align: center; margin-top: 5px; font-size: 0.75rem; color: #FFA500;">
-                        <i class="fas fa-info-circle"></i> Incluye 0.30% de comisión por uso de plataforma
-                    </div>
-                </div>
-            </div>
-            
-            <div class="section-title"><i class="fas fa-credit-card"></i> Método de Pago</div>
-            <div class="payment-methods-grid" id="paymentMethodsGrid"></div>
-            
-            <div class="warning-notice">
-                <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="warning-content">
-                    <h4>Importante: Verifica tus datos antes de enviar</h4>
-                    <p>
-                        Es imperativo transferir el <strong>monto exacto</strong> calculado por el sistema. Cualquier discrepancia, por mínima que sea (déficit de fondos), impedirá la conciliación automática y la liberación de las monedas, requiriendo una revisión manual que puede resultar en el rechazo de la transacción. 
-                        <br><br>
-                        Asimismo, debes ingresar los <strong>datos exactos y reales</strong> de tu transacción para que el sistema pueda acreditar las monedas correctamente.
-                        <br><br>
-                        <span class="warning-highlight">
-                            <i class="fas fa-check-circle"></i> Verifica el monto final con la comisión incluida, el número de referencia y los datos de tu cuenta antes de reportar el depósito.
-                        </span>
-                    </p>
-                </div>
-            </div>
-            
-            <div class="company-data-box" id="companyDataBox">
-                <h4><i class="fas fa-building"></i> Datos para la transferencia</h4>
-                <div id="companyDataContent"></div>
-            </div>
-            
-            <div class="dynamic-form" id="dynamicForm">
-                <div class="section-title"><i class="fas fa-edit"></i> Datos de tu pago</div>
-                <div id="userFormFields"></div>
-                <div class="form-group" id="fileUploadGroup">
-                    <label>Comprobante de pago (Captura de pantalla)</label>
-                    <div class="file-upload" id="fileUploadContainer">
-                        <input type="file" id="comprobanteFile" accept="image/*">
-                        <div class="file-upload-content">
-                            <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
-                            <p id="fileName">Haz clic o arrastra tu captura aquí</p>
-                            <small style="color: #666; font-size: 0.75rem; margin-top: 5px;">JPG, PNG. Máximo 5MB</small>
-                        </div>
-                        <div class="file-preview" id="filePreview" style="display: none;">
-                            <img id="previewImage" src="" alt="Vista previa">
-                            <button type="button" class="remove-file" id="removeFile" title="Quitar imagen">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <small>📸 Formatos: JPG, PNG. Máximo 5MB. <strong style="color: #FFA500;">Sin comprobante = Depósito rechazado.</strong></small>
-                </div>
-                <button type="submit" class="btn-primary" id="btnDepositar">
-                    <i class="fas fa-paper-plane"></i> Reportar Depósito
-                </button>
-                <div id="msgDeposito" class="message"></div>
-            </div>
-        </form>
-        
-        <div id="successView" class="success-view">
-            <div class="success-icon-container">
-                <i class="fas fa-check" style="color: #00ff00;"></i>
-            </div>
-            <h2>¡Solicitud Enviada con Éxito!</h2>
-            <p>
-                Tu reporte de depósito por <strong style="color: #FFD700; font-size: 1.3rem;"><span id="successAmount">0</span> BC</strong> ha sido registrado correctamente en nuestro sistema.
-            </p>
-            <div class="success-info-box">
-                <p>
-                    <i class="fas fa-clock" style="color: #FFD700; margin-right: 8px;"></i>
-                    <strong>Tiempo estimado de revisión:</strong> 15 a 30 minutos.
-                </p>
-                <p>
-                    Una vez validado tu comprobante, las monedas se acreditarán automáticamente en tu saldo. Podrás verificar el estado en tu <a href="historial.html" style="color: #FFD700; text-decoration: underline;">Historial de Transacciones</a>.
-                </p>
-                <p style="margin-top: 10px; font-size: 0.85rem; color: #aaa;">
-                    <i class="fas fa-envelope" style="color: #FFD700;"></i> También hemos enviado una factura detallada a tu correo electrónico.
-                </p>
-            </div>
-            <div class="success-actions">
-                <button onclick="window.location.href='billetera.html'" class="btn-secondary">
-                    <i class="fas fa-wallet"></i> Ir a mi Billetera
-                </button>
-                <button onclick="nuevoDeposito()" class="btn-primary" style="width: auto; padding: 12px 30px; margin-top: 0;">
-                    <i class="fas fa-plus"></i> Hacer otro depósito
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <footer class="main-footer">
-        <p class="footer-text">
-            Copyright © todos los derechos reservados<br>
-            Desarrollado profesionalmente <span>G/P</span> 2026 - 2027
-        </p>
-    </footer>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="../js/config.js"></script>
-    <script src="../js/depositar.js"></script>
+<nav class="navbar">
+<a href="billetera.html" class="navbar-brand">
+<img src="../img/logo.png" alt="Logo" class="navbar-logo">
+<span class="navbar-title">Boche Clava'o</span>
+</a>
+<button class="btn-volver" onclick="window.location.href='billetera.html'">
+<i class="fas fa-arrow-left"></i> Billetera
+</button>
+</nav>
+
+<div class="main-content">
+<div class="user-balance-bar">
+<div class="user-info">
+<h3 id="userNameDisplay">Cargando...</h3>
+<p>ID: <span id="userIdDisplay">---</span></p>
+</div>
+<div class="balance-info">
+<div class="label">Saldo Actual</div>
+<div class="amount">
+<img src="../img/moneda.png" alt="BC">
+<span id="currentBalance">0.00</span> BC
+</div>
+</div>
+</div>
+
+<!-- ========== BANNER BCV ========== -->
+<div class="bcv-banner">
+<img src="../img/bcv.png" alt="BCV" class="bcv-logo" onerror="this.style.display='none'">
+<div class="bcv-banner-content">
+<div class="bcv-banner-label">
+<span class="live-dot"></span>
+Tasa Oficial BCV del Día
+</div>
+<div class="bcv-banner-rate" id="bcvRateContainer">
+1 USD = <span class="rate-value" id="tasaBCVDisplay">---</span> Bs
+</div>
+<small class="bcv-banner-date" id="fechaBCVDisplay">Obteniendo datos...</small>
+</div>
+</div>
+
+<form id="formDeposito">
+<div class="section-title"><i class="fas fa-gift"></i> Selecciona un Paquete (5% OFF)</div>
+<div class="packages-grid" id="packagesGrid"></div>
+
+<div class="manual-input-group">
+<label>O ingresa la cantidad exacta de monedas que deseas:</label>
+<div class="input-with-addons">
+<input type="number" id="customAmount" step="1" min="1" placeholder="Ej: 12">
+<div class="input-addon">BC</div>
+</div>
+<div class="conversion-preview" style="flex-direction: column; gap: 10px; background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.3); padding: 15px; border-radius: 8px;">
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+<div>
+<span style="color: #888; font-size: 0.8rem; display: block;">Total a pagar (con comisión 0.30%):</span>
+<span style="color: #00ff00; font-size: 1.4rem; font-weight: 800;">$<span id="totalUSD">0.00</span></span>
+</div>
+<div style="text-align: right;">
+<span style="color: #888; font-size: 0.8rem; display: block;">Equivalente en Bs:</span>
+<span style="color: #00ff00; font-size: 1.4rem; font-weight: 800;"><span id="totalVES">0.00</span> Bs</span>
+</div>
+</div>
+<div style="text-align: center; margin-top: 5px; font-size: 0.75rem; color: #FFA500;">
+<i class="fas fa-info-circle"></i> Incluye 0.30% de comisión por uso de plataforma
+</div>
+</div>
+</div>
+
+<div class="section-title"><i class="fas fa-credit-card"></i> Método de Pago</div>
+<div class="payment-methods-grid" id="paymentMethodsGrid"></div>
+
+<div class="warning-notice">
+<div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
+<div class="warning-content">
+<h4>Importante: Verifica tus datos antes de enviar</h4>
+<p>
+Es imperativo transferir el <strong>monto exacto</strong> calculado por el sistema. Cualquier discrepancia impedirá la conciliación automática.
+<br><br>
+Asimismo, debes ingresar los <strong>datos exactos y reales</strong> de tu transacción.
+<br><br>
+<span class="warning-highlight">
+<i class="fas fa-check-circle"></i> Verifica el monto final con la comisión incluida antes de reportar.
+</span>
+</p>
+</div>
+</div>
+
+<div class="company-data-box" id="companyDataBox">
+<h4><i class="fas fa-building"></i> Datos para la transferencia</h4>
+<div id="companyDataContent"></div>
+</div>
+
+<div class="dynamic-form" id="dynamicForm">
+<div class="section-title"><i class="fas fa-edit"></i> Datos de tu pago</div>
+<div id="userFormFields"></div>
+<div class="form-group" id="fileUploadGroup">
+<label>Comprobante de pago (Captura de pantalla)</label>
+<div class="file-upload" id="fileUploadContainer">
+<input type="file" id="comprobanteFile" accept="image/*">
+<div class="file-upload-content">
+<i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
+<p id="fileName">Haz clic o arrastra tu captura aquí</p>
+<small style="color: #666; font-size: 0.75rem; margin-top: 5px;">JPG, PNG. Máximo 5MB</small>
+</div>
+<div class="file-preview" id="filePreview" style="display: none;">
+<img id="previewImage" src="" alt="Vista previa">
+<button type="button" class="remove-file" id="removeFile" title="Quitar imagen">
+<i class="fas fa-times"></i>
+</button>
+</div>
+</div>
+<small>📸 Formatos: JPG, PNG. Máximo 5MB. <strong style="color: #FFA500;">Sin comprobante = Depósito rechazado.</strong></small>
+</div>
+<button type="submit" class="btn-primary" id="btnDepositar">
+<i class="fas fa-paper-plane"></i> Reportar Depósito
+</button>
+<div id="msgDeposito" class="message"></div>
+</div>
+</form>
+
+<div id="successView" class="success-view">
+<div class="success-icon-container">
+<i class="fas fa-check" style="color: #00ff00;"></i>
+</div>
+<h2>¡Solicitud Enviada con Éxito!</h2>
+<p>
+Tu reporte de depósito por <strong style="color: #FFD700; font-size: 1.3rem;"><span id="successAmount">0</span> BC</strong> ha sido registrado correctamente.
+</p>
+<div class="success-info-box">
+<p>
+<i class="fas fa-clock" style="color: #FFD700; margin-right: 8px;"></i>
+<strong>Tiempo estimado de revisión:</strong> 15 a 30 minutos.
+</p>
+<p>
+Una vez validado tu comprobante, las monedas se acreditarán automáticamente.
+</p>
+<p style="margin-top: 10px; font-size: 0.85rem; color: #aaa;">
+<i class="fas fa-envelope" style="color: #FFD700;"></i> También hemos enviado una factura detallada a tu correo electrónico.
+</p>
+</div>
+<div class="success-actions">
+<button onclick="window.location.href='billetera.html'" class="btn-secondary">
+<i class="fas fa-wallet"></i> Ir a mi Billetera
+</button>
+<button onclick="nuevoDeposito()" class="btn-primary" style="width: auto; padding: 12px 30px; margin-top: 0;">
+<i class="fas fa-plus"></i> Hacer otro depósito
+</button>
+</div>
+</div>
+</div>
+
+<footer class="main-footer">
+<p class="footer-text">
+Copyright © todos los derechos reservados<br>
+Desarrollado profesionalmente <span>G/P</span> 2026 - 2027
+</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/depositar.js"></script>
 </body>
 </html>
