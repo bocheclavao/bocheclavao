@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const metodosPago = {
         pagomovil: {
             nombre: "Pago Móvil",
-            imagen: "../img/pg.pnb.png",
+            imagen: "../img/pg.png",
             campos: [
                 { nombre: "banco_emisor", etiqueta: "Tu Banco", tipo: "select", opciones: ["Banco de Venezuela", "Banesco", "Mercantil", "Provincial", "Bancaribe", "100% Banco", "Otro"] },
                 { nombre: "telefono_emisor", etiqueta: "Tu Teléfono", tipo: "text", placeholder: "0412-1234567" },
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         paypal: {
             nombre: "PayPal",
-            imagen: "../img/paypla.png",
+            imagen: "../img/paypal.png",
             campos: [
                 { nombre: "correo_emisor", etiqueta: "Tu Correo PayPal", tipo: "email", placeholder: "tu@email.com" },
                 { nombre: "referencia", etiqueta: "ID de Transacción PayPal", tipo: "text", placeholder: "ID de la transacción" }
